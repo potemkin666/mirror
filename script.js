@@ -413,7 +413,8 @@ function updatePortraitState(dt) {
   // --- Panic: extreme cursor speed → shard multiplication ---
   //     Only fires above a high-speed threshold; creates sharp, multiplicative chaos.
   const panicThreshold = 0.06;  // cursorSmooth above this triggers panic
-  const rawPanic = Math.max(0, inter.cursorSmooth - panicThreshold) / (0.18 - panicThreshold);
+  const panicRange     = 0.12;  // normalisation range (0.18 - panicThreshold)
+  const rawPanic = Math.max(0, inter.cursorSmooth - panicThreshold) / panicRange;
   const targetPanic = Math.min(1, rawPanic);
   p.panic = p.panic + (targetPanic - p.panic) * (dt / 160);
 
