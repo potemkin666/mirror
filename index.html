@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="The Mirror — an interactive portrait assembled from the involuntary confessions of a browser." />
+  <title>The Mirror</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Primary rendering surface -->
+  <canvas id="mirror-canvas" aria-hidden="true"></canvas>
+
+  <!-- Vignette darkens the edges of the chamber -->
+  <div id="vignette" aria-hidden="true"></div>
+
+  <!-- Ambient text fragments float here -->
+  <div id="text-overlay" aria-live="polite" aria-label="Ambient reflections"></div>
+
+  <!-- Landing veil — covers until the visitor moves or clicks -->
+  <div id="landing-veil">
+    <h1 class="mirror-title">the mirror</h1>
+    <p class="invitation">move to begin</p>
+    <p class="landing-hint">or simply wait</p>
+  </div>
+
+  <!-- Custom cursor dot -->
+  <div id="cursor" aria-hidden="true"></div>
+
+  <!-- Minimal control cluster — hidden until awakened, appears on hover -->
+  <nav id="controls" aria-label="Mirror controls">
+    <button class="ctrl-btn" id="begin-btn">◈ enter</button>
+    <button class="ctrl-btn" id="mute-btn">◎ mute</button>
+    <button class="ctrl-btn" id="clear-memory-btn">◌ forget</button>
+    <button class="ctrl-btn" id="diag-btn" aria-expanded="false">⊙ reveal</button>
+  </nav>
+
+  <!-- Diagnostics panel — hidden by default, toggle with ⊙ reveal -->
+  <div id="diagnostics" hidden aria-label="Session diagnostics" role="region"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
