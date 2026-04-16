@@ -130,6 +130,19 @@ const state = {
   // Soft metaball orbs
   metaballs: [],
 
+  // Cursor afterimage trail — smoky/oily positions
+  cursorTrail: [],    // [{x, y, age, speed}]
+
+  // Glass crack propagation map — persistent fracture lines
+  cracks: [],         // [{x1,y1,x2,y2,gen,age,alpha}]
+  crackQueue: [],     // [{x,y,angle,len,gen}] — pending branches to grow
+
+  // Liquid mirror ripples
+  ripples: [],        // [{cx,cy,age,maxR,intensity}]
+
+  // Ritual geometry rotation phase
+  ritualPhase: 0,
+
   memory  : null,     // loaded from localStorage
   shards  : [],       // Shard instances
   noiseFramePool: [], // pre-rendered noise canvases
