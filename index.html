@@ -9,6 +9,9 @@
 </head>
 <body>
 
+  <!-- WebGL refraction layer — sits beneath the 2D canvas -->
+  <canvas id="glass-canvas" aria-hidden="true"></canvas>
+
   <!-- Primary rendering surface -->
   <canvas id="mirror-canvas" aria-hidden="true"></canvas>
 
@@ -33,12 +36,16 @@
     <button class="ctrl-btn" id="begin-btn">◈ enter</button>
     <button class="ctrl-btn" id="mute-btn">◎ mute</button>
     <button class="ctrl-btn" id="clear-memory-btn">◌ forget</button>
+    <button class="ctrl-btn" id="save-btn">⎙ save</button>
     <button class="ctrl-btn" id="diag-btn" aria-expanded="false">⊙ reveal</button>
   </nav>
 
   <!-- Diagnostics panel — hidden by default, toggle with ⊙ reveal -->
   <div id="diagnostics" hidden aria-label="Session diagnostics" role="region"></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+          integrity="sha512-dLRExBhMBP5a2biJnoNkeOHkQm0cKGoGPBxIhJ7vEe6XQeKAfRdJGT0WPQ95vEyhmYhg4TB2bLEhe2+tkE1MA=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="script.js"></script>
 </body>
 </html>

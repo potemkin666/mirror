@@ -2,14 +2,17 @@
  *
  * Architecture
  * ────────────
- *  collectEnvironment()  → reads browser / device / locale signals once
+ *  collectEnvironment()  → reads browser / device / locale / referrer signals once
  *  trackInteraction()    → wires event listeners; updates state.interaction
  *  buildVisitorProfile() → translates raw signals into artistic portrait params
+ *  chooseTemperament()   → selects mirror temperament (flattering/cruel/silent/devotional)
  *  updatePortraitState() → evolves portrait params each animation frame
  *  renderMirror()        → draws one canvas frame (shards, glow, eyes, noise)
+ *  initGlassRefraction() → Three.js WebGL glass refraction layer
  *  generateTextFragments()→ generates nonsensical ambient text from user input
  *  saveMirrorMemory()    → persists a minimal poetic profile in localStorage
  *  clearMirrorMemory()   → wipes that profile
+ *  exportPortrait()      → canvas → PNG download
  *
  * Artistic mapping notes live in buildVisitorProfile() and updatePortraitState().
  * Visual constants live in CONFIG.
@@ -32,6 +35,9 @@ const CONFIG = {
   noiseFrames        : 10,     // pre-rendered noise canvases cycled for static
   hoverSpeedThreshold: 0.04,   // px/ms below which a cursor position is treated as lingering
   maxFrameDeltaMs    : 80,     // cap on dt to prevent large portrait jumps after tab suspension
+  maxTrailPoints     : 120,    // max points per finger trail
+  activeTrailMaxAge  : 15000,  // ms before active trail points expire
+  inactiveTrailMaxAge: 8000,   // ms before inactive trail points expire
 };
 
 // ─── Global State ──────────────────────────────────────────────────────────
@@ -39,6 +45,9 @@ const state = {
   phase    : 'landing',   // landing | awakening | observation | interaction | recognition
   awakened : false,
   startTime: Date.now(),
+
+  // Mirror temperament: flattering | cruel | silent | devotional
+  temperament: 'flattering',
 
   environment: {},
 
@@ -60,6 +69,9 @@ const state = {
     scrollSmooth      : 0,    // smoothed scroll velocity for gentle/violent discrimination
     resizeInjuryRaw   : 0,    // raw resize injury signal (set to 1 on resize, decays)
     clickCount        : 0,    // total clicks — triggers cracks
+    // Touch-specific finger trails
+    fingerTrails      : [],   // [{points: [{x,y,pressure,age}], active: bool}]
+    activeTouches     : {},   // touchId → trail index
   },
 
   portrait: {
@@ -158,6 +170,19 @@ const state = {
   audioNodes : null,
   audioReady : false,
   muted      : false,
+
+  // Three.js glass refraction layer
+  glass: {
+    renderer: null,
+    scene:    null,
+    camera:   null,
+    mesh:     null,
+    uniforms: null,
+    ready:    false,
+  },
+
+  // Scar replay ghosts — loaded from memory for visual replay
+  scarGhosts: [],  // [{convergence, crack, erasure, jitter, alpha, age}]
 };
 
 // ─── Shard ─────────────────────────────────────────────────────────────────
@@ -362,6 +387,26 @@ function collectEnvironment() {
 
   env.returnVisit = !!(env.storage && localStorage.getItem(CONFIG.memoryKey));
 
+  // ── Referrer / origin ──
+  env.referrer = '';
+  env.referrerDomain = '';
+  try {
+    const ref = document.referrer;
+    if (ref) {
+      env.referrer = ref;
+      const url = new URL(ref);
+      env.referrerDomain = url.hostname;
+    }
+  } catch (_) {}
+
+  // Social media referrer detection
+  const socialDomains = ['facebook.com','instagram.com','twitter.com','x.com',
+    'tiktok.com','reddit.com','linkedin.com','threads.net','bsky.app','mastodon.social'];
+  env.isSocialReferrer = socialDomains.some(d => env.referrerDomain.includes(d));
+  env.isSearchReferrer = ['google.','bing.','duckduckgo.','yahoo.','baidu.'].some(
+    d => env.referrerDomain.includes(d));
+  env.isDirectVisit = !env.referrer;
+
   state.environment = env;
 }
 
@@ -406,6 +451,55 @@ function trackInteraction() {
   document.addEventListener('touchmove', e => {
     const t = e.touches[0];
     handleMove(t.clientX, t.clientY);
+
+    // Finger trail tracking — record all active touch points as wound trails
+    for (let i = 0; i < e.touches.length; i++) {
+      const touch = e.touches[i];
+      const trailIdx = inter.activeTouches[touch.identifier];
+      if (trailIdx !== undefined && inter.fingerTrails[trailIdx]) {
+        const trail = inter.fingerTrails[trailIdx];
+        const pressure = touch.force || 0.5;
+        trail.points.push({
+          x: touch.clientX / window.innerWidth,
+          y: touch.clientY / window.innerHeight,
+          pressure: pressure,
+          age: 0,
+        });
+        // Cap trail length
+        if (trail.points.length > CONFIG.maxTrailPoints) trail.points.shift();
+      }
+    }
+  }, { passive: true });
+
+  // Touch start — begin a new finger trail
+  document.addEventListener('touchstart', e => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const trailIdx = inter.fingerTrails.length;
+      inter.fingerTrails.push({
+        points: [{
+          x: touch.clientX / window.innerWidth,
+          y: touch.clientY / window.innerHeight,
+          pressure: touch.force || 0.5,
+          age: 0,
+        }],
+        active: true,
+        startTime: Date.now(),
+      });
+      inter.activeTouches[touch.identifier] = trailIdx;
+    }
+  }, { passive: true });
+
+  // Touch end — deactivate trail
+  document.addEventListener('touchend', e => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const trailIdx = inter.activeTouches[touch.identifier];
+      if (trailIdx !== undefined && inter.fingerTrails[trailIdx]) {
+        inter.fingerTrails[trailIdx].active = false;
+      }
+      delete inter.activeTouches[touch.identifier];
+    }
   }, { passive: true });
 
   // Scroll (fires only when document actually scrolls — rare with overflow:hidden)
@@ -857,6 +951,161 @@ function buildVisitorProfile() {
   // ── Final behaviour modulation ──
   e.motionScale   = Math.max(0, Math.min(1, e.motionScale * hourTempo));
   e.approachSpeed = Math.max(0.3, Math.min(2.0, e.approachSpeed));
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  REFERRER → portrait character adjustments
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (env.isSocialReferrer) {
+    // Social media: fractured, performative, split — the figure is a public version
+    e.symmetry    = Math.max(0, e.symmetry - 0.15);
+    e.intimacy    = Math.max(0, e.intimacy - 0.20);
+    e.idleRestless = Math.min(1, e.idleRestless + 0.15);
+    // More cracks — social arrival damages the portrait
+    p.crack = Math.min(1, p.crack + 0.08);
+  } else if (env.isSearchReferrer) {
+    // Search: clinical, investigative — the gaze is more surgical
+    e.specularWidth = Math.min(1, e.specularWidth + 0.12);
+    e.anticipation  = Math.max(0, e.anticipation - 0.10);
+  } else if (env.isDirectVisit) {
+    // Direct: private, deliberate, more intimate
+    e.intimacy     = Math.min(1, e.intimacy + 0.08);
+    e.sovereignty  = Math.min(1, e.sovereignty + 0.05);
+  }
+
+  // ── Optional backend for extended environment data ──
+  // If /api/mirror-env exists, fetch IP geolocation and extended origin data
+  // The portrait will update asynchronously if data arrives
+  fetchBackendEnv();
+}
+
+// ─── Optional backend fetch (non-blocking) ─────────────────────────────────
+function fetchBackendEnv() {
+  // Try to fetch from an optional API endpoint. If it doesn't exist, silently ignore.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+  fetch('/api/mirror-env', { signal: controller.signal })
+    .then(r => { clearTimeout(timeoutId); return r.ok ? r.json() : null; })
+    .then(data => {
+      if (!data) return;
+      const env = state.environment;
+      // Merge any backend-provided fields
+      if (data.latitude !== undefined)  env.latitude  = data.latitude;
+      if (data.longitude !== undefined) env.longitude = data.longitude;
+      if (data.city)    env.city    = data.city;
+      if (data.country) env.country = data.country;
+      if (data.isp)     env.isp    = data.isp;
+      // Geographic distance from server / centre could further modulate portrait
+      // but we don't require the backend — it's purely additive
+    })
+    .catch(() => { clearTimeout(timeoutId); /* backend not available, that's fine */ });
+}
+
+// ─── Temperament System ────────────────────────────────────────────────────
+// The mirror chooses a temperament based on environmental and behavioural signals.
+// Temperament modulates rendering parameters throughout the session.
+
+function chooseTemperament() {
+  const env = state.environment;
+  const p   = state.portrait;
+  const e   = p.env;
+
+  // Score each temperament based on signals
+  const scores = { flattering: 0, cruel: 0, silent: 0, devotional: 0 };
+
+  // Hour influence
+  const h = env.hour || 12;
+  if (h >= 8 && h < 12) scores.flattering += 2;           // morning light flatters
+  if (h >= 0 && h < 5)  scores.cruel += 2;                // witching hours are cruel
+  if (h >= 17 && h < 21) scores.devotional += 2;          // dusk is devotional
+  if (h >= 12 && h < 14) scores.silent += 1;              // noon is still / harsh
+
+  // Deletion ratio — high erasure makes the mirror cruel
+  const delRatio = state.interaction.typing.count > 5
+    ? state.interaction.typing.deletions / state.interaction.typing.count : 0;
+  if (delRatio > 0.3) scores.cruel += 2;
+  if (delRatio < 0.1) scores.flattering += 1;
+
+  // Visit pattern
+  if (state.memory && state.memory.visits >= 5) {
+    scores.devotional += 2;   // devoted visitors get devotional mirror
+  }
+  if (state.memory && state.memory.visits === 1) {
+    scores.flattering += 1;   // second visit is still flattering
+  }
+
+  // Social referrer → cruel (performative gaze)
+  if (env.isSocialReferrer) scores.cruel += 2;
+
+  // Direct visit → silent or devotional
+  if (env.isDirectVisit) {
+    scores.silent += 1;
+    scores.devotional += 1;
+  }
+
+  // Reduced motion → silent (ritual stillness)
+  if (env.reducedMotion) scores.silent += 3;
+
+  // Touch devices → more intimate → devotional or flattering
+  if (env.touch) {
+    scores.flattering += 1;
+    scores.devotional += 1;
+  }
+
+  // Find highest score (with tie-breaking from deterministic hash of hour + visits)
+  let best = 'flattering';
+  let bestScore = -1;
+  const tieBreak = (h * 7 + (state.memory ? state.memory.visits : 0) * 13) % 4;
+  const order = ['flattering', 'cruel', 'silent', 'devotional'];
+  // Rotate the order for tie-breaking
+  const rotated = [...order.slice(tieBreak), ...order.slice(0, tieBreak)];
+
+  for (const t of rotated) {
+    if (scores[t] > bestScore) {
+      bestScore = scores[t];
+      best = t;
+    }
+  }
+
+  state.temperament = best;
+  applyTemperament();
+}
+
+function applyTemperament() {
+  const p = state.portrait;
+  const e = p.env;
+
+  switch (state.temperament) {
+    case 'flattering':
+      // Converges faster, softens edges, light catches more generously
+      e.approachSpeed = Math.min(2.0, e.approachSpeed * 1.4);
+      e.edgeQuality   = Math.min(1, e.edgeQuality + 0.15);
+      e.surfaceWet    = Math.min(1, e.surfaceWet + 0.12);
+      e.specularWidth = Math.min(1, e.specularWidth + 0.10);
+      break;
+
+    case 'cruel':
+      // Convergence resisted, cracks deepen, autonomous motion predatory
+      e.approachSpeed = Math.max(0.3, e.approachSpeed * 0.6);
+      e.idleRestless  = Math.min(1, e.idleRestless + 0.25);
+      e.grainCoarse   = Math.min(1, e.grainCoarse + 0.15);
+      e.anticipation  = Math.min(1, e.anticipation + 0.20);
+      p.crack = Math.min(1, p.crack + 0.05);
+      break;
+
+    case 'silent':
+      // No text fragments — the figure assembles in quiet
+      e.motionScale   = Math.max(0, e.motionScale * 0.5);
+      e.idleRestless  = Math.max(0, e.idleRestless - 0.20);
+      break;
+
+    case 'devotional':
+      // Halo brighter, ritual geometry more elaborate
+      e.approachSpeed = Math.min(2.0, e.approachSpeed * 1.2);
+      e.surfaceWet    = Math.min(1, e.surfaceWet + 0.15);
+      e.intimacy      = Math.min(1, e.intimacy + 0.15);
+      break;
+  }
 }
 
 // ─── Portrait silhouette density ───────────────────────────────────────────
@@ -930,6 +1179,18 @@ function updatePortraitState(dt) {
   // Fast cursor actively tears apart convergence
   if (p.jitter > 0.5) {
     p.convergence = Math.max(0, p.convergence - p.jitter * 0.0008 * dt);
+  }
+
+  // Cruel temperament: convergence is harder to achieve, cracks deepen faster
+  if (state.temperament === 'cruel') {
+    p.convergence = Math.max(0, p.convergence - 0.00005 * dt);
+    p.crack = Math.min(1, p.crack + 0.000002 * dt);
+  }
+
+  // Flattering temperament: convergence ceiling is higher, damage fades
+  if (state.temperament === 'flattering') {
+    p.crack = Math.max(0, p.crack - 0.00001 * dt);
+    p.erasure = Math.max(0, p.erasure - 0.000005 * dt);
   }
 
   // Anticipation: mirror sometimes moves toward convergence before input warrants it
@@ -1410,6 +1671,104 @@ function drawCursorTrail(ctx, W, H, p, t) {
   ctx.restore();
 }
 
+// ─── Touch Finger Trails (wounds scored by fingers) ────────────────────────
+
+function updateFingerTrails(dt) {
+  const trails = state.interaction.fingerTrails;
+
+  for (const trail of trails) {
+    for (const pt of trail.points) {
+      pt.age += dt;
+    }
+    // Remove old points
+    const maxAge = trail.active ? CONFIG.activeTrailMaxAge : CONFIG.inactiveTrailMaxAge;
+    trail.points = trail.points.filter(pt => pt.age < maxAge);
+  }
+
+  // Remove empty inactive trails
+  state.interaction.fingerTrails = trails.filter(
+    tr => tr.active || tr.points.length > 0
+  );
+}
+
+function drawFingerTrails(ctx, W, H, p, t) {
+  const trails = state.interaction.fingerTrails;
+  if (trails.length === 0) return;
+  const e = p.env;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (const trail of trails) {
+    if (trail.points.length < 2) continue;
+
+    // Draw as oily finger-smear wound
+    for (let i = 1; i < trail.points.length; i++) {
+      const prev = trail.points[i - 1];
+      const pt   = trail.points[i];
+      const life = trail.active ? 1 : Math.max(0, 1 - pt.age / 8000);
+      if (life <= 0) continue;
+
+      const pressure = pt.pressure || 0.5;
+      const width = 2 + pressure * 12 + (1 - life) * 4;
+
+      // Warm amber wound colour — more intense with pressure
+      const warmth = pressure * 0.7;
+      const wR = Math.floor(200 + warmth * 55);
+      const wG = Math.floor(160 - warmth * 40);
+      const wB = Math.floor(120 - warmth * 60);
+      const alpha = life * 0.22 * pressure;
+
+      ctx.strokeStyle = `rgba(${wR},${wG},${wB},${alpha})`;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(prev.x * W, prev.y * H);
+      ctx.lineTo(pt.x * W, pt.y * H);
+      ctx.stroke();
+
+      // Oily smear halo around the trail
+      if (pressure > 0.3 && life > 0.3) {
+        const haloR = width * 2.5;
+        const haloAlpha = alpha * 0.15;
+        const grd = ctx.createRadialGradient(
+          pt.x * W, pt.y * H, 0,
+          pt.x * W, pt.y * H, haloR
+        );
+        grd.addColorStop(0, `rgba(${wR},${wG},${wB},${haloAlpha})`);
+        grd.addColorStop(1, `rgba(${wR},${wG},${wB},0)`);
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(pt.x * W, pt.y * H, haloR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Fingerprint burn at touch start point (if trail is recent)
+    if (trail.points.length > 0) {
+      const first = trail.points[0];
+      const burnLife = Math.max(0, 1 - first.age / 12000);
+      if (burnLife > 0.05) {
+        const bx = first.x * W;
+        const by = first.y * H;
+        const br = 8 + (1 - burnLife) * 6;
+        const burnAlpha = burnLife * 0.18;
+        const bg = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+        bg.addColorStop(0,   `rgba(240,220,180,${burnAlpha})`);
+        bg.addColorStop(0.5, `rgba(220,190,150,${burnAlpha * 0.4})`);
+        bg.addColorStop(1,   `rgba(200,170,130,0)`);
+        ctx.fillStyle = bg;
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
 // ─── Cursor Heatmap Scars ──────────────────────────────────────────────────
 
 function updateHeatScars(dt) {
@@ -1600,7 +1959,10 @@ function drawRitualGeometry(ctx, W, H, p, t) {
   // Only appear after some convergence
   if (conv < 0.12) return;
 
-  const alpha = Math.min(0.18, (conv - 0.12) * 0.25);
+  // Devotional temperament: more elaborate, brighter ritual geometry
+  const devotionalBoost = state.temperament === 'devotional' ? 1.5 : 1.0;
+
+  const alpha = Math.min(0.18 * devotionalBoost, (conv - 0.12) * 0.25 * devotionalBoost);
   const ms    = p.env.motionScale;
   const phase = state.ritualPhase;
 
@@ -1937,6 +2299,95 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
   ctx.restore();
 }
 
+// ─── Scar Ghost Replay ─────────────────────────────────────────────────────
+// Prior session portraits flicker behind the current one as translucent ghosts
+
+function initScarGhosts() {
+  if (!state.memory || !state.memory.scars || state.memory.scars.length < 1) return;
+
+  state.scarGhosts = state.memory.scars.map((scar, idx) => ({
+    convergence: scar.convergence || 0,
+    crack:       scar.crack || 0,
+    erasure:     scar.erasure || 0,
+    jitter:      scar.jitter || 0,
+    index:       idx,
+    // Each ghost has a phase offset for flickering
+    phase:       idx * 1.7 + Math.random() * 2,
+    // Older scars are dimmer
+    maxAlpha:    Math.max(0.02, 0.08 - idx * 0.015),
+  }));
+}
+
+function drawScarGhosts(ctx, W, H, p, t) {
+  if (state.scarGhosts.length === 0) return;
+  // Only show after some convergence (the mirror must recognise you first)
+  if (p.convergence < 0.25) return;
+
+  const shift = p.skeletonShift;
+  const cx    = W * (0.5 + shift);
+  const e     = p.env;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  for (const ghost of state.scarGhosts) {
+    // Flicker — ghosts appear and disappear rhythmically
+    const flicker = Math.sin(t * 0.3 + ghost.phase) * Math.sin(t * 0.7 + ghost.phase * 0.6);
+    if (flicker < 0.2) continue;
+
+    const alpha = ghost.maxAlpha * (flicker - 0.2) * 1.25 * (p.convergence - 0.25) * 2;
+    if (alpha < 0.003) continue;
+
+    // Draw a simplified ghost silhouette — head and torso blobs
+    // at the convergence level of that past session
+    const ghostConv = ghost.convergence;
+    const headR = Math.min(W, H) * (0.04 + ghostConv * 0.06);
+    const headY = H * 0.27;
+
+    // Head ghost
+    const hg = ctx.createRadialGradient(cx, headY, 0, cx, headY, headR);
+    const gR = Math.floor(e.paletteR * 0.6);
+    const gG = Math.floor(e.paletteG * 0.65);
+    const gB = Math.floor(e.paletteB * 0.75);
+    hg.addColorStop(0,   `rgba(${gR},${gG},${gB},${alpha})`);
+    hg.addColorStop(0.6, `rgba(${gR},${gG},${gB},${alpha * 0.3})`);
+    hg.addColorStop(1,   `rgba(${gR},${gG},${gB},0)`);
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Torso ghost
+    const torsoY = H * 0.48;
+    const torsoR = headR * 1.8;
+    const tg = ctx.createRadialGradient(cx, torsoY, 0, cx, torsoY, torsoR);
+    tg.addColorStop(0,   `rgba(${gR},${gG},${gB},${alpha * 0.6})`);
+    tg.addColorStop(0.5, `rgba(${gR},${gG},${gB},${alpha * 0.15})`);
+    tg.addColorStop(1,   `rgba(${gR},${gG},${gB},0)`);
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.ellipse(cx, torsoY, torsoR * 0.7, torsoR, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ghost crack lines — if the past session had damage
+    if (ghost.crack > 0.2) {
+      ctx.strokeStyle = `rgba(${gR},${gG},${gB},${alpha * ghost.crack * 0.5})`;
+      ctx.lineWidth = 0.3;
+      const crackCount = Math.floor(ghost.crack * 4) + 1;
+      for (let i = 0; i < crackCount; i++) {
+        const angle = ghost.phase + i * 1.3;
+        const len = headR * (0.5 + ghost.crack * 0.8);
+        ctx.beginPath();
+        ctx.moveTo(cx, headY);
+        ctx.lineTo(cx + Math.cos(angle) * len, headY + Math.sin(angle) * len);
+        ctx.stroke();
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
 // ─── Module 5 — Render Mirror ──────────────────────────────────────────────
 function renderMirror() {
   const canvas = document.getElementById('mirror-canvas');
@@ -2080,6 +2531,12 @@ function renderMirror() {
 
   // 7d. Motion-activated anatomy (ribs, jaw, spine, halo, hands)
   drawMotionAnatomy(ctx, W, H, p, t);
+
+  // 7e. Touch finger trails — wounds scored by fingers (touch devices)
+  drawFingerTrails(ctx, W, H, p, t);
+
+  // 7f. Scar ghost replay — prior session portraits flickering behind
+  drawScarGhosts(ctx, W, H, p, t);
 
   // 8. Type tremor rib-flash overlay
   if (p.typeTremor > 0.15) drawTypeTremorFlash(ctx, W, H, p, t);
@@ -2497,6 +2954,195 @@ function drawNoise(ctx, W, H, p) {
   ctx.restore();
 }
 
+// ─── Three.js Glass Refraction Layer ────────────────────────────────────────
+// Renders a plane of dark glass with real refraction / specular caustics
+// behind the 2D canvas. Falls back gracefully if WebGL / Three.js unavailable.
+
+function initGlassRefraction() {
+  if (typeof THREE === 'undefined') {
+    // Three.js not loaded — glass refraction layer disabled
+    return;
+  }
+
+  const glassCanvas = document.getElementById('glass-canvas');
+  if (!glassCanvas) return;
+
+  try {
+    const renderer = new THREE.WebGLRenderer({
+      canvas: glassCanvas,
+      alpha: true,
+      antialias: true,
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      45, window.innerWidth / window.innerHeight, 0.1, 100
+    );
+    camera.position.z = 2.5;
+
+    // Glass plane with custom shader material
+    const uniforms = {
+      uTime:        { value: 0 },
+      uConvergence: { value: 0 },
+      uCursorX:     { value: 0.5 },
+      uCursorY:     { value: 0.5 },
+      uResolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    };
+
+    const vertexShader = `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vUv = uv;
+        vNormal = normalMatrix * normal;
+        vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const fragmentShader = `
+      uniform float uTime;
+      uniform float uConvergence;
+      uniform float uCursorX;
+      uniform float uCursorY;
+      uniform vec2 uResolution;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+
+      // Simple pseudo-noise
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      void main() {
+        vec2 uv = vUv;
+        vec2 cursor = vec2(uCursorX, 1.0 - uCursorY);
+
+        // Glass distortion: subtle refraction ripples
+        float distFromCursor = length(uv - cursor);
+        float cursorInfluence = smoothstep(0.5, 0.0, distFromCursor) * 0.02;
+
+        // Time-based surface perturbation (glass imperfections)
+        float n1 = noise(uv * 8.0 + uTime * 0.15) * 0.008;
+        float n2 = noise(uv * 16.0 - uTime * 0.08) * 0.004;
+        vec2 refracted = uv + vec2(n1 + cursorInfluence, n2 + cursorInfluence * 0.5);
+
+        // Specular caustics — bright light concentrations from refraction
+        float caustic1 = noise(refracted * 12.0 + uTime * 0.2);
+        float caustic2 = noise(refracted * 24.0 - uTime * 0.15);
+        float caustics = pow(caustic1 * caustic2, 3.0) * 2.0;
+
+        // Fresnel-like edge brightening
+        float fresnel = pow(1.0 - abs(dot(normalize(vNormal), normalize(-vPosition))), 3.0);
+
+        // Base glass colour: very dark, slightly blue-tinted
+        vec3 glassBase = vec3(0.01, 0.015, 0.025);
+
+        // Specular highlights — drifting light across the surface
+        float spec1 = pow(max(0.0, noise(refracted * 6.0 + vec2(uTime * 0.1, 0.0))), 8.0);
+        float spec2 = pow(max(0.0, noise(refracted * 4.0 + vec2(0.0, uTime * 0.07))), 12.0);
+        vec3 specular = vec3(0.45, 0.48, 0.55) * (spec1 * 0.15 + spec2 * 0.08);
+
+        // Combine
+        vec3 color = glassBase;
+        color += vec3(0.35, 0.38, 0.45) * caustics * 0.12 * uConvergence;
+        color += specular * (0.3 + uConvergence * 0.4);
+        color += vec3(0.25, 0.28, 0.35) * fresnel * 0.08;
+
+        // Cursor proximity adds warm refraction highlight
+        color += vec3(0.4, 0.3, 0.2) * cursorInfluence * 8.0;
+
+        float alpha = 0.15 + fresnel * 0.12 + caustics * 0.05 * uConvergence;
+        alpha = min(alpha, 0.35);
+
+        gl_FragColor = vec4(color, alpha);
+      }
+    `;
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+
+    const geometry = new THREE.PlaneGeometry(4, 3, 32, 32);
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    state.glass.renderer = renderer;
+    state.glass.scene    = scene;
+    state.glass.camera   = camera;
+    state.glass.mesh     = mesh;
+    state.glass.uniforms = uniforms;
+    state.glass.ready    = true;
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      if (!state.glass.ready) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      state.glass.renderer.setSize(w, h);
+      state.glass.camera.aspect = w / h;
+      state.glass.camera.updateProjectionMatrix();
+      state.glass.uniforms.uResolution.value.set(w, h);
+    });
+  } catch (e) {
+    // WebGL not available — graceful degradation
+    state.glass.ready = false;
+  }
+}
+
+function updateGlassRefraction(t) {
+  if (!state.glass.ready) return;
+
+  const u = state.glass.uniforms;
+  u.uTime.value = t;
+  u.uConvergence.value = state.portrait.convergence;
+  u.uCursorX.value = state.mirrorCursor.x / window.innerWidth;
+  u.uCursorY.value = state.mirrorCursor.y / window.innerHeight;
+
+  state.glass.renderer.render(state.glass.scene, state.glass.camera);
+}
+
+// ─── Portrait Export (canvas → PNG download) ────────────────────────────────
+
+function exportPortrait() {
+  const canvas = document.getElementById('mirror-canvas');
+  if (!canvas) return;
+
+  // Create a temporary link and trigger download
+  const link = document.createElement('a');
+  const timestamp = new Date().toISOString().replace(/[:.T]/g, '-').slice(0, 19);
+  link.download = `mirror-portrait-${timestamp}.png`;
+
+  // Use toBlob for better performance on large canvases
+  canvas.toBlob(function(blob) {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.click();
+    // Clean up the object URL after a delay
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }, 'image/png');
+}
+
 // ─── Module 6 — Generate Text Fragments ────────────────────────────────────
 
 // Vocabulary pools — English words, no coherent sentences possible
@@ -2666,6 +3312,8 @@ function buildFragment() {
 
 function generateTextFragments() {
   if (!state.awakened) return;
+  // Silent temperament: no text fragments — the mirror watches in silence
+  if (state.temperament === 'silent') return;
   showTextFragment(buildFragment());
 }
 
@@ -2727,9 +3375,17 @@ function saveMirrorMemory() {
     crack      : +p.crack.toFixed(3),
     erasure    : +p.erasure.toFixed(3),
     jitter     : +p.jitter.toFixed(3),
+    pulse      : +p.pulse.toFixed(3),
+    autonomy   : +p.autonomy.toFixed(3),
+    drowning   : +p.drowning.toFixed(3),
+    brightness : +p.brightness.toFixed(3),
     delRatio   : inter.typing.count > 0
       ? +(inter.typing.deletions / inter.typing.count).toFixed(3)
       : 0,
+    temperament: state.temperament,
+    sessionDuration: Math.floor((now - state.startTime) / 1000),
+    heatScarCount: state.heatScars.length,
+    crackCount: state.cracks.length,
   };
 
   const memory = {
@@ -2740,6 +3396,7 @@ function saveMirrorMemory() {
     browser    : state.environment.browser,
     os         : state.environment.os,
     tz         : state.environment.tz,   // for geographic haunting detection
+    referrer   : state.environment.referrerDomain || '',
   };
 
   try {
@@ -2853,6 +3510,9 @@ function updateDiagnostics() {
     `hour: ${env.hour} (${env.dayPhase}) | warm: ${p.lightWarm.toFixed(2)}<br>` +
     `hw: ${env.hardwareConcurrency} cores, ${env.deviceMemory}GB<br>` +
     `storage: ${env.storage} | return: ${env.returnVisit}<br>` +
+    `referrer: ${env.referrerDomain || '(direct)'}${env.isSocialReferrer ? ' [social]' : ''}${env.isSearchReferrer ? ' [search]' : ''}<br>` +
+    `<br><strong>temperament: ${state.temperament}</strong><br>` +
+    `webgl: ${state.glass.ready ? 'active' : 'off'}<br>` +
     `<br><strong>env → structure</strong><br>` +
     `edgeQuality: ${e.edgeQuality.toFixed(2)} | symmetry: ${e.symmetry.toFixed(2)}<br>` +
     `anatomy: ${e.anatomyHardness.toFixed(2)} | compressY: ${e.compressionY.toFixed(2)}<br>` +
@@ -2881,7 +3541,9 @@ function updateDiagnostics() {
     `phase: ${state.phase}<br>` +
     `<br><strong>memory</strong><br>` +
     `visits: ${state.memory ? state.memory.visits : 0}<br>` +
-    `scars: ${state.memory ? state.memory.scars.length : 0}`;
+    `scars: ${state.memory ? state.memory.scars.length : 0}<br>` +
+    `ghosts: ${state.scarGhosts.length}<br>` +
+    `fingerTrails: ${state.interaction.fingerTrails.length}`;
 }
 
 // ─── Main Loop ──────────────────────────────────────────────────────────────
@@ -2891,15 +3553,20 @@ function mainLoop() {
   const now = Date.now();
   const dt  = Math.min(now - lastFrameTime, CONFIG.maxFrameDeltaMs);
   lastFrameTime = now;
+  const t   = now * 0.001;
 
   // Update drifting polygons and metaballs every frame (even before awaken)
   updateDriftPolys(dt);
   updateMetaballs(dt);
   updateCursorTrail(dt);
   updateHeatScars(dt);
+  updateFingerTrails(dt);
   propagateCracks(dt);
   updateRipples(dt);
   state.ritualPhase += dt * 0.001;  // slow rotation for ritual geometry
+
+  // Update Three.js glass refraction layer
+  updateGlassRefraction(t);
 
   if (state.awakened || state.phase === 'landing') {
     updatePortraitState(dt);
@@ -2923,9 +3590,12 @@ function init() {
   collectEnvironment();
   loadMirrorMemory();
   buildVisitorProfile();
+  chooseTemperament();
+  initScarGhosts();
   rebuildShards();
   initDriftPolys();
   initMetaballs();
+  initGlassRefraction();
   trackInteraction();
 
   // Activate the custom cursor (hides the system pointer via CSS body.js-cursor)
@@ -2942,6 +3612,7 @@ function init() {
   // Controls
   document.getElementById('begin-btn').addEventListener('click', awaken);
   document.getElementById('clear-memory-btn').addEventListener('click', clearMirrorMemory);
+  document.getElementById('save-btn').addEventListener('click', exportPortrait);
   document.getElementById('diag-btn').addEventListener('click', () => {
     const d    = document.getElementById('diagnostics');
     const open = d.hidden;

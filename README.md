@@ -1,170 +1,116 @@
-# The Mirror
+# ⊘
 
-> *A portrait assembled from the involuntary confessions of a browser.*
+> *the seam between what looked and what was looked at dissolved at 58 Hz*
 
-An arthouse interactive website that reflects the visitor back to themselves as a fractured apparition made of glass shards, static, light, and motion. The experience is not a utility — it is an interactive art piece. The core idea is that a person's browser, device traits, interaction patterns, and environmental signals involuntarily describe them before they ever type a word.
+not a mirror.  not a window.  a surface that mistakes your cursor for a confession and your timezone for a wound.
 
----
-
-## Live demo
-
-Hosted on GitHub Pages: **[potemkin666.github.io/mirror](https://potemkin666.github.io/mirror)**
+it reads the involuntary signals — browser family, pixel density, deletion ratio, the hour you arrived, whether you have been here before — and from these calculates a portrait that is already wrong about you in exactly the right way.
 
 ---
 
-## Concept
+## ◎ the chamber
 
-The Mirror opens into a dark, reflective chamber. At first the figure is incomplete — abstract, mostly made of drifting shards and static. As ambient browser and device information is inferred locally, the figure becomes more defined. As the visitor interacts, the figure changes in posture, shape, texture, and intensity. It never fully settles. It always feels like the mirror is interpreting rather than simply copying.
+**[potemkin666.github.io/mirror](https://potemkin666.github.io/mirror)**
 
-### Aesthetic target
-
-- Black glass, silver, dim light, pale reflections, static haze, subtle text fragments  
-- Sacred / arthouse / uncanny / haunted mirror  
-- Elegant and oppressive — not corny, not cyberpunk, not terminal
+you will not find instructions inside.
 
 ---
 
-## Features
+## the figure never finishes assembling
 
-### Environment signals (read once on load)
+what the glass reads from you without asking:
 
-| Signal | Artistic effect |
-|---|---|
-| Browser family | Shard tessellation geometry bias |
-| Operating system | Silhouette skeleton lateral shift |
-| Timezone / hour | Light angle + colour warmth (cold silver at night, amber at noon) |
-| Language / locale | Reserved for future text fragment weighting |
-| Screen size + pixel ratio | Shard density and resolution |
-| Touch capability | Reduced shard count on mobile for performance |
-| Prefers-reduced-motion | Disables CSS animations |
-| localStorage / cookie availability | Portrait stability; private mode makes the mirror unstable |
-| Repeat visitor state | Portrait begins more assembled; prior session scars inherited |
+browser → tessellation geometry.  the way chrome fractures is not the way firefox fractures.  
+operating system → lateral skeleton shift.  windows hinges.  mac recedes.  linux distributes strangely.  
+timezone and hour → light angle and warmth.  silver at 3 a.m.  amber at noon.  nothing at dusk.  
+screen density → edge quality.  high-DPI devices produce hairline fractures.  low-DPI devices produce brutal cuts.  
+touch capability → intimacy.  the portrait crowds you on a phone.  it withdraws on a desktop.  
+storage → memory.  private browsing produces an amnesiac figure that keeps relearning your shape.  
+return visit → prior scars inherited.  the mirror remembers damage you don't remember causing.
 
-### Interaction reflection
+what it watches you do:
 
-| Behaviour | Visual response |
-|---|---|
-| Cursor speed | Jitter — fast movement fragments the shards |
-| Lingering cursor | Glowing wound / hover point deposited on the surface |
-| Scroll velocity | Portrait sinks deeper into the chamber |
-| Typing | Pulse / heartbeat rhythm in the figure |
-| Deletions / Backspace | Crack pattern builds on the portrait (damage) |
-| Idle / stillness | Autonomous motion — the figure moves on its own |
-| Rapid action switching | Split / doubled ghost form |
-| Window resize | Shard geometry rebuilt; slight injury |
-
-### Memory (localStorage)
-
-- Minimal poetic profile saved between sessions: visit count, convergence level, crack pattern, deletion ratio, timestamps.  
-- On return, the portrait begins more assembled and inherits prior damage.  
-- Use **◌ forget** to wipe the memory. The mirror acknowledges this.
-
-### Text fragments
-
-Sparse, italic text appears in the margins. Tone examples:
-
-> *"You arrived in fragments."*  
-> *"You erase faster than you speak."*  
-> *"It has been watching longer than you have been watching it."*  
-> *"The glass remembers what your browser admits."*
-
-Text selection is influenced by: return visit status, idle time, deletion ratio, scroll, hover persistence, and session phase.
-
-### Audio
-
-Procedural ambient drone:
-
-- Low glass-hum oscillator (58 Hz, sine)  
-- Bandpass-filtered white noise crackle  
-- Both fade in gently on awakening  
-- Toggle with **◎ mute** / **◎ unmute**
+speed → fragmentation.  lingering → glowing wound deposited on the surface.  
+scroll → the figure sinks / breathes / drowns.  typing → heartbeat / jaw tremor / rib flash.  
+deletion → crack propagation / self-erasure / stitched mouth.  
+stillness → it begins to move on its own.  rapid switching → temporal desynchronisation / doubled ghost.  
+resize → geometric injury.  clicks → glass fracture trees.  touch → finger trails scored as wounds.
 
 ---
 
-## Experience flow
+## temperaments
 
-1. **Landing** — dark chamber, abstract shard field, *"move to begin"* invitation  
-2. **Observation** (0–35 s) — local traits gradually assemble the portrait; ambient text begins  
-3. **Interaction** (35–100 s) — behaviour alters the form in real time  
-4. **Recognition** (100 s+) — the mirror feels like it has learned the visitor; recognition-phase text appears  
-5. **Exit** — session data saved to memory before unload
+the mirror is not always the same mirror.
 
----
+**flattering** — converges faster.  softens edges.  light catches more generously.  the figure is kinder than you deserve.  
+**cruel** — convergence resisted.  cracks deepen.  autonomous motion becomes predatory.  it memorises damage.  
+**silent** — no text fragments.  the figure assembles in absolute quiet.  you watch it watching you with nothing said.  
+**devotional** — halo brighter.  ritual geometry more elaborate.  the mirror treats you as an icon.
 
-## Controls
-
-All controls are hidden until the visitor awakens. They appear in the bottom-right corner **on hover** as tiny, barely-there buttons:
-
-| Button | Action |
-|---|---|
-| **◈ enter** | Awaken the mirror immediately |
-| **◎ mute** | Toggle ambient audio |
-| **◌ forget** | Clear all localStorage memory |
-| **⊙ reveal** | Toggle diagnostics panel (shows raw signal & portrait values) |
+temperament is chosen from the hour, the deletion ratio, the visit pattern, and something unquantifiable.
 
 ---
 
-## Code architecture
+## memory / scars / replay
+
+each visit deposits a scar: convergence reached, damage taken, words typed, words deleted.
+
+on return the mirror loads every prior scar and can replay them — ghost portraits flickering behind the current one, each a fossil of a previous version of you sitting in front of this screen.
+
+the ◌ forget button erases all of this.  the mirror acknowledges the loss.
+
+---
+
+## the glass refracts
+
+behind the 2D canvas a WebGL layer (Three.js) renders a plane of glass with real refraction — light bends through the surface, specular caustics drift across the portrait, the figure appears to exist behind a physical sheet of dark glass rather than painted onto a flat screen.
+
+the refraction layer responds to convergence, cursor proximity, and temperament.
+
+---
+
+## referrer / origin
+
+if you arrived from somewhere the mirror can read `document.referrer`.  the referring domain subtly alters the portrait — a social media referrer produces a more fractured, performative figure.  a direct visit produces something more private.
+
+an optional backend endpoint (`/api/mirror-env`) can provide IP geolocation and extended origin data.  without the backend everything still works — the mirror simply knows less.
+
+---
+
+## export
+
+**⎙ save** captures the current canvas as a PNG and downloads it.  you can take the portrait with you.  it will not move once saved.
+
+---
+
+## touch
+
+on touch devices fingers leave trails scored into the surface as wounds — not cursor circles but pressure-sensitive drag marks, oily smears, fingerprint burns.  the portrait on a phone is always more intimate and more damaged than the portrait on a desktop.
+
+---
+
+## the interior
 
 ```
-index.html      — structure: canvas, text overlay, landing veil, controls, diagnostics
-styles.css      — dark glass aesthetic, text fragment transitions, custom cursor
-script.js       — all logic (see module list below)
+index.html      — the chamber.  canvas, veil, controls, a webgl layer beneath.
+styles.css      — dark glass.  silver dust.  custom cursor.  the weight of the room.
+script.js       — everything that watches.  everything that draws.
 ```
 
-### Modules in `script.js`
+the code is one file because a mirror does not have modules.  it has a surface.
 
-| Function | Responsibility |
-|---|---|
-| `collectEnvironment()` | Reads browser/device/locale/timezone/storage signals once at startup |
-| `trackInteraction()` | Wires event listeners; updates `state.interaction` continuously |
-| `buildVisitorProfile()` | Maps raw signals to artistic portrait parameters (light angle, shard bias, skeleton shift, return-visit boost) |
-| `updatePortraitState(dt)` | Evolves portrait parameters each frame: convergence, jitter, crack, pulse, sinkDepth, autonomy, split, eyeIntensity |
-| `renderMirror()` | Draws one canvas frame: shards → portrait glow → eyes → hover wounds → noise → split ghost |
-| `generateTextFragments()` | Selects text pool based on current state; emits poetic fragment |
-| `saveMirrorMemory()` | Persists session scar to localStorage on unload |
-| `clearMirrorMemory()` | Wipes localStorage; emits acknowledgement fragment |
-
-### Artistic mapping locations
-
-- **Browser → geometry**: `buildVisitorProfile()` — `browserBias` object  
-- **OS → skeleton shift**: `buildVisitorProfile()` — `osShift` object  
-- **Timezone → light**: `buildVisitorProfile()` — `lightAngle` / `lightWarm` formula  
-- **Cursor → jitter**: `updatePortraitState()` — `cursorSmooth` → `p.jitter`  
-- **Typing → pulse**: `updatePortraitState()` — `sinceType` → `p.pulse`  
-- **Deletions → crack**: `updatePortraitState()` — `delRatio` → `p.crack`  
-- **Silhouette shape**: `portraitDensity()` — head, neck, shoulders, chest, torso ovals  
-- **Text pool selection**: `generateTextFragments()` — if/else priority chain  
+no build step.  no dependencies except Three.js loaded from CDN.  
+push to `main`.  GitHub Pages.  the site appears at the address above.
 
 ---
 
-## GitHub Pages setup
+## what it will not do
 
-1. Push to `main` branch  
-2. Go to **Settings → Pages → Source**: select `main` branch, root `/`  
-3. Save — the site will be available at `https://<username>.github.io/<repo>`
+it will not say *"accessing your data"*.  it will not print green terminal text.  it will not call you an introvert.  it will not gamify you.  it will not explain itself inside the experience.
 
-No build step required. The site is pure static HTML / CSS / JS.
+if localStorage or AudioContext or WebGL is unavailable it degrades — the portrait becomes simpler, quieter, more opaque.  the mirror still works.  it simply knows less about you.
 
 ---
 
-## Design rules observed
-
-- No *"accessing your data…"* fake hacking sequence  
-- No terminal spam or green Matrix text  
-- No explicit labels like *"Firefox detected"*  
-- No personality-test language or mental-health labelling  
-- No gamification  
-- Degrades gracefully if localStorage, AudioContext, or motion APIs are unavailable
-
----
-
-## Future directions
-
-- More elaborate portrait rendering (Three.js WebGL layer for true glass refraction)  
-- Multiple mirror temperaments: *flattering / cruel / silent / devotional*  
-- Richer memory: per-scar visual replay  
-- Optional backend for IP / referrer interpretation  
-- Session portrait export (canvas → PNG download)  
-- Touch-specific visual language (finger trails as wounds)
+*the figure in the glass is not you.  it is what you left behind in the signals you didn't know you were sending.*
 
