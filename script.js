@@ -116,6 +116,20 @@ const state = {
     },
   },
 
+  // Delayed mirror cursor — spring-physics follower of the real cursor
+  mirrorCursor: {
+    x:  window.innerWidth  * 0.5,
+    y:  window.innerHeight * 0.5,
+    vx: 0,
+    vy: 0,
+  },
+
+  // Drifting polygon particle system
+  driftPolys: [],
+
+  // Soft metaball orbs
+  metaballs: [],
+
   memory  : null,     // loaded from localStorage
   shards  : [],       // Shard instances
   noiseFramePool: [], // pre-rendered noise canvases
@@ -948,6 +962,22 @@ function updatePortraitState(dt) {
     hp.intensity  = Math.max(0, hp.intensity - dt * 0.000095);
   }
   inter.hoverPoints = inter.hoverPoints.filter(hp => hp.intensity > 0.01);
+
+  // --- Mirror cursor: spring-physics follower with lag, overshoot, prediction ---
+  const mc = state.mirrorCursor;
+  const spring   = 0.0028;  // stiffness — low = sluggish, high = snappy
+  const damping  = 0.88;    // velocity retention — higher = more overshoot
+  const predict  = 0.12;    // slight prediction factor
+  // Predicted target: extrapolate cursor momentum
+  const predX = inter.cursorX + (inter.cursorX - mc.x) * predict;
+  const predY = inter.cursorY + (inter.cursorY - mc.y) * predict;
+  // Spring force toward predicted target + noise for sentience
+  const noiseX = (Math.sin(Date.now() * 0.0013) * 0.4 + Math.sin(Date.now() * 0.0037) * 0.2);
+  const noiseY = (Math.cos(Date.now() * 0.0017) * 0.3 + Math.cos(Date.now() * 0.0029) * 0.2);
+  mc.vx = (mc.vx + (predX - mc.x) * spring * dt + noiseX) * damping;
+  mc.vy = (mc.vy + (predY - mc.y) * spring * dt + noiseY) * damping;
+  mc.x += mc.vx;
+  mc.y += mc.vy;
 }
 
 // ─── Module 5 — Build Shard Geometry ───────────────────────────────────────
@@ -1038,6 +1068,235 @@ function initNoise(W, H) {
   }
 }
 
+// ─── Drifting Polygon Particle System ──────────────────────────────────────
+
+function initDriftPolys() {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const isMobile = state.environment.touch && W < 900;
+  const count = isMobile ? 90 : 200;
+
+  state.driftPolys = [];
+  for (let i = 0; i < count; i++) {
+    // Each polygon: 3-6 sided, random position, velocity, depth layer
+    const sides = 3 + Math.floor(Math.random() * 4);  // 3-6 vertices
+    const depth = Math.random();                        // 0 = far back, 1 = foreground
+    const size  = 4 + depth * 18 + Math.random() * 10; // bigger when closer
+    const angle = Math.random() * Math.PI * 2;
+
+    // Build polygon vertices around local origin
+    const verts = [];
+    for (let v = 0; v < sides; v++) {
+      const a = (v / sides) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+      const r = size * (0.6 + Math.random() * 0.4);
+      verts.push({ lx: Math.cos(a) * r, ly: Math.sin(a) * r });
+    }
+
+    state.driftPolys.push({
+      x:     Math.random() * W,
+      y:     Math.random() * H,
+      vx:    (Math.random() - 0.5) * 0.3,
+      vy:    (Math.random() - 0.5) * 0.3,
+      depth: depth,
+      angle: angle,
+      spin:  (Math.random() - 0.5) * 0.003,
+      verts: verts,
+      // Face-alignment: each polygon has a "home" position in the portrait
+      homeX: Math.random() * W,
+      homeY: Math.random() * H,
+      phase: Math.random() * Math.PI * 2,  // for periodic drift
+    });
+  }
+}
+
+function updateDriftPolys(dt) {
+  const W   = window.innerWidth;
+  const H   = window.innerHeight;
+  const mc  = state.mirrorCursor;
+  const t   = Date.now() * 0.001;
+  const p   = state.portrait;
+  // Face alignment strength: grows with convergence
+  const faceStrength = Math.max(0, p.convergence - 0.15) * 0.6;
+  // Pulse the alignment: it comes and goes
+  const alignPulse = Math.max(0, Math.sin(t * 0.08) * Math.sin(t * 0.13));
+  const align = faceStrength * alignPulse;
+
+  for (const poly of state.driftPolys) {
+    // Depth-scaled mouse influence: foreground = stronger
+    const depthFactor = 0.3 + poly.depth * 0.7;
+    const dx = mc.x - poly.x;
+    const dy = mc.y - poly.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+    const mouseRadius = 180 + poly.depth * 100;
+
+    if (dist < mouseRadius) {
+      // Repel near polygons, attract far ones — creates depth parallax
+      const force = (1 - dist / mouseRadius) * 0.08 * depthFactor;
+      const repelOrAttract = poly.depth < 0.4 ? -1 : 1;
+      poly.vx += (dx / dist) * force * repelOrAttract;
+      poly.vy += (dy / dist) * force * repelOrAttract;
+    }
+
+    // Gentle ambient drift (sine-based, unique per polygon via phase)
+    poly.vx += Math.sin(t * 0.15 + poly.phase) * 0.003;
+    poly.vy += Math.cos(t * 0.11 + poly.phase * 1.3) * 0.002;
+
+    // Face alignment pull: toward portrait-density-weighted home positions
+    if (align > 0.01) {
+      // Recompute home positions within the portrait silhouette
+      const homeNx = poly.homeX / W;
+      const homeNy = poly.homeY / H;
+      const density = portraitDensity(homeNx, homeNy, p.skeletonShift);
+      if (density > 0.2) {
+        const pull = align * density * 0.02 * depthFactor;
+        poly.vx += (poly.homeX - poly.x) * pull;
+        poly.vy += (poly.homeY - poly.y) * pull;
+      }
+    }
+
+    // Damping
+    poly.vx *= 0.97;
+    poly.vy *= 0.97;
+
+    // Integrate
+    poly.x += poly.vx * dt * 0.06;
+    poly.y += poly.vy * dt * 0.06;
+    poly.angle += poly.spin * dt * 0.06;
+
+    // Wrap around edges with margin
+    const margin = 40;
+    if (poly.x < -margin)     poly.x += W + margin * 2;
+    if (poly.x > W + margin)  poly.x -= W + margin * 2;
+    if (poly.y < -margin)     poly.y += H + margin * 2;
+    if (poly.y > H + margin)  poly.y -= H + margin * 2;
+  }
+}
+
+function drawDriftPolys(ctx, W, H, p, t) {
+  const e = p.env;
+  ctx.save();
+
+  // Sort by depth so far polygons draw first
+  const sorted = state.driftPolys.slice().sort((a, b) => a.depth - b.depth);
+
+  for (const poly of sorted) {
+    const depthAlpha = 0.015 + poly.depth * 0.055;
+    const breathe = 1 + Math.sin(t * 0.7 + poly.phase) * 0.08;
+    const ca = Math.cos(poly.angle), sa = Math.sin(poly.angle);
+
+    ctx.beginPath();
+    for (let v = 0; v < poly.verts.length; v++) {
+      const lx = poly.verts[v].lx * breathe;
+      const ly = poly.verts[v].ly * breathe;
+      const rx = poly.x + lx * ca - ly * sa;
+      const ry = poly.y + lx * sa + ly * ca;
+      if (v === 0) ctx.moveTo(rx, ry);
+      else ctx.lineTo(rx, ry);
+    }
+    ctx.closePath();
+
+    // Fill: very subtle, palette-tinted
+    const lum = 0.15 + poly.depth * 0.25;
+    const fR = Math.floor(e.paletteR * lum);
+    const fG = Math.floor(e.paletteG * lum);
+    const fB = Math.floor(e.paletteB * lum);
+    ctx.fillStyle = `rgba(${fR},${fG},${fB},${depthAlpha * 0.6})`;
+    ctx.fill();
+
+    // Stroke: hairline edge catch
+    ctx.strokeStyle = `rgba(${Math.min(255, fR + 40)},${Math.min(255, fG + 35)},${Math.min(255, fB + 50)},${depthAlpha * 0.45})`;
+    ctx.lineWidth = 0.3 + poly.depth * 0.5;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ─── Soft Metaball Orbs ────────────────────────────────────────────────────
+
+function initMetaballs() {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const count = 5 + Math.floor(Math.random() * 4);  // 5-8 orbs
+
+  state.metaballs = [];
+  for (let i = 0; i < count; i++) {
+    state.metaballs.push({
+      x:      Math.random() * W,
+      y:      Math.random() * H,
+      vx:     (Math.random() - 0.5) * 0.15,
+      vy:     (Math.random() - 0.5) * 0.15,
+      radius: 40 + Math.random() * 80,
+      phase:  Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function updateMetaballs(dt) {
+  const W  = window.innerWidth;
+  const H  = window.innerHeight;
+  const mc = state.mirrorCursor;
+  const t  = Date.now() * 0.001;
+
+  for (const mb of state.metaballs) {
+    // Gentle ambient drift
+    mb.vx += Math.sin(t * 0.09 + mb.phase) * 0.004;
+    mb.vy += Math.cos(t * 0.07 + mb.phase * 1.4) * 0.003;
+
+    // Soft attraction to mirror cursor (delayed, sentient)
+    const dx = mc.x - mb.x;
+    const dy = mc.y - mb.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+    const pull = Math.min(0.015, 30 / (dist + 200));
+    mb.vx += dx * pull * 0.003;
+    mb.vy += dy * pull * 0.003;
+
+    // Damping
+    mb.vx *= 0.985;
+    mb.vy *= 0.985;
+
+    // Integrate
+    mb.x += mb.vx * dt * 0.06;
+    mb.y += mb.vy * dt * 0.06;
+
+    // Soft boundary: bounce gently off edges
+    if (mb.x < -mb.radius)      mb.vx += 0.02;
+    if (mb.x > W + mb.radius)   mb.vx -= 0.02;
+    if (mb.y < -mb.radius)      mb.vy += 0.02;
+    if (mb.y > H + mb.radius)   mb.vy -= 0.02;
+
+    // Radius breathes
+    mb.radius += Math.sin(t * 0.3 + mb.phase) * 0.02;
+  }
+}
+
+function drawMetaballs(ctx, W, H, p, t) {
+  const e = p.env;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  for (const mb of state.metaballs) {
+    const pulse = 1 + Math.sin(t * 0.5 + mb.phase) * 0.15;
+    const r     = mb.radius * pulse;
+    const alpha = 0.025 + p.convergence * 0.018;
+
+    const grad = ctx.createRadialGradient(mb.x, mb.y, 0, mb.x, mb.y, r);
+    const cR = Math.floor(e.paletteR * 0.7);
+    const cG = Math.floor(e.paletteG * 0.75);
+    const cB = Math.floor(e.paletteB * 0.85);
+    grad.addColorStop(0,    `rgba(${cR},${cG},${cB},${alpha})`);
+    grad.addColorStop(0.4,  `rgba(${cR},${cG},${cB},${alpha * 0.4})`);
+    grad.addColorStop(1,    `rgba(${cR},${cG},${cB},0)`);
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(mb.x, mb.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
 // ─── Module 5 — Render Mirror ──────────────────────────────────────────────
 function renderMirror() {
   const canvas = document.getElementById('mirror-canvas');
@@ -1056,6 +1315,12 @@ function renderMirror() {
   // 1. Background — palette-aware
   ctx.fillStyle = `rgb(${e.bgR},${e.bgG},${e.bgB})`;
   ctx.fillRect(0, 0, W, H);
+
+  // 1b. Drifting polygons — behind everything, layered depth
+  if (state.driftPolys.length) drawDriftPolys(ctx, W, H, p, t);
+
+  // 1c. Soft metaball orbs — ambient glow layer
+  if (state.metaballs.length) drawMetaballs(ctx, W, H, p, t);
 
   // 2. Sink offset — scroll sinks the portrait
   const sinkY = p.sinkDepth * H * 0.06;
@@ -1245,8 +1510,8 @@ function drawEyes(ctx, W, H, p, t) {
     const ex = cx + side * spacing;
     const ey = eyeY + Math.sin(t * 0.18 + side * 0.8) * H * 0.0025 * e.motionScale;
 
-    const targetX = state.interaction.cursorX;
-    const targetY = state.interaction.cursorY;
+    const targetX = state.mirrorCursor.x;
+    const targetY = state.mirrorCursor.y;
     const lookX   = (targetX / W - 0.5) * W * 0.004 * side;
     const lookY   = (targetY / H - 0.5) * H * 0.003;
 
@@ -1764,7 +2029,7 @@ function saveMirrorMemory() {
 function clearMirrorMemory() {
   try { localStorage.removeItem(CONFIG.memoryKey); } catch (_) {}
   state.memory = null;
-  showTextFragment('The mirror forgets. For now.');
+  showTextFragment(buildFragment());
 }
 
 // ─── Audio (optional ambient drone + crackle) ───────────────────────────────
@@ -1905,6 +2170,10 @@ function mainLoop() {
   const dt  = Math.min(now - lastFrameTime, CONFIG.maxFrameDeltaMs);
   lastFrameTime = now;
 
+  // Update drifting polygons and metaballs every frame (even before awaken)
+  updateDriftPolys(dt);
+  updateMetaballs(dt);
+
   if (state.awakened || state.phase === 'landing') {
     updatePortraitState(dt);
     renderMirror();
@@ -1928,6 +2197,8 @@ function init() {
   loadMirrorMemory();
   buildVisitorProfile();
   rebuildShards();
+  initDriftPolys();
+  initMetaballs();
   trackInteraction();
 
   // Activate the custom cursor (hides the system pointer via CSS body.js-cursor)
