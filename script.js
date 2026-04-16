@@ -7,7 +7,7 @@
  *  buildVisitorProfile() → translates raw signals into artistic portrait params
  *  updatePortraitState() → evolves portrait params each animation frame
  *  renderMirror()        → draws one canvas frame (shards, glow, eyes, noise)
- *  generateTextFragments()→ selects and displays poetic ambient text
+ *  generateTextFragments()→ generates nonsensical ambient text from user input
  *  saveMirrorMemory()    → persists a minimal poetic profile in localStorage
  *  clearMirrorMemory()   → wipes that profile
  *
@@ -51,7 +51,7 @@ const state = {
     hoverPoints       : [],  // [{x, y, age, intensity}] — lingering cursor wounds
     scrollVelocity    : 0,
     lastScrollY       : 0,
-    typing            : { count: 0, deletions: 0, lastTime: 0, rhythm: 0 },
+    typing            : { count: 0, deletions: 0, lastTime: 0, rhythm: 0, buffer: '' },
     resizeCount       : 0,
     actionSwitchRate  : 0,
     lastActionType    : null,
@@ -406,7 +406,13 @@ function trackInteraction() {
     }
     typ.lastTime = now;
     typ.count++;
-    if (e.key === 'Backspace' || e.key === 'Delete') typ.deletions++;
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      typ.deletions++;
+      typ.buffer = typ.buffer.slice(0, -1);
+    } else if (e.key.length === 1) {
+      typ.buffer += e.key;
+      if (typ.buffer.length > 600) typ.buffer = typ.buffer.slice(-400);
+    }
     recordActionSwitch('type', now);
   });
 
@@ -1505,99 +1511,175 @@ function drawNoise(ctx, W, H, p) {
 }
 
 // ─── Module 6 — Generate Text Fragments ────────────────────────────────────
-const TEXT_POOLS = {
-  arrival: [
-    'You arrived in fragments.',
-    'The glass remembers what your browser admits.',
-    'A thousand panes decide your outline.',
-    'Your machine speaks before you do.',
-    'Something assembles itself around your presence.',
+
+// Vocabulary pools — English words, no coherent sentences possible
+const FRAG_VOCAB = {
+  nouns: [
+    'throat','hinge','dust','socket','marrow','enamel','seam','silt','knot',
+    'tendon','latch','oxide','filament','membrane','cartilage','residue',
+    'aperture','ligament','shale','cortex','follicle','plinth','burr','rind',
+    'valve','tallow','gristle','furrow','crevice','patina','dross','chaff',
+    'spindle','wick','sinew','clinker','pulp','fascia','nacre','gutter',
+    'cuticle','mortar','flange','tuber','stamen','loam','welt','scrim',
   ],
-  cursor: [
-    'You hesitate where you think you are alone.',
-    'Your pauses leave impressions in the glass.',
-    'Stillness is not invisibility here.',
-    'The mirror measures your restraint.',
-    'Where you linger, the surface remembers.',
+  verbs: [
+    'dissolve','unlatch','calcify','evaporate','buckle','ossify','unthread',
+    'congeal','refract','molt','corrode','sublimate','sinter','delaminate',
+    'anneal','effloresce','vitrify','attenuate','extrude','ablate','accrete',
+    'distend','occlude','adhere','cleave','abrade','leach','wick','spall',
+    'decant','flux','slake','char','scour','etch','fray','splice','lapse',
   ],
-  typing: [
-    'You erase faster than you speak.',
-    'Every deletion is a confession.',
-    'What you unsay shapes you more than what you say.',
-    'The mirror reads the spaces between your keystrokes.',
-    'You rewrite yourself. The glass keeps both versions.',
+  adjectives: [
+    'hollow','translucent','ferric','brittle','vestigial','vitreous','occluded',
+    'laminar','anodic','sutured','porous','resinous','nival','alkaline',
+    'fibrous','silted','conchoidal','calcareous','indurate','friable','galvanic',
+    'cereous','spicular','rugose','pellucid','tumid','sclerotic','glaucous',
   ],
-  idle: [
-    'You have gone still. The mirror has not.',
-    'In absence, it imagines you.',
-    'It has been watching longer than you have been watching it.',
-    'Your stillness gives it room to finish the portrait.',
-    'The figure continues without you.',
+  particles: [
+    'through','beneath','against','without','between','across','toward',
+    'inside','before','upon','along','amid','despite','around','past',
+    'under','within','beyond','above','behind','onto','over',
   ],
-  memory: [
-    'The glass remembers the shape of your last visit.',
-    'You have been here before. The mirror kept your outline.',
-    'Some cracks do not heal between visits.',
-    'It has waited.',
-    'You left something here. It is still here.',
-  ],
-  returning: [
-    'The cracks from before are still there.',
-    'The glass held your impression while you were gone.',
-    'You returned. The mirror knew you would.',
-    'Something in the surface recognises you.',
-  ],
-  scroll: [
-    'You descend into the chamber.',
-    'Depth does not erase you here.',
-    'The figure follows you down.',
-  ],
-  split: [
-    'You move too quickly to have only one face.',
-    'Contradiction fractures the glass.',
-    'The mirror cannot settle on a single you.',
-  ],
-  recognition: [
-    'It has learned you.',
-    'The portrait no longer needs your help.',
-    'The glass has decided what you are.',
-    'You are fully reflected now.',
+  pronouns: [
+    'it','this','that','something','nothing','what','which','everything',
+    'itself','one','each','neither','both','another','such',
   ],
 };
 
-function generateTextFragments() {
-  const p     = state.portrait;
-  const inter = state.interaction;
-  const env   = state.environment;
-  const now   = Date.now();
+// Structural templates — grammatically shaped, semantically void
+// $U = user word (or random noun if no user words), $N = noun, $V = verb,
+// $A = adjective, $P = particle, $R = pronoun
+const FRAG_TEMPLATES = [
+  '$U $V $P the $A $N',
+  'the $N $V where $U was $A',
+  '$R $V $P $U $P $N',
+  '$A $N $V your $U',
+  '$U was never $A enough to $V',
+  'the $A $U $V $P $N',
+  '$P every $N your $U $V',
+  '$R $V $U into $A $N',
+  'your $U $V where $R $V',
+  '$N $P $U $P $A $N',
+  'the $U $V $R $P $N',
+  '$A $U and $A $N $V',
+  '$P $U the $N $V $P $N',
+  '$R was $A before $U $V',
+  'the $N of your $U $V $A',
+  '$U $V until the $N $V',
+  '$A $N $P $A $U',
+  'your $U the $N $V $P',
+  'every $U $V $A $P $N',
+  '$R $V $A $P the $U',
+  '$N $V your $A $U $P $N',
+  '$U and $N $V $P $R',
+  'the $A $N of $U $V',
+  '$P your $U $R $V $A',
+  '$U $V $A $N $P $R',
+];
 
-  let pool = TEXT_POOLS.arrival;
+/**
+ * Extract usable words from the typed buffer.
+ * Returns an array of lowercase words (3+ chars, alpha only).
+ */
+function harvestUserWords() {
+  const buf = state.interaction.typing.buffer;
+  if (!buf) return [];
+  const words = buf.match(/[a-zA-Z]{3,}/g);
+  if (!words) return [];
+  // Deduplicate, keep most recent occurrences, limit count
+  const seen = new Set();
+  const result = [];
+  for (let i = words.length - 1; i >= 0 && result.length < 30; i--) {
+    const w = words[i].toLowerCase();
+    if (!seen.has(w)) { seen.add(w); result.push(w); }
+  }
+  return result;
+}
 
-  if (state.phase === 'recognition') {
-    pool = TEXT_POOLS.recognition;
-  } else if (env.returnVisit && state.memory) {
-    pool = Math.random() < 0.55 ? TEXT_POOLS.memory : TEXT_POOLS.returning;
-  } else if (p.autonomy > 0.55) {
-    pool = TEXT_POOLS.idle;
-  } else if (inter.typing.count > 6 && inter.typing.deletions / inter.typing.count > 0.28) {
-    pool = TEXT_POOLS.typing;
-  } else if (p.split > 0.22) {
-    pool = TEXT_POOLS.split;
-  } else if (inter.scrollVelocity > 0.08) {
-    pool = TEXT_POOLS.scroll;
-  } else if (inter.hoverPoints.length > 4) {
-    pool = TEXT_POOLS.cursor;
-  } else {
-    const sessionMin = (now - state.startTime) / 60000;
-    if (sessionMin > 0.8) pool = TEXT_POOLS.cursor;
-    if (sessionMin > 2.0) pool = [
-      ...TEXT_POOLS.cursor,
-      ...TEXT_POOLS.typing.slice(0, 2),
-    ];
+/** Pick a random element from an array. */
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+/**
+ * Corrupt a word: swap letters, insert stray characters, fragment it.
+ * Intensity 0-1 controls how aggressively the word is mangled.
+ */
+function corruptWord(word, intensity) {
+  if (!word || word.length < 2) return word;
+  let w = word;
+
+  // Chance to swap two adjacent characters
+  if (Math.random() < intensity * 0.6 && w.length > 2) {
+    const i = Math.floor(Math.random() * (w.length - 1));
+    const chars = w.split('');
+    [chars[i], chars[i + 1]] = [chars[i + 1], chars[i]];
+    w = chars.join('');
   }
 
-  const text = pool[Math.floor(Math.random() * pool.length)];
-  showTextFragment(text);
+  // Chance to truncate
+  if (Math.random() < intensity * 0.4 && w.length > 3) {
+    const cut = Math.max(2, Math.floor(w.length * (0.5 + Math.random() * 0.3)));
+    w = w.slice(0, cut);
+  }
+
+  // Chance to splice in a foreign syllable
+  if (Math.random() < intensity * 0.3) {
+    const syllables = ['th','rn','lk','ss','xt','nn','gl','sk','cr','wr','ph','sc'];
+    const pos = Math.floor(Math.random() * w.length);
+    w = w.slice(0, pos) + pick(syllables) + w.slice(pos);
+  }
+
+  return w;
+}
+
+/**
+ * Generate a single nonsensical fragment.
+ * If the user has typed words, some are woven in (then corrupted).
+ * Otherwise purely random vocabulary is used.
+ */
+function buildFragment() {
+  const userWords = harvestUserWords();
+  const inter     = state.interaction;
+  const p         = state.portrait;
+  const now       = Date.now();
+
+  // Corruption intensity rises with deletion ratio, idle time, session age
+  const delRatio  = inter.typing.count > 5
+    ? inter.typing.deletions / inter.typing.count : 0;
+  const idleSec   = (now - inter.lastMoveTime) / 1000;
+  const sessionMin = (now - state.startTime) / 60000;
+  const corruption = Math.min(1,
+    0.15 +
+    delRatio * 0.35 +
+    Math.min(idleSec / 60, 0.25) +
+    Math.min(sessionMin / 8, 0.25)
+  );
+
+  const template = pick(FRAG_TEMPLATES);
+
+  const frag = template.replace(/\$[UNVAPR]/g, (tok) => {
+    switch (tok) {
+      case '$U': {
+        if (userWords.length > 0) {
+          const w = pick(userWords);
+          return corruptWord(w, corruption);
+        }
+        return corruptWord(pick(FRAG_VOCAB.nouns), corruption * 0.6);
+      }
+      case '$N': return pick(FRAG_VOCAB.nouns);
+      case '$V': return pick(FRAG_VOCAB.verbs);
+      case '$A': return pick(FRAG_VOCAB.adjectives);
+      case '$P': return pick(FRAG_VOCAB.particles);
+      case '$R': return pick(FRAG_VOCAB.pronouns);
+      default:   return '';
+    }
+  });
+
+  return frag;
+}
+
+function generateTextFragments() {
+  if (!state.awakened) return;
+  showTextFragment(buildFragment());
 }
 
 function showTextFragment(text) {
@@ -1754,9 +1836,9 @@ function awaken() {
   document.body.classList.add('awakened');
 
   if (state.environment.returnVisit && state.memory) {
-    setTimeout(() => showTextFragment(TEXT_POOLS.returning[0]), 1600);
+    setTimeout(() => showTextFragment(buildFragment()), 1600);
   } else {
-    setTimeout(() => showTextFragment(TEXT_POOLS.arrival[0]), 2200);
+    setTimeout(() => showTextFragment(buildFragment()), 2200);
   }
 
   try { initAudio(); } catch (_) {}
