@@ -1226,7 +1226,8 @@ function initMetaballs() {
       y:      Math.random() * H,
       vx:     (Math.random() - 0.5) * 0.15,
       vy:     (Math.random() - 0.5) * 0.15,
-      radius: 40 + Math.random() * 80,
+      baseRadius: 40 + Math.random() * 80,
+      radius: 0,  // computed each frame
       phase:  Math.random() * Math.PI * 2,
     });
   }
@@ -1265,8 +1266,8 @@ function updateMetaballs(dt) {
     if (mb.y < -mb.radius)      mb.vy += 0.02;
     if (mb.y > H + mb.radius)   mb.vy -= 0.02;
 
-    // Radius breathes
-    mb.radius += Math.sin(t * 0.3 + mb.phase) * 0.02;
+    // Radius breathes from base value (no drift)
+    mb.radius = mb.baseRadius * (1 + Math.sin(t * 0.3 + mb.phase) * 0.06);
   }
 }
 
