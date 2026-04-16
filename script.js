@@ -182,7 +182,7 @@ const state = {
   },
 
   // Scar replay ghosts — loaded from memory for visual replay
-  scarGhosts: [],  // [{convergence, crack, erasure, jitter, alpha, age}]
+  scarGhosts: [],  // [{convergence, crack, erasure, jitter, pulse, autonomy, drowning, brightness, temperament, ...}]
 };
 
 // ─── Shard ─────────────────────────────────────────────────────────────────
@@ -2306,15 +2306,22 @@ function initScarGhosts() {
   if (!state.memory || !state.memory.scars || state.memory.scars.length < 1) return;
 
   state.scarGhosts = state.memory.scars.map((scar, idx) => ({
-    convergence: scar.convergence || 0,
-    crack:       scar.crack || 0,
-    erasure:     scar.erasure || 0,
-    jitter:      scar.jitter || 0,
-    index:       idx,
+    convergence:     scar.convergence || 0,
+    crack:           scar.crack || 0,
+    erasure:         scar.erasure || 0,
+    jitter:          scar.jitter || 0,
+    pulse:           scar.pulse || 0,
+    autonomy:        scar.autonomy || 0,
+    drowning:        scar.drowning || 0,
+    brightness:      scar.brightness || 0.26,
+    temperament:     scar.temperament || 'flattering',
+    sessionDuration: scar.sessionDuration || 0,
+    crackCount:      scar.crackCount || 0,
+    index:           idx,
     // Each ghost has a phase offset for flickering
-    phase:       idx * 1.7 + Math.random() * 2,
-    // Older scars are dimmer
-    maxAlpha:    Math.max(0.02, 0.08 - idx * 0.015),
+    phase:           idx * 1.7 + Math.random() * 2,
+    // Older scars are dimmer; longer sessions leave bolder ghosts
+    maxAlpha:        Math.max(0.02, (0.08 - idx * 0.015) + Math.min(0.03, (scar.sessionDuration || 0) / 3000)),
   }));
 }
 
@@ -2338,48 +2345,254 @@ function drawScarGhosts(ctx, W, H, p, t) {
     const alpha = ghost.maxAlpha * (flicker - 0.2) * 1.25 * (p.convergence - 0.25) * 2;
     if (alpha < 0.003) continue;
 
-    // Draw a simplified ghost silhouette — head and torso blobs
-    // at the convergence level of that past session
-    const ghostConv = ghost.convergence;
-    const headR = Math.min(W, H) * (0.04 + ghostConv * 0.06);
-    const headY = H * 0.27;
+    // ── Temperament colour shift ──
+    // Each ghost tints toward its session's temperament:
+    //   flattering = warmer/brighter, cruel = colder/harsher,
+    //   silent = desaturated/dim, devotional = golden/amber
+    let tR = e.paletteR, tG = e.paletteG, tB = e.paletteB;
+    switch (ghost.temperament) {
+      case 'flattering':
+        tR = Math.min(255, tR + 15);
+        tG = Math.min(255, tG + 10);
+        tB = Math.min(255, tB + 5);
+        break;
+      case 'cruel':
+        tR = Math.max(0, tR - 25);
+        tG = Math.min(255, tG + 5);
+        tB = Math.min(255, tB + 30);
+        break;
+      case 'silent':
+        // Desaturate: pull toward grey
+        const avg = (tR + tG + tB) / 3;
+        tR = Math.floor(tR * 0.5 + avg * 0.5);
+        tG = Math.floor(tG * 0.5 + avg * 0.5);
+        tB = Math.floor(tB * 0.5 + avg * 0.5);
+        break;
+      case 'devotional':
+        tR = Math.min(255, tR + 20);
+        tG = Math.min(255, tG + 8);
+        tB = Math.max(0, tB - 15);
+        break;
+    }
 
-    // Head ghost
-    const hg = ctx.createRadialGradient(cx, headY, 0, cx, headY, headR);
-    const gR = Math.floor(e.paletteR * 0.6);
-    const gG = Math.floor(e.paletteG * 0.65);
-    const gB = Math.floor(e.paletteB * 0.75);
-    hg.addColorStop(0,   `rgba(${gR},${gG},${gB},${alpha})`);
-    hg.addColorStop(0.6, `rgba(${gR},${gG},${gB},${alpha * 0.3})`);
+    const gR = Math.floor(tR * 0.6);
+    const gG = Math.floor(tG * 0.65);
+    const gB = Math.floor(tB * 0.75);
+
+    // ── Jitter-driven positional instability ──
+    // Ghosts from chaotic sessions tremble
+    const jitX = ghost.jitter * (Math.sin(t * 3.7 + ghost.phase * 2.1) * 3 +
+                   Math.sin(t * 7.3 + ghost.phase) * 1.5);
+    const jitY = ghost.jitter * (Math.cos(t * 4.1 + ghost.phase * 1.7) * 2);
+
+    // ── Autonomy-driven slow drift ──
+    // Ghosts from idle sessions sway slowly as if breathing on their own
+    const driftX = ghost.autonomy * Math.sin(t * 0.15 + ghost.phase) * W * 0.012;
+    const driftY = ghost.autonomy * Math.cos(t * 0.11 + ghost.phase * 1.3) * H * 0.006;
+
+    const gcx = cx + jitX + driftX;
+
+    // ── Ghost silhouette: convergence-scaled glow ──
+    const ghostConv = ghost.convergence;
+    const ghostBright = ghost.brightness;
+    const headR = Math.min(W, H) * (0.04 + ghostConv * 0.06);
+    const headY = H * 0.27 + jitY + driftY;
+
+    // Head glow — intensity from saved brightness & convergence
+    const headGlowAlpha = alpha * (0.5 + ghostConv * 0.3 + ghostBright * 0.2);
+    const hg = ctx.createRadialGradient(gcx, headY, 0, gcx, headY, headR);
+    hg.addColorStop(0,   `rgba(${gR},${gG},${gB},${headGlowAlpha})`);
+    hg.addColorStop(0.55,`rgba(${gR},${gG},${gB},${headGlowAlpha * 0.35})`);
     hg.addColorStop(1,   `rgba(${gR},${gG},${gB},0)`);
     ctx.fillStyle = hg;
     ctx.beginPath();
-    ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+    ctx.ellipse(gcx, headY, headR, headR * 1.15, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Torso ghost
-    const torsoY = H * 0.48;
-    const torsoR = headR * 1.8;
-    const tg = ctx.createRadialGradient(cx, torsoY, 0, cx, torsoY, torsoR);
-    tg.addColorStop(0,   `rgba(${gR},${gG},${gB},${alpha * 0.6})`);
-    tg.addColorStop(0.5, `rgba(${gR},${gG},${gB},${alpha * 0.15})`);
+    // Neck ghost — subtle connective glow
+    if (ghostConv > 0.15) {
+      const neckY = headY + headR * 0.85;
+      const neckR = headR * 0.32;
+      const neckAlpha = alpha * ghostConv * 0.3;
+      const ng = ctx.createRadialGradient(gcx, neckY, 0, gcx, neckY, neckR);
+      ng.addColorStop(0,   `rgba(${gR},${gG},${gB},${neckAlpha})`);
+      ng.addColorStop(1,   `rgba(${gR},${gG},${gB},0)`);
+      ctx.fillStyle = ng;
+      ctx.beginPath();
+      ctx.ellipse(gcx, neckY, neckR, neckR * 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Torso ghost — shoulder glow scaled to convergence
+    const torsoY = H * 0.48 + jitY + driftY;
+    const torsoR = headR * (1.5 + ghostConv * 0.5);
+    const torsoAlpha = alpha * (0.4 + ghostConv * 0.25 + ghostBright * 0.1);
+    const tg = ctx.createRadialGradient(gcx, torsoY, 0, gcx, torsoY, torsoR);
+    tg.addColorStop(0,   `rgba(${gR},${gG},${gB},${torsoAlpha * 0.6})`);
+    tg.addColorStop(0.45,`rgba(${gR},${gG},${gB},${torsoAlpha * 0.18})`);
     tg.addColorStop(1,   `rgba(${gR},${gG},${gB},0)`);
     ctx.fillStyle = tg;
     ctx.beginPath();
-    ctx.ellipse(cx, torsoY, torsoR * 0.7, torsoR, 0, 0, Math.PI * 2);
+    ctx.ellipse(gcx, torsoY, torsoR * 0.7, torsoR, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Ghost crack lines — if the past session had damage
-    if (ghost.crack > 0.2) {
-      ctx.strokeStyle = `rgba(${gR},${gG},${gB},${alpha * ghost.crack * 0.5})`;
-      ctx.lineWidth = 0.3;
-      const crackCount = Math.floor(ghost.crack * 4) + 1;
-      for (let i = 0; i < crackCount; i++) {
-        const angle = ghost.phase + i * 1.3;
-        const len = headR * (0.5 + ghost.crack * 0.8);
+    // ── Ghost eyes — dim, unfocused, for ghosts with significant convergence ──
+    if (ghostConv > 0.35) {
+      const eyeAlpha = alpha * ghostConv * 0.45;
+      const eyeSpacing = W * 0.042;
+      const eyeR = W * 0.014 * (0.7 + ghostConv * 0.3);
+      const eyeY = headY - headR * 0.05;
+
+      for (const side of [-1, 1]) {
+        const exx = gcx + side * eyeSpacing;
+        const eg = ctx.createRadialGradient(exx, eyeY, 0, exx, eyeY, eyeR);
+        eg.addColorStop(0,   `rgba(${Math.min(255, gR + 40)},${Math.min(255, gG + 50)},${Math.min(255, gB + 60)},${eyeAlpha})`);
+        eg.addColorStop(0.4, `rgba(${gR},${gG},${gB},${eyeAlpha * 0.3})`);
+        eg.addColorStop(1,   `rgba(${gR},${gG},${gB},0)`);
+        ctx.fillStyle = eg;
         ctx.beginPath();
-        ctx.moveTo(cx, headY);
-        ctx.lineTo(cx + Math.cos(angle) * len, headY + Math.sin(angle) * len);
+        ctx.arc(exx, eyeY, eyeR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Dark pupil centre — empty, staring
+        if (eyeAlpha > 0.015) {
+          ctx.fillStyle = `rgba(2,2,6,${eyeAlpha * 0.7})`;
+          ctx.beginPath();
+          ctx.arc(exx, eyeY, eyeR * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // ── Ghost crack lines — scaled to saved crack level ──
+    if (ghost.crack > 0.1) {
+      const crackAlpha = alpha * ghost.crack * 0.6;
+      ctx.strokeStyle = `rgba(${Math.min(255, gR + 30)},${Math.min(255, gG + 25)},${Math.min(255, gB + 35)},${crackAlpha})`;
+      ctx.lineWidth = 0.3 + ghost.crack * 0.4;
+      const crackCount = Math.floor(ghost.crack * 6) + 1;
+      for (let i = 0; i < crackCount; i++) {
+        const angle = ghost.phase + i * (Math.PI * 2 / crackCount) * 0.7;
+        const len = headR * (0.6 + ghost.crack * 1.2);
+        // Branch from head centre
+        const bx = gcx + Math.cos(angle) * len;
+        const by = headY + Math.sin(angle) * len;
+        ctx.beginPath();
+        ctx.moveTo(gcx, headY);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+
+        // Sub-branches at higher crack levels
+        if (ghost.crack > 0.4 && i % 2 === 0) {
+          const subAngle = angle + (shardHash(i, ghost.index) - 0.5) * 1.2;
+          const subLen = len * 0.45;
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx + Math.cos(subAngle) * subLen, by + Math.sin(subAngle) * subLen);
+          ctx.stroke();
+        }
+      }
+
+      // Torso cracks for heavily damaged ghosts
+      if (ghost.crack > 0.3 && ghost.crackCount > 3) {
+        const tCrackCount = Math.min(4, Math.floor(ghost.crack * 3));
+        for (let i = 0; i < tCrackCount; i++) {
+          const angle = ghost.phase * 0.7 + i * 1.4;
+          const len = torsoR * (0.3 + ghost.crack * 0.5);
+          ctx.beginPath();
+          ctx.moveTo(gcx, torsoY);
+          ctx.lineTo(gcx + Math.cos(angle) * len, torsoY + Math.sin(angle) * len);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // ── Ghost erasure marks — scratches across the silhouette ──
+    if (ghost.erasure > 0.15) {
+      const eraseAlpha = alpha * ghost.erasure * 0.4;
+      ctx.strokeStyle = `rgba(${Math.floor(gR * 0.7)},${Math.floor(gG * 0.75)},${Math.floor(gB * 0.85)},${eraseAlpha})`;
+      ctx.lineWidth = 0.3 + ghost.erasure * 0.5;
+      const scratchCount = Math.floor(ghost.erasure * 4) + 1;
+      for (let i = 0; i < scratchCount; i++) {
+        const sx = gcx + (shardHash(i + ghost.index * 17, 42) - 0.5) * headR * 2.2;
+        const sy = headY + (shardHash(i + ghost.index * 31, 77) - 0.3) * headR * 3;
+        const ex = sx + (shardHash(i + ghost.index * 53, 19) - 0.5) * headR * 1.5;
+        const ey = sy + shardHash(i + ghost.index * 71, 53) * headR * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+      }
+
+      // Stitched-mouth mark for high-erasure ghosts
+      if (ghost.erasure > 0.5) {
+        const mouthY = headY + headR * 0.45;
+        const mouthW = headR * 0.35;
+        const stitchAlpha = alpha * (ghost.erasure - 0.5) * 0.5;
+        ctx.strokeStyle = `rgba(${gR},${gG},${gB},${stitchAlpha})`;
+        ctx.lineWidth = 0.3;
+        const stitchCount = Math.floor((ghost.erasure - 0.5) * 6) + 2;
+        for (let i = 0; i < stitchCount; i++) {
+          const sx = gcx - mouthW + (i / stitchCount) * mouthW * 2;
+          ctx.beginPath();
+          ctx.moveTo(sx, mouthY - 1.5);
+          ctx.lineTo(sx, mouthY + 1.5);
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.moveTo(gcx - mouthW, mouthY);
+        ctx.lineTo(gcx + mouthW, mouthY);
+        ctx.stroke();
+      }
+    }
+
+    // ── Ghost drowning haze — waterline behind the ghost ──
+    if (ghost.drowning > 0.05) {
+      const dAlpha = alpha * ghost.drowning * 0.55;
+      // Waterline rises from ghost's torso bottom
+      const ghostBottom = torsoY + torsoR;
+      const waterFrac = 1 - ghost.drowning * 0.55;
+      const waterY = headY + (ghostBottom - headY) * waterFrac;
+
+      // Dark water band across the ghost's lower body
+      const waterH = ghostBottom - waterY;
+      if (waterH > 2) {
+        const wg = ctx.createLinearGradient(0, waterY, 0, ghostBottom);
+        wg.addColorStop(0,   `rgba(1,2,8,${dAlpha * 0.25})`);
+        wg.addColorStop(0.4, `rgba(1,1,6,${dAlpha * 0.5})`);
+        wg.addColorStop(1,   `rgba(0,1,4,${dAlpha * 0.7})`);
+        ctx.fillStyle = wg;
+        ctx.beginPath();
+        ctx.ellipse(gcx, (waterY + ghostBottom) / 2, torsoR * 0.85, waterH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Faint ripple line at the waterline
+      if (ghost.drowning > 0.15) {
+        const rippleAlpha = dAlpha * 0.4;
+        ctx.strokeStyle = `rgba(${Math.min(255, gR + 20)},${Math.min(255, gG + 30)},${Math.min(255, gB + 40)},${rippleAlpha})`;
+        ctx.lineWidth = 0.3;
+        ctx.beginPath();
+        const rippleW = torsoR * 0.7;
+        for (let x = gcx - rippleW; x <= gcx + rippleW; x += 3) {
+          const ripple = Math.sin(x * 0.05 + t * 0.8 + ghost.phase) * 1.5 * ghost.drowning;
+          const py = waterY + ripple;
+          if (x <= gcx - rippleW + 1) ctx.moveTo(x, py);
+          else ctx.lineTo(x, py);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // ── Ghost pulse — faint heartbeat ring for living ghosts ──
+    if (ghost.pulse > 0.15 && ghostConv > 0.2) {
+      const pulsePhase = Math.sin(t * 1.8 + ghost.phase * 0.9);
+      if (pulsePhase > 0.3) {
+        const pulseAlpha = alpha * ghost.pulse * (pulsePhase - 0.3) * 0.35;
+        const pulseR = headR * (1.2 + pulsePhase * 0.15);
+        ctx.strokeStyle = `rgba(${Math.min(255, gR + 25)},${Math.min(255, gG + 20)},${Math.min(255, gB + 15)},${pulseAlpha})`;
+        ctx.lineWidth = 0.3;
+        ctx.beginPath();
+        ctx.arc(gcx, torsoY - torsoR * 0.15, pulseR, 0, Math.PI * 2);
         ctx.stroke();
       }
     }
@@ -3416,55 +3629,237 @@ function initAudio() {
   const ACtx = window.AudioContext || window.webkitAudioContext;
   if (!ACtx) return;
 
-  const ctx = new ACtx();
+  const ctx  = new ACtx();
+  const temp = state.temperament;
 
-  // Low glass-hum oscillator
-  const osc   = ctx.createOscillator();
-  const gain  = ctx.createGain();
-  const filt  = ctx.createBiquadFilter();
-  osc.type    = 'sine';
+  // ── Master output gain (for mute and overall envelope) ──
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0, ctx.currentTime);
+  master.gain.linearRampToValueAtTime(1, ctx.currentTime + 4);
+  master.connect(ctx.destination);
+
+  // ── Drowning lowpass — sits before master; drowning sweeps this down ──
+  const drowningLP = ctx.createBiquadFilter();
+  drowningLP.type  = 'lowpass';
+  drowningLP.frequency.setValueAtTime(18000, ctx.currentTime);  // wide open initially
+  drowningLP.Q.setValueAtTime(0.5, ctx.currentTime);
+  drowningLP.connect(master);
+
+  // ── Base drone oscillator ──
+  const osc  = ctx.createOscillator();
+  const filt = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  osc.type   = 'sine';
   osc.frequency.setValueAtTime(58, ctx.currentTime);
-  filt.type   = 'lowpass';
+  filt.type  = 'lowpass';
   filt.frequency.setValueAtTime(220, ctx.currentTime);
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.028, ctx.currentTime + 4);
+  gain.gain.setValueAtTime(temp === 'silent' ? 0.004 : 0.028, ctx.currentTime);
   osc.connect(filt);
   filt.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(drowningLP);
   osc.start();
 
-  // Noise crackle (bandpass-filtered white noise)
+  // ── Noise crackle (bandpass-filtered white noise) ──
   const bufLen = ctx.sampleRate * 3;
   const buf    = ctx.createBuffer(1, bufLen, ctx.sampleRate);
   const data   = buf.getChannelData(0);
   for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
-  const noise   = ctx.createBufferSource();
-  noise.buffer  = buf;
-  noise.loop    = true;
-  const nFilt   = ctx.createBiquadFilter();
-  nFilt.type    = 'bandpass';
+  const noise  = ctx.createBufferSource();
+  noise.buffer = buf;
+  noise.loop   = true;
+  const nFilt  = ctx.createBiquadFilter();
+  nFilt.type   = 'bandpass';
   nFilt.frequency.setValueAtTime(380, ctx.currentTime);
   nFilt.Q.setValueAtTime(0.6, ctx.currentTime);
-  const nGain   = ctx.createGain();
-  nGain.gain.setValueAtTime(0.007, ctx.currentTime);
+  const nGain  = ctx.createGain();
+  nGain.gain.setValueAtTime(temp === 'silent' ? 0.001 : 0.007, ctx.currentTime);
   noise.connect(nFilt);
   nFilt.connect(nGain);
-  nGain.connect(ctx.destination);
+  nGain.connect(drowningLP);
   noise.start();
 
+  // Collect all nodes; temperament extras added below
+  const nodes = { osc, filt, gain, noise, nFilt, nGain, drowningLP, master };
+
+  // ── Temperament-specific sonic layers ──
+  switch (temp) {
+    case 'cruel': {
+      // Detuned second oscillator — creates dissonant beating
+      const osc2  = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type   = 'sawtooth';
+      osc2.frequency.setValueAtTime(58 * 1.015, ctx.currentTime); // ~0.9 Hz beat
+      gain2.gain.setValueAtTime(0.012, ctx.currentTime);
+      osc2.connect(filt);   // shares the same filter path
+      osc2.start();
+      // Third oscillator — tritone harmonic for menace
+      const osc3  = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type   = 'sine';
+      osc3.frequency.setValueAtTime(58 * Math.sqrt(2), ctx.currentTime); // tritone ≈ 82 Hz
+      gain3.gain.setValueAtTime(0.006, ctx.currentTime);
+      osc3.connect(gain3);
+      gain3.connect(drowningLP);
+      osc3.start();
+      nodes.osc2 = osc2;  nodes.gain2 = gain2;
+      nodes.osc3 = osc3;  nodes.gain3 = gain3;
+      break;
+    }
+
+    case 'silent': {
+      // Breath-like LFO modulation on the drone gain — slow amplitude wobble
+      const lfo     = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.type      = 'sine';
+      lfo.frequency.setValueAtTime(0.12, ctx.currentTime);   // ~7 breaths/min
+      lfoGain.gain.setValueAtTime(0.003, ctx.currentTime);   // very subtle
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);   // modulates drone volume
+      lfo.start();
+      nodes.lfo = lfo;  nodes.lfoGain = lfoGain;
+      break;
+    }
+
+    case 'devotional': {
+      // Harmonic overtones — octave and fifth above the drone
+      const oscOct  = ctx.createOscillator();
+      const gainOct = ctx.createGain();
+      oscOct.type   = 'sine';
+      oscOct.frequency.setValueAtTime(58 * 2, ctx.currentTime);    // octave
+      gainOct.gain.setValueAtTime(0.008, ctx.currentTime);
+      oscOct.connect(gainOct);
+      gainOct.connect(drowningLP);
+      oscOct.start();
+
+      const oscFif  = ctx.createOscillator();
+      const gainFif = ctx.createGain();
+      oscFif.type   = 'sine';
+      oscFif.frequency.setValueAtTime(58 * 1.5, ctx.currentTime);  // perfect fifth
+      gainFif.gain.setValueAtTime(0.005, ctx.currentTime);
+      oscFif.connect(gainFif);
+      gainFif.connect(drowningLP);
+      oscFif.start();
+
+      // Simple delay feedback — reverb-like shimmer
+      const delay     = ctx.createDelay(0.5);
+      const delayGain = ctx.createGain();
+      delay.delayTime.setValueAtTime(0.18, ctx.currentTime);
+      delayGain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.connect(delay);
+      delay.connect(delayGain);
+      delayGain.connect(delay);      // feedback loop
+      delayGain.connect(drowningLP);  // feed into output
+
+      nodes.oscOct = oscOct;   nodes.gainOct = gainOct;
+      nodes.oscFif = oscFif;   nodes.gainFif = gainFif;
+      nodes.delay  = delay;    nodes.delayGain = delayGain;
+      break;
+    }
+
+    case 'flattering': {
+      // Warm the filter — higher cutoff, lower Q
+      filt.frequency.setValueAtTime(340, ctx.currentTime);
+      filt.Q.setValueAtTime(0.3, ctx.currentTime);
+
+      // Subtle chorus — modulated short delay
+      const chorusDelay = ctx.createDelay(0.05);
+      const chorusGain  = ctx.createGain();
+      const chorusLfo   = ctx.createOscillator();
+      const chorusDepth = ctx.createGain();
+
+      chorusDelay.delayTime.setValueAtTime(0.012, ctx.currentTime);
+      chorusGain.gain.setValueAtTime(0.4, ctx.currentTime);
+      chorusLfo.type = 'sine';
+      chorusLfo.frequency.setValueAtTime(0.5, ctx.currentTime);
+      chorusDepth.gain.setValueAtTime(0.004, ctx.currentTime);   // ±4ms modulation
+
+      chorusLfo.connect(chorusDepth);
+      chorusDepth.connect(chorusDelay.delayTime);
+      gain.connect(chorusDelay);
+      chorusDelay.connect(chorusGain);
+      chorusGain.connect(drowningLP);
+      chorusLfo.start();
+
+      nodes.chorusDelay = chorusDelay;  nodes.chorusGain = chorusGain;
+      nodes.chorusLfo   = chorusLfo;    nodes.chorusDepth = chorusDepth;
+      break;
+    }
+  }
+
   state.audioCtx   = ctx;
-  state.audioNodes = { osc, gain, noise, nGain };
+  state.audioNodes = nodes;
   state.audioReady = true;
 
   // Wire mute button now that audio exists
   document.getElementById('mute-btn').addEventListener('click', () => {
     state.muted = !state.muted;
-    const target = state.muted ? 0 : 0.028;
-    const nTarget= state.muted ? 0 : 0.007;
-    gain.gain.setTargetAtTime(target, ctx.currentTime, 0.6);
-    nGain.gain.setTargetAtTime(nTarget, ctx.currentTime, 0.6);
+    master.gain.setTargetAtTime(state.muted ? 0 : 1, ctx.currentTime, 0.6);
     document.getElementById('mute-btn').textContent = state.muted ? '◎ unmute' : '◎ mute';
   });
+}
+
+// ─── Real-time audio modulation from portrait state ─────────────────────────
+function updateAudio() {
+  if (!state.audioReady || state.muted) return;
+  const ctx = state.audioCtx;
+  const n   = state.audioNodes;
+  const p   = state.portrait;
+  const t   = ctx.currentTime;
+  const τ   = 0.15;  // smoothing time constant for all ramps
+
+  // ── Convergence → drone pitch shift ──
+  // As convergence rises (0→1), pitch bends up gently from 58 → ~72 Hz
+  const pitchTarget = 58 + p.convergence * 14;
+  n.osc.frequency.setTargetAtTime(pitchTarget, t, τ);
+  // Keep temperament extras in tune
+  if (n.osc2) n.osc2.frequency.setTargetAtTime(pitchTarget * 1.015, t, τ);
+  if (n.osc3) n.osc3.frequency.setTargetAtTime(pitchTarget * Math.sqrt(2), t, τ);
+  if (n.oscOct) n.oscOct.frequency.setTargetAtTime(pitchTarget * 2, t, τ);
+  if (n.oscFif) n.oscFif.frequency.setTargetAtTime(pitchTarget * 1.5, t, τ);
+
+  // ── Crack & erasure → crackle volume ──
+  // Base crackle 0.007, rises up to 0.04 with damage
+  const damageLevel = Math.min(1, p.crack + (p.erasure || 0) * 0.7);
+  const isSilent = state.temperament === 'silent';
+  const nGainTarget = isSilent
+    ? 0.001 + damageLevel * 0.005
+    : 0.007 + damageLevel * 0.033;
+  n.nGain.gain.setTargetAtTime(nGainTarget, t, τ);
+
+  // Crackle bandwidth also widens with damage
+  const nQTarget = 0.6 + damageLevel * 2.5;
+  n.nFilt.Q.setTargetAtTime(nQTarget, t, τ);
+  n.nFilt.frequency.setTargetAtTime(380 + damageLevel * 600, t, τ);
+
+  // ── Drowning → lowpass muffle ──
+  // As drowning rises 0→1, sweep master LP from 18kHz down to ~200 Hz
+  const drowningCutoff = 18000 * Math.pow(200 / 18000, Math.min(1, p.drowning));
+  n.drowningLP.frequency.setTargetAtTime(drowningCutoff, t, τ * 2);
+
+  // ── Jitter → noise filter instability ──
+  // High jitter widens crackle band and wobbles the centre frequency
+  if (p.jitter > 0.1) {
+    const jitterWobble = Math.sin(t * 6.3) * p.jitter * 120;
+    n.nFilt.frequency.setTargetAtTime(380 + damageLevel * 600 + jitterWobble, t, 0.05);
+  }
+
+  // ── Type tremor → rhythmic gain pulses ──
+  if (p.typeTremor > 0.15) {
+    // Quick gain bump on the drone, proportional to tremor intensity
+    const tremorPulse = Math.sin(t * 12) * p.typeTremor * 0.008;
+    const baseGain = isSilent ? 0.004 : 0.028;
+    n.gain.gain.setTargetAtTime(Math.max(0, baseGain + tremorPulse), t, 0.02);
+  } else {
+    // Settle back to base when not tremoring
+    const baseGain = isSilent ? 0.004 : 0.028;
+    n.gain.gain.setTargetAtTime(baseGain, t, τ);
+  }
+
+  // ── Convergence → drone filter brightness ──
+  // Higher convergence opens the filter slightly — portrait becomes more present
+  const baseFiltFreq = state.temperament === 'flattering' ? 340 : 220;
+  const filtTarget   = baseFiltFreq + p.convergence * 180;
+  n.filt.frequency.setTargetAtTime(filtTarget, t, τ);
 }
 
 // ─── Phase transitions ──────────────────────────────────────────────────────
@@ -3570,6 +3965,7 @@ function mainLoop() {
 
   if (state.awakened || state.phase === 'landing') {
     updatePortraitState(dt);
+    updateAudio();
     renderMirror();
   } else {
     // Still render lightly during landing so shards are visible behind veil
