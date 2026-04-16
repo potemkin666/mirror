@@ -3629,55 +3629,237 @@ function initAudio() {
   const ACtx = window.AudioContext || window.webkitAudioContext;
   if (!ACtx) return;
 
-  const ctx = new ACtx();
+  const ctx  = new ACtx();
+  const temp = state.temperament;
 
-  // Low glass-hum oscillator
-  const osc   = ctx.createOscillator();
-  const gain  = ctx.createGain();
-  const filt  = ctx.createBiquadFilter();
-  osc.type    = 'sine';
+  // ── Master output gain (for mute and overall envelope) ──
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0, ctx.currentTime);
+  master.gain.linearRampToValueAtTime(1, ctx.currentTime + 4);
+  master.connect(ctx.destination);
+
+  // ── Drowning lowpass — sits before master; drowning sweeps this down ──
+  const drowningLP = ctx.createBiquadFilter();
+  drowningLP.type  = 'lowpass';
+  drowningLP.frequency.setValueAtTime(18000, ctx.currentTime);  // wide open initially
+  drowningLP.Q.setValueAtTime(0.5, ctx.currentTime);
+  drowningLP.connect(master);
+
+  // ── Base drone oscillator ──
+  const osc  = ctx.createOscillator();
+  const filt = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  osc.type   = 'sine';
   osc.frequency.setValueAtTime(58, ctx.currentTime);
-  filt.type   = 'lowpass';
+  filt.type  = 'lowpass';
   filt.frequency.setValueAtTime(220, ctx.currentTime);
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.028, ctx.currentTime + 4);
+  gain.gain.setValueAtTime(temp === 'silent' ? 0.004 : 0.028, ctx.currentTime);
   osc.connect(filt);
   filt.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(drowningLP);
   osc.start();
 
-  // Noise crackle (bandpass-filtered white noise)
+  // ── Noise crackle (bandpass-filtered white noise) ──
   const bufLen = ctx.sampleRate * 3;
   const buf    = ctx.createBuffer(1, bufLen, ctx.sampleRate);
   const data   = buf.getChannelData(0);
   for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
-  const noise   = ctx.createBufferSource();
-  noise.buffer  = buf;
-  noise.loop    = true;
-  const nFilt   = ctx.createBiquadFilter();
-  nFilt.type    = 'bandpass';
+  const noise  = ctx.createBufferSource();
+  noise.buffer = buf;
+  noise.loop   = true;
+  const nFilt  = ctx.createBiquadFilter();
+  nFilt.type   = 'bandpass';
   nFilt.frequency.setValueAtTime(380, ctx.currentTime);
   nFilt.Q.setValueAtTime(0.6, ctx.currentTime);
-  const nGain   = ctx.createGain();
-  nGain.gain.setValueAtTime(0.007, ctx.currentTime);
+  const nGain  = ctx.createGain();
+  nGain.gain.setValueAtTime(temp === 'silent' ? 0.001 : 0.007, ctx.currentTime);
   noise.connect(nFilt);
   nFilt.connect(nGain);
-  nGain.connect(ctx.destination);
+  nGain.connect(drowningLP);
   noise.start();
 
+  // Collect all nodes; temperament extras added below
+  const nodes = { osc, filt, gain, noise, nFilt, nGain, drowningLP, master };
+
+  // ── Temperament-specific sonic layers ──
+  switch (temp) {
+    case 'cruel': {
+      // Detuned second oscillator — creates dissonant beating
+      const osc2  = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type   = 'sawtooth';
+      osc2.frequency.setValueAtTime(58 * 1.015, ctx.currentTime); // ~0.9 Hz beat
+      gain2.gain.setValueAtTime(0.012, ctx.currentTime);
+      osc2.connect(filt);   // shares the same filter path
+      osc2.start();
+      // Third oscillator — tritone harmonic for menace
+      const osc3  = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type   = 'sine';
+      osc3.frequency.setValueAtTime(58 * Math.sqrt(2), ctx.currentTime); // tritone ≈ 82 Hz
+      gain3.gain.setValueAtTime(0.006, ctx.currentTime);
+      osc3.connect(gain3);
+      gain3.connect(drowningLP);
+      osc3.start();
+      nodes.osc2 = osc2;  nodes.gain2 = gain2;
+      nodes.osc3 = osc3;  nodes.gain3 = gain3;
+      break;
+    }
+
+    case 'silent': {
+      // Breath-like LFO modulation on the drone gain — slow amplitude wobble
+      const lfo     = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.type      = 'sine';
+      lfo.frequency.setValueAtTime(0.12, ctx.currentTime);   // ~7 breaths/min
+      lfoGain.gain.setValueAtTime(0.003, ctx.currentTime);   // very subtle
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);   // modulates drone volume
+      lfo.start();
+      nodes.lfo = lfo;  nodes.lfoGain = lfoGain;
+      break;
+    }
+
+    case 'devotional': {
+      // Harmonic overtones — octave and fifth above the drone
+      const oscOct  = ctx.createOscillator();
+      const gainOct = ctx.createGain();
+      oscOct.type   = 'sine';
+      oscOct.frequency.setValueAtTime(58 * 2, ctx.currentTime);    // octave
+      gainOct.gain.setValueAtTime(0.008, ctx.currentTime);
+      oscOct.connect(gainOct);
+      gainOct.connect(drowningLP);
+      oscOct.start();
+
+      const oscFif  = ctx.createOscillator();
+      const gainFif = ctx.createGain();
+      oscFif.type   = 'sine';
+      oscFif.frequency.setValueAtTime(58 * 1.5, ctx.currentTime);  // perfect fifth
+      gainFif.gain.setValueAtTime(0.005, ctx.currentTime);
+      oscFif.connect(gainFif);
+      gainFif.connect(drowningLP);
+      oscFif.start();
+
+      // Simple delay feedback — reverb-like shimmer
+      const delay     = ctx.createDelay(0.5);
+      const delayGain = ctx.createGain();
+      delay.delayTime.setValueAtTime(0.18, ctx.currentTime);
+      delayGain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.connect(delay);
+      delay.connect(delayGain);
+      delayGain.connect(delay);      // feedback loop
+      delayGain.connect(drowningLP);  // feed into output
+
+      nodes.oscOct = oscOct;   nodes.gainOct = gainOct;
+      nodes.oscFif = oscFif;   nodes.gainFif = gainFif;
+      nodes.delay  = delay;    nodes.delayGain = delayGain;
+      break;
+    }
+
+    case 'flattering': {
+      // Warm the filter — higher cutoff, lower Q
+      filt.frequency.setValueAtTime(340, ctx.currentTime);
+      filt.Q.setValueAtTime(0.3, ctx.currentTime);
+
+      // Subtle chorus — modulated short delay
+      const chorusDelay = ctx.createDelay(0.05);
+      const chorusGain  = ctx.createGain();
+      const chorusLfo   = ctx.createOscillator();
+      const chorusDepth = ctx.createGain();
+
+      chorusDelay.delayTime.setValueAtTime(0.012, ctx.currentTime);
+      chorusGain.gain.setValueAtTime(0.4, ctx.currentTime);
+      chorusLfo.type = 'sine';
+      chorusLfo.frequency.setValueAtTime(0.5, ctx.currentTime);
+      chorusDepth.gain.setValueAtTime(0.004, ctx.currentTime);   // ±4ms modulation
+
+      chorusLfo.connect(chorusDepth);
+      chorusDepth.connect(chorusDelay.delayTime);
+      gain.connect(chorusDelay);
+      chorusDelay.connect(chorusGain);
+      chorusGain.connect(drowningLP);
+      chorusLfo.start();
+
+      nodes.chorusDelay = chorusDelay;  nodes.chorusGain = chorusGain;
+      nodes.chorusLfo   = chorusLfo;    nodes.chorusDepth = chorusDepth;
+      break;
+    }
+  }
+
   state.audioCtx   = ctx;
-  state.audioNodes = { osc, gain, noise, nGain };
+  state.audioNodes = nodes;
   state.audioReady = true;
 
   // Wire mute button now that audio exists
   document.getElementById('mute-btn').addEventListener('click', () => {
     state.muted = !state.muted;
-    const target = state.muted ? 0 : 0.028;
-    const nTarget= state.muted ? 0 : 0.007;
-    gain.gain.setTargetAtTime(target, ctx.currentTime, 0.6);
-    nGain.gain.setTargetAtTime(nTarget, ctx.currentTime, 0.6);
+    master.gain.setTargetAtTime(state.muted ? 0 : 1, ctx.currentTime, 0.6);
     document.getElementById('mute-btn').textContent = state.muted ? '◎ unmute' : '◎ mute';
   });
+}
+
+// ─── Real-time audio modulation from portrait state ─────────────────────────
+function updateAudio() {
+  if (!state.audioReady || state.muted) return;
+  const ctx = state.audioCtx;
+  const n   = state.audioNodes;
+  const p   = state.portrait;
+  const t   = ctx.currentTime;
+  const τ   = 0.15;  // smoothing time constant for all ramps
+
+  // ── Convergence → drone pitch shift ──
+  // As convergence rises (0→1), pitch bends up gently from 58 → ~72 Hz
+  const pitchTarget = 58 + p.convergence * 14;
+  n.osc.frequency.setTargetAtTime(pitchTarget, t, τ);
+  // Keep temperament extras in tune
+  if (n.osc2) n.osc2.frequency.setTargetAtTime(pitchTarget * 1.015, t, τ);
+  if (n.osc3) n.osc3.frequency.setTargetAtTime(pitchTarget * Math.sqrt(2), t, τ);
+  if (n.oscOct) n.oscOct.frequency.setTargetAtTime(pitchTarget * 2, t, τ);
+  if (n.oscFif) n.oscFif.frequency.setTargetAtTime(pitchTarget * 1.5, t, τ);
+
+  // ── Crack & erasure → crackle volume ──
+  // Base crackle 0.007, rises up to 0.04 with damage
+  const damageLevel = Math.min(1, p.crack + (p.erasure || 0) * 0.7);
+  const isSilent = state.temperament === 'silent';
+  const nGainTarget = isSilent
+    ? 0.001 + damageLevel * 0.005
+    : 0.007 + damageLevel * 0.033;
+  n.nGain.gain.setTargetAtTime(nGainTarget, t, τ);
+
+  // Crackle bandwidth also widens with damage
+  const nQTarget = 0.6 + damageLevel * 2.5;
+  n.nFilt.Q.setTargetAtTime(nQTarget, t, τ);
+  n.nFilt.frequency.setTargetAtTime(380 + damageLevel * 600, t, τ);
+
+  // ── Drowning → lowpass muffle ──
+  // As drowning rises 0→1, sweep master LP from 18kHz down to ~200 Hz
+  const drowningCutoff = 18000 * Math.pow(200 / 18000, Math.min(1, p.drowning));
+  n.drowningLP.frequency.setTargetAtTime(drowningCutoff, t, τ * 2);
+
+  // ── Jitter → noise filter instability ──
+  // High jitter widens crackle band and wobbles the centre frequency
+  if (p.jitter > 0.1) {
+    const jitterWobble = Math.sin(t * 6.3) * p.jitter * 120;
+    n.nFilt.frequency.setTargetAtTime(380 + damageLevel * 600 + jitterWobble, t, 0.05);
+  }
+
+  // ── Type tremor → rhythmic gain pulses ──
+  if (p.typeTremor > 0.15) {
+    // Quick gain bump on the drone, proportional to tremor intensity
+    const tremorPulse = Math.sin(t * 12) * p.typeTremor * 0.008;
+    const baseGain = isSilent ? 0.004 : 0.028;
+    n.gain.gain.setTargetAtTime(Math.max(0, baseGain + tremorPulse), t, 0.02);
+  } else {
+    // Settle back to base when not tremoring
+    const baseGain = isSilent ? 0.004 : 0.028;
+    n.gain.gain.setTargetAtTime(baseGain, t, τ);
+  }
+
+  // ── Convergence → drone filter brightness ──
+  // Higher convergence opens the filter slightly — portrait becomes more present
+  const baseFiltFreq = state.temperament === 'flattering' ? 340 : 220;
+  const filtTarget   = baseFiltFreq + p.convergence * 180;
+  n.filt.frequency.setTargetAtTime(filtTarget, t, τ);
 }
 
 // ─── Phase transitions ──────────────────────────────────────────────────────
@@ -3783,6 +3965,7 @@ function mainLoop() {
 
   if (state.awakened || state.phase === 'landing') {
     updatePortraitState(dt);
+    updateAudio();
     renderMirror();
   } else {
     // Still render lightly during landing so shards are visible behind veil
