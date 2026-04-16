@@ -70,6 +70,7 @@ const state = {
     crack       : 0,    // 0–1  deletion-driven damage
     pulse       : 0,    // 0–1  typing rhythm heartbeat
     sinkDepth   : 0,    // 0–1  scroll-driven distortion
+    drowning    : 0,    // 0–1  accumulated submersion from sustained scroll/wheel
     autonomy    : 0,    // 0–1  self-driven motion when idle
     split       : 0,    // 0–1  doubled ghost from rapid action switching
     panic       : 0,    // 0–1  extreme cursor speed → shard multiplication
@@ -407,7 +408,7 @@ function trackInteraction() {
     handleMove(t.clientX, t.clientY);
   }, { passive: true });
 
-  // Scroll
+  // Scroll (fires only when document actually scrolls — rare with overflow:hidden)
   let lastScrollT = Date.now();
   document.addEventListener('scroll', () => {
     const now = Date.now();
@@ -419,6 +420,22 @@ function trackInteraction() {
     inter.lastScrollY     = window.scrollY;
     lastScrollT           = now;
     recordActionSwitch('scroll', now);
+  }, { passive: true });
+
+  // Wheel — primary scroll input on overflow:hidden pages
+  // Drives the drowning / sinking system
+  document.addEventListener('wheel', e => {
+    const now = Date.now();
+    const dy  = Math.abs(e.deltaY);
+    const dt  = Math.max(1, now - lastScrollT);
+    // Normalise: deltaMode 1 = lines (~40px), 2 = pages (~800px)
+    const pxDy = e.deltaMode === 1 ? dy * 40 : e.deltaMode === 2 ? dy * 800 : dy;
+    const raw  = pxDy / dt;
+    inter.scrollVelocity = inter.scrollVelocity * 0.7 + raw * 0.3;
+    inter.scrollSmooth   = inter.scrollSmooth * 0.92 + raw * 0.08;
+    lastScrollT          = now;
+    recordActionSwitch('scroll', now);
+    if (!state.awakened) awaken();
   }, { passive: true });
 
   // Keyboard
@@ -950,6 +967,15 @@ function updatePortraitState(dt) {
 
   const targetSink = Math.min(1, inter.scrollVelocity * 60);
   p.sinkDepth = p.sinkDepth + (targetSink - p.sinkDepth) * (dt / 180);
+
+  // --- Drowning: accumulated submersion from sustained wheel / scroll ---
+  // Builds faster when scrolling, decays very slowly — the portrait submerges
+  if (inter.scrollVelocity > 0.002) {
+    p.drowning = Math.min(1, p.drowning + inter.scrollVelocity * dt * 0.0018);
+  }
+  // Extremely slow natural recovery — takes many seconds of stillness to surface
+  p.drowning = Math.max(0, p.drowning - dt * 0.000025);
+
   inter.scrollVelocity *= 0.94;
   inter.scrollSmooth   *= 0.97;
 
@@ -984,9 +1010,10 @@ function updatePortraitState(dt) {
   const breathLift = p.breathDepth * 0.08;
   const smearDim   = p.smear * 0.12;
   const erasureDim = p.erasure * 0.10;
+  const drownDim   = p.drowning * 0.22;  // submersion darkens the portrait
   // Light mode: brighter base; dark mode: deeper
   const baseBright = (state.environment.lightMode && !state.environment.darkMode) ? 0.34 : 0.26;
-  p.brightness = baseBright + p.convergence * 0.46 + breathLift - smearDim - erasureDim;
+  p.brightness = baseBright + p.convergence * 0.46 + breathLift - smearDim - erasureDim - drownDim;
 
   // --- Decay hover points ---
   for (const hp of inter.hoverPoints) {
@@ -1938,8 +1965,10 @@ function renderMirror() {
   // 1d. Liquid-black mirror — central glossy pool beneath portrait
   drawLiquidMirror(ctx, W, H, p, t);
 
-  // 2. Sink offset — scroll sinks the portrait
-  const sinkY = p.sinkDepth * H * 0.06;
+  // 2. Sink offset — scroll sinks the portrait; drowning submerges it further
+  const transientSink = p.sinkDepth * H * 0.06;
+  const drownSink     = p.drowning * H * 0.28;   // up to 28% of screen height submersion
+  const sinkY         = transientSink + drownSink;
 
   ctx.save();
   ctx.translate(0, sinkY);
@@ -2066,6 +2095,9 @@ function renderMirror() {
 
   // 10. Smear overlay — violent scroll aging / peeling
   if (p.smear > 0.05) drawSmearOverlay(ctx, canvas, W, H, p);
+
+  // 10b. Drowning haze — dark water rising from below
+  if (p.drowning > 0.01) drawDrowningHaze(ctx, W, H, p, t);
 
   // 11. Resize injury flash
   if (p.resizeInjury > 0.08) drawResizeInjuryFlash(ctx, W, H, p, t);
@@ -2347,6 +2379,65 @@ function drawSmearOverlay(ctx, canvas, W, H, p) {
     ctx.drawImage(canvas, 0, offset);
     ctx.drawImage(canvas, 0, -offset * 0.5);
   }
+  ctx.restore();
+}
+
+// ─── Drowning haze — dark water rising from below ───────────────────────────
+// As drowning accumulates, an opaque dark gradient rises from the bottom of the
+// screen, progressively swallowing the portrait. A faint ripple-line marks the
+// waterline, and the submerged area tints cold and hazy.
+function drawDrowningHaze(ctx, W, H, p, t) {
+  const d = p.drowning;
+  if (d < 0.01) return;
+
+  ctx.save();
+
+  // Waterline position: rises from bottom (1.0) toward top (~0.35) as drowning increases
+  const waterFrac = 1 - d * 0.65;           // 1.0 → 0.35
+  const waterY    = H * waterFrac;
+
+  // Dark water body below the waterline
+  const waterGrad = ctx.createLinearGradient(0, waterY, 0, H);
+  const waterAlpha = Math.min(0.88, d * 0.85);
+  waterGrad.addColorStop(0,    `rgba(1,2,6,${waterAlpha * 0.3})`);
+  waterGrad.addColorStop(0.15, `rgba(1,2,5,${waterAlpha * 0.6})`);
+  waterGrad.addColorStop(0.5,  `rgba(0,1,4,${waterAlpha * 0.82})`);
+  waterGrad.addColorStop(1,    `rgba(0,0,3,${waterAlpha})`);
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(0, waterY, W, H - waterY);
+
+  // Haze band above waterline — mist rising from the surface
+  const hazeH = H * 0.12 * d;
+  if (hazeH > 2) {
+    const hazeGrad = ctx.createLinearGradient(0, waterY - hazeH, 0, waterY);
+    hazeGrad.addColorStop(0, 'rgba(1,2,6,0)');
+    hazeGrad.addColorStop(1, `rgba(1,2,6,${d * 0.25})`);
+    ctx.fillStyle = hazeGrad;
+    ctx.fillRect(0, waterY - hazeH, W, hazeH);
+  }
+
+  // Waterline ripple — thin undulating highlight at the surface
+  if (d > 0.05) {
+    ctx.strokeStyle = `rgba(140,160,200,${d * 0.18})`;
+    ctx.lineWidth   = 0.5 + d * 0.6;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 4) {
+      const ripple = Math.sin(x * 0.02 + t * 1.2) * 2.5 * d
+                   + Math.sin(x * 0.035 + t * 0.7) * 1.5 * d;
+      const py = waterY + ripple;
+      if (x === 0) ctx.moveTo(x, py);
+      else ctx.lineTo(x, py);
+    }
+    ctx.stroke();
+  }
+
+  // At high drowning, a faint cold tint washes over everything above waterline too
+  if (d > 0.3) {
+    const topWash = (d - 0.3) * 0.14;
+    ctx.fillStyle = `rgba(2,4,12,${topWash})`;
+    ctx.fillRect(0, 0, W, waterY);
+  }
+
   ctx.restore();
 }
 
@@ -2782,7 +2873,7 @@ function updateDiagnostics() {
     `brightness: ${p.brightness.toFixed(3)}<br>` +
     `crack: ${p.crack.toFixed(3)} | erasure: ${p.erasure.toFixed(3)}<br>` +
     `pulse: ${p.pulse.toFixed(3)} | tremor: ${p.typeTremor.toFixed(3)}<br>` +
-    `sinkDepth: ${p.sinkDepth.toFixed(3)} | smear: ${p.smear.toFixed(3)}<br>` +
+    `sinkDepth: ${p.sinkDepth.toFixed(3)} | smear: ${p.smear.toFixed(3)} | drowning: ${p.drowning.toFixed(3)}<br>` +
     `breathDepth: ${p.breathDepth.toFixed(3)}<br>` +
     `autonomy: ${p.autonomy.toFixed(3)}<br>` +
     `split: ${p.split.toFixed(3)} | desync: ${p.desync.toFixed(3)}<br>` +
