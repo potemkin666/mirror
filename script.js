@@ -59,6 +59,7 @@ const state = {
     typingBurstIntensity: 0,  // 0–1 how bursty the current typing rhythm is
     scrollSmooth      : 0,    // smoothed scroll velocity for gentle/violent discrimination
     resizeInjuryRaw   : 0,    // raw resize injury signal (set to 1 on resize, decays)
+    clickCount        : 0,    // total clicks — triggers cracks
   },
 
   portrait: {
@@ -139,6 +140,9 @@ const state = {
 
   // Liquid mirror ripples
   ripples: [],        // [{cx,cy,age,maxR,intensity}]
+
+  // Cursor heatmap scars — persistent burn marks from lingering
+  heatScars: [],      // [{x,y,heat,radius}] normalised coords
 
   // Ritual geometry rotation phase
   ritualPhase: 0,
@@ -448,7 +452,22 @@ function trackInteraction() {
     inter.resizeCount++;
     inter.resizeInjuryRaw = 1;   // flash injury on resize, decays in updatePortraitState
     rebuildShards();
+    // Spawn cracks from random screen position on resize
+    spawnCrack(
+      Math.random() * window.innerWidth,
+      Math.random() * window.innerHeight
+    );
     recordActionSwitch('resize', Date.now());
+  });
+
+  // Click / tap — triggers cracks and ripples
+  document.addEventListener('click', e => {
+    inter.clickCount++;
+    if (state.awakened) {
+      spawnCrack(e.clientX, e.clientY);
+      spawnRipple(e.clientX, e.clientY, 0.6);
+    }
+    recordActionSwitch('click', Date.now());
   });
 
   function recordActionSwitch(type, now) {
@@ -1311,6 +1330,586 @@ function drawMetaballs(ctx, W, H, p, t) {
   ctx.restore();
 }
 
+// ─── Cursor Afterimage Trail ───────────────────────────────────────────────
+
+function updateCursorTrail(dt) {
+  const mc = state.mirrorCursor;
+  const trail = state.cursorTrail;
+
+  // Add a new trail point every few frames when cursor is moving
+  const spd = state.interaction.cursorSmooth;
+  if (spd > 0.005 && state.awakened) {
+    trail.push({ x: mc.x, y: mc.y, age: 0, speed: spd });
+    if (trail.length > 80) trail.shift();
+  }
+
+  // Age all points
+  for (const pt of trail) pt.age += dt;
+
+  // Remove old points (>3 seconds)
+  while (trail.length > 0 && trail[0].age > 3000) trail.shift();
+}
+
+function drawCursorTrail(ctx, W, H, p, t) {
+  const trail = state.cursorTrail;
+  if (trail.length < 2) return;
+  const e = p.env;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  for (let i = 0; i < trail.length; i++) {
+    const pt = trail[i];
+    const life = 1 - pt.age / 3000;   // 1 → 0 over lifetime
+    if (life <= 0) continue;
+
+    const alpha = life * 0.12 * Math.min(1, pt.speed * 8);
+    const r = 6 + (1 - life) * 18 + pt.speed * 30;
+
+    // Oily/smoky gradient: palette-tinted, diffuses as it ages
+    const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, r);
+    const cR = Math.floor(e.paletteR * 0.5);
+    const cG = Math.floor(e.paletteG * 0.55);
+    const cB = Math.floor(e.paletteB * 0.7);
+    grd.addColorStop(0,   `rgba(${cR},${cG},${cB},${alpha})`);
+    grd.addColorStop(0.5, `rgba(${cR},${cG},${cB},${alpha * 0.3})`);
+    grd.addColorStop(1,   `rgba(${cR},${cG},${cB},0)`);
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ─── Cursor Heatmap Scars ──────────────────────────────────────────────────
+
+function updateHeatScars(dt) {
+  const inter = state.interaction;
+  const mc    = state.mirrorCursor;
+  const W     = window.innerWidth;
+  const H     = window.innerHeight;
+
+  // Accumulate heat where cursor lingers (slow or still)
+  if (inter.cursorSmooth < 0.015 && state.awakened) {
+    const nx = mc.x / W;
+    const ny = mc.y / H;
+
+    // Find nearest existing scar to merge with
+    let merged = false;
+    for (const sc of state.heatScars) {
+      const dx = sc.x - nx, dy = sc.y - ny;
+      if (Math.sqrt(dx * dx + dy * dy) < 0.04) {
+        sc.heat = Math.min(1, sc.heat + dt * 0.00015);
+        sc.radius = Math.min(0.06, sc.radius + dt * 0.000002);
+        merged = true;
+        break;
+      }
+    }
+
+    if (!merged && state.heatScars.length < 40) {
+      state.heatScars.push({ x: nx, y: ny, heat: 0.05, radius: 0.02 });
+    }
+  }
+
+  // Scars cool very slowly — they persist but fade
+  for (const sc of state.heatScars) {
+    sc.heat = Math.max(0, sc.heat - dt * 0.000004);
+  }
+  state.heatScars = state.heatScars.filter(sc => sc.heat > 0.005);
+}
+
+function drawHeatScars(ctx, W, H, p, t) {
+  if (state.heatScars.length === 0) return;
+  const e = p.env;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  for (const sc of state.heatScars) {
+    const x = sc.x * W;
+    const y = sc.y * H;
+    const r = sc.radius * Math.min(W, H);
+
+    // Discoloured burn: warm amber shifting to pale white at high heat
+    const warmth = sc.heat;
+    const sR = Math.floor(180 + warmth * 75);
+    const sG = Math.floor(160 - warmth * 50);
+    const sB = Math.floor(130 - warmth * 80);
+    const alpha = sc.heat * 0.35;
+
+    const grd = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0,   `rgba(${sR},${sG},${sB},${alpha})`);
+    grd.addColorStop(0.5, `rgba(${sR},${sG},${sB},${alpha * 0.4})`);
+    grd.addColorStop(1,   `rgba(${sR},${sG},${sB},0)`);
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bright wound core at high heat
+    if (sc.heat > 0.3) {
+      const coreA = (sc.heat - 0.3) * 0.5;
+      const coreR = r * 0.25;
+      ctx.fillStyle = `rgba(240,235,220,${coreA})`;
+      ctx.beginPath();
+      ctx.arc(x, y, coreR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Glass Crack Propagation ───────────────────────────────────────────────
+
+function spawnCrack(px, py) {
+  const angle = Math.random() * Math.PI * 2;
+  const len   = 30 + Math.random() * 60;
+  state.crackQueue.push({ x: px, y: py, angle, len, gen: 0 });
+}
+
+function propagateCracks(dt) {
+  const maxCracks = 200;
+  const maxGen    = 4;
+
+  // Process queued branches
+  let budget = 5;  // max new segments per frame
+  while (state.crackQueue.length > 0 && budget > 0 && state.cracks.length < maxCracks) {
+    const q = state.crackQueue.shift();
+    if (q.gen > maxGen) continue;
+
+    const x2 = q.x + Math.cos(q.angle) * q.len;
+    const y2 = q.y + Math.sin(q.angle) * q.len;
+    state.cracks.push({
+      x1: q.x, y1: q.y, x2, y2,
+      gen: q.gen,
+      age: 0,
+      alpha: 0.7 - q.gen * 0.12,
+    });
+
+    // Branch probability decreases with generation
+    const branchChance = 0.55 - q.gen * 0.1;
+    const childLen = q.len * (0.55 + Math.random() * 0.25);
+
+    if (Math.random() < branchChance) {
+      state.crackQueue.push({
+        x: x2, y: y2,
+        angle: q.angle + 0.3 + Math.random() * 0.5,
+        len: childLen,
+        gen: q.gen + 1,
+      });
+    }
+    if (Math.random() < branchChance * 0.7) {
+      state.crackQueue.push({
+        x: x2, y: y2,
+        angle: q.angle - 0.3 - Math.random() * 0.5,
+        len: childLen,
+        gen: q.gen + 1,
+      });
+    }
+
+    budget--;
+  }
+
+  // Age and fade cracks
+  for (const c of state.cracks) {
+    c.age += dt;
+    // Very slow fade — cracks are semi-permanent
+    c.alpha = Math.max(0, c.alpha - dt * 0.000008);
+  }
+  state.cracks = state.cracks.filter(c => c.alpha > 0.005);
+
+  // Hover-triggered cracks: intense lingering spawns fractures
+  for (const hp of state.interaction.hoverPoints) {
+    if (hp.intensity > 0.7 && hp.age > 3000 && hp.age < 3050) {
+      spawnCrack(
+        hp.x * window.innerWidth,
+        hp.y * window.innerHeight
+      );
+    }
+  }
+}
+
+function drawCrackMap(ctx, W, H, p, t) {
+  if (state.cracks.length === 0) return;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+
+  for (const c of state.cracks) {
+    const width = 0.3 + (1 - c.gen / 5) * 0.8;
+    const shimmer = 1 + Math.sin(t * 3 + c.x1 * 0.02) * 0.15;
+    const a = c.alpha * shimmer;
+
+    // Silver-white crack lines
+    ctx.strokeStyle = `rgba(200,210,230,${a * 0.6})`;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(c.x1, c.y1);
+    ctx.lineTo(c.x2, c.y2);
+    ctx.stroke();
+
+    // Faint glow along crack
+    if (a > 0.2) {
+      ctx.strokeStyle = `rgba(180,195,220,${a * 0.12})`;
+      ctx.lineWidth = width + 3;
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Ritual Circle Geometry ────────────────────────────────────────────────
+
+function drawRitualGeometry(ctx, W, H, p, t) {
+  const shift = p.skeletonShift;
+  const cx    = W * (0.5 + shift);
+  const headY = H * 0.270;
+  const conv  = p.convergence;
+
+  // Only appear after some convergence
+  if (conv < 0.12) return;
+
+  const alpha = Math.min(0.18, (conv - 0.12) * 0.25);
+  const ms    = p.env.motionScale;
+  const phase = state.ritualPhase;
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(160,175,210,${alpha})`;
+  ctx.lineWidth = 0.4;
+  ctx.globalCompositeOperation = 'screen';
+
+  // Halo ring above head — slowly rotating
+  const haloR = Math.min(W, H) * 0.12;
+  const haloY = headY - haloR * 0.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, haloY, haloR, haloR * 0.18, phase * 0.15, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Second halo — counter-rotating, slightly larger
+  if (conv > 0.3) {
+    ctx.strokeStyle = `rgba(150,165,200,${alpha * 0.6})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, haloY - 4, haloR * 1.15, haloR * 0.22,
+      -phase * 0.1, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Concentric ritual circles around torso
+  const torsoY = H * 0.48;
+  const circleCount = 3 + Math.floor(conv * 4);
+  for (let i = 0; i < circleCount; i++) {
+    const r = 20 + i * 25 + Math.sin(t * 0.3 + i) * 3;
+    const a = alpha * (0.5 - i * 0.06);
+    if (a <= 0) continue;
+    ctx.strokeStyle = `rgba(160,175,210,${a})`;
+    ctx.beginPath();
+    ctx.arc(cx, torsoY, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Cross-lines through portrait centre — rotating lattice
+  if (conv > 0.2) {
+    const crossLen = Math.min(W, H) * 0.18 * conv;
+    const crossA   = alpha * 0.7;
+    ctx.strokeStyle = `rgba(145,160,195,${crossA})`;
+
+    for (let i = 0; i < 4; i++) {
+      const angle = phase * 0.08 + (i / 4) * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(
+        cx + Math.cos(angle) * crossLen,
+        torsoY + Math.sin(angle) * crossLen
+      );
+      ctx.lineTo(
+        cx - Math.cos(angle) * crossLen,
+        torsoY - Math.sin(angle) * crossLen
+      );
+      ctx.stroke();
+    }
+  }
+
+  // Small sigil marks — tick marks along outer circle
+  if (conv > 0.35) {
+    const outerR = 20 + (circleCount - 1) * 25;
+    const tickCount = 12;
+    const tickLen = 5 + conv * 4;
+    ctx.strokeStyle = `rgba(155,170,205,${alpha * 0.5})`;
+    ctx.lineWidth = 0.3;
+    for (let i = 0; i < tickCount; i++) {
+      const a2 = phase * 0.06 + (i / tickCount) * Math.PI * 2;
+      const ix = cx + Math.cos(a2) * outerR;
+      const iy = torsoY + Math.sin(a2) * outerR;
+      ctx.beginPath();
+      ctx.moveTo(ix, iy);
+      ctx.lineTo(
+        ix + Math.cos(a2) * tickLen,
+        iy + Math.sin(a2) * tickLen
+      );
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Liquid-Black Mirror ───────────────────────────────────────────────────
+
+function spawnRipple(px, py, intensity) {
+  state.ripples.push({
+    cx: px, cy: py,
+    age: 0,
+    maxR: 60 + Math.random() * 80,
+    intensity: intensity || 0.4,
+  });
+  if (state.ripples.length > 12) state.ripples.shift();
+}
+
+function updateRipples(dt) {
+  for (const rp of state.ripples) rp.age += dt;
+  state.ripples = state.ripples.filter(rp => rp.age < 4000);
+
+  // Cursor proximity spawns subtle ripples
+  if (state.awakened && Math.random() < 0.02) {
+    const mc = state.mirrorCursor;
+    const W = window.innerWidth, H = window.innerHeight;
+    const headCX = W * (0.5 + state.portrait.skeletonShift);
+    const headCY = H * 0.38;
+    const dx = mc.x - headCX, dy = mc.y - headCY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < Math.min(W, H) * 0.3) {
+      spawnRipple(mc.x, mc.y, 0.15 + (1 - dist / (Math.min(W, H) * 0.3)) * 0.2);
+    }
+  }
+}
+
+function drawLiquidMirror(ctx, W, H, p, t) {
+  const shift = p.skeletonShift;
+  const cx    = W * (0.5 + shift);
+  const cy    = H * 0.38;
+  const conv  = p.convergence;
+
+  // Central glossy pool — grows with convergence
+  const poolRx = Math.min(W, H) * (0.08 + conv * 0.10);
+  const poolRy = poolRx * 1.4;
+
+  if (poolRx < 10) return;
+
+  ctx.save();
+
+  // Dark glossy ellipse — liquid black surface
+  const poolG = ctx.createRadialGradient(cx, cy, 0, cx, cy, poolRx * 1.3);
+  const pa = 0.15 + conv * 0.20;
+  poolG.addColorStop(0,   `rgba(1,1,4,${pa})`);
+  poolG.addColorStop(0.6, `rgba(3,3,8,${pa * 0.6})`);
+  poolG.addColorStop(1,   'rgba(3,3,8,0)');
+  ctx.fillStyle = poolG;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, poolRx * 1.3, poolRy * 1.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Glossy specular highlight on the pool surface
+  const specX = cx + Math.sin(t * 0.2) * poolRx * 0.15;
+  const specY = cy - poolRy * 0.25 + Math.cos(t * 0.15) * 3;
+  const specR = poolRx * 0.4;
+  const specG = ctx.createRadialGradient(specX, specY, 0, specX, specY, specR);
+  const sa = 0.04 + conv * 0.04;
+  specG.addColorStop(0,   `rgba(200,210,230,${sa})`);
+  specG.addColorStop(1,   'rgba(200,210,230,0)');
+  ctx.fillStyle = specG;
+  ctx.beginPath();
+  ctx.arc(specX, specY, specR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ripple rings expanding from interaction points
+  for (const rp of state.ripples) {
+    const life = 1 - rp.age / 4000;
+    if (life <= 0) continue;
+    const r = rp.maxR * (1 - life * life);  // fast expand, slow finish
+    const ra = rp.intensity * life * 0.2;
+
+    ctx.strokeStyle = `rgba(180,195,220,${ra})`;
+    ctx.lineWidth = 0.5 + life * 0.8;
+    ctx.beginPath();
+    ctx.arc(rp.cx, rp.cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner ring
+    if (life > 0.5) {
+      ctx.strokeStyle = `rgba(200,215,240,${ra * 0.5})`;
+      ctx.lineWidth = 0.3;
+      ctx.beginPath();
+      ctx.arc(rp.cx, rp.cy, r * 0.6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Motion-Activated Anatomy ──────────────────────────────────────────────
+// Specific behaviours reveal hidden anatomical structures beneath the portrait
+
+function drawMotionAnatomy(ctx, W, H, p, t) {
+  const shift = p.skeletonShift;
+  const cx    = W * (0.5 + shift);
+  const ms    = p.env.motionScale;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.lineCap = 'round';
+
+  // ── Ribs: revealed by scroll (gentle scroll = breathing = ribs visible) ──
+  if (p.breathDepth > 0.08 || p.smear > 0.1) {
+    const ribAlpha = Math.max(p.breathDepth * 0.3, p.smear * 0.15);
+    const ribCount = 7;
+    const ribTop   = H * 0.50;
+    const ribSpace = H * 0.018;
+    const ribW     = W * 0.055;
+    ctx.strokeStyle = `rgba(180,195,220,${ribAlpha})`;
+
+    for (let i = 0; i < ribCount; i++) {
+      const ribY  = ribTop + i * ribSpace;
+      const curve = Math.sin(t * 0.8 + i * 0.3) * 2 * ms;
+      const width = ribW * (1 - i * 0.06);
+      ctx.lineWidth = 0.3 + p.breathDepth * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(cx - width, ribY + curve);
+      ctx.quadraticCurveTo(cx, ribY - 3 + curve * 0.5, cx + width, ribY + curve);
+      ctx.stroke();
+    }
+  }
+
+  // ── Jawline: revealed by typing (mouth moves → jaw appears) ──
+  if (p.pulse > 0.15 || p.typeTremor > 0.1) {
+    const jawAlpha = Math.max(p.pulse * 0.25, p.typeTremor * 0.3);
+    const jawY     = H * 0.36;
+    const jawW     = W * 0.048;
+    ctx.strokeStyle = `rgba(170,185,210,${jawAlpha})`;
+    ctx.lineWidth = 0.5;
+
+    // V-shaped jawline
+    ctx.beginPath();
+    ctx.moveTo(cx - jawW, jawY - H * 0.02);
+    ctx.lineTo(cx, jawY + H * 0.015);
+    ctx.lineTo(cx + jawW, jawY - H * 0.02);
+    ctx.stroke();
+
+    // Chin point
+    ctx.beginPath();
+    ctx.arc(cx, jawY + H * 0.018, 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(180,195,215,${jawAlpha * 0.6})`;
+    ctx.fill();
+  }
+
+  // ── Spine: revealed by idle/autonomy (it moves on its own → spine appears) ──
+  if (p.autonomy > 0.15) {
+    const spineAlpha = p.autonomy * 0.22;
+    const spineTop   = H * 0.30;
+    const spineBot   = H * 0.66;
+    const vertebrae  = 12;
+    ctx.strokeStyle = `rgba(160,175,200,${spineAlpha})`;
+    ctx.lineWidth = 0.4;
+
+    ctx.beginPath();
+    for (let i = 0; i <= vertebrae; i++) {
+      const frac = i / vertebrae;
+      const y = spineTop + frac * (spineBot - spineTop);
+      const sway = Math.sin(t * 0.3 + frac * 4) * 3 * p.autonomy * ms;
+      if (i === 0) ctx.moveTo(cx + sway, y);
+      else ctx.lineTo(cx + sway, y);
+    }
+    ctx.stroke();
+
+    // Vertebra dots
+    ctx.fillStyle = `rgba(175,190,215,${spineAlpha * 0.8})`;
+    for (let i = 0; i <= vertebrae; i++) {
+      const frac = i / vertebrae;
+      const y = spineTop + frac * (spineBot - spineTop);
+      const sway = Math.sin(t * 0.3 + frac * 4) * 3 * p.autonomy * ms;
+      ctx.beginPath();
+      ctx.arc(cx + sway, y, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ── Halo: revealed by high convergence (recognition phase) ──
+  if (p.convergence > 0.5) {
+    const haloAlpha = (p.convergence - 0.5) * 0.3;
+    const headY     = H * 0.225;
+    const haloR     = Math.min(W, H) * 0.095;
+    const pulse     = 1 + Math.sin(t * 0.7) * 0.03;
+
+    ctx.strokeStyle = `rgba(200,215,240,${haloAlpha})`;
+    ctx.lineWidth = 0.5 + p.convergence * 0.4;
+    ctx.beginPath();
+    ctx.arc(cx, headY, haloR * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner glow ring
+    if (p.convergence > 0.65) {
+      ctx.strokeStyle = `rgba(210,225,250,${haloAlpha * 0.4})`;
+      ctx.lineWidth = 0.3;
+      ctx.beginPath();
+      ctx.arc(cx, headY, haloR * 0.8 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  // ── Hands: revealed by cursor proximity to sides (reaching out) ──
+  const mc = state.mirrorCursor;
+  const handProximity = Math.min(1, Math.max(
+    1 - Math.abs(mc.x / W - 0.15) * 6,
+    1 - Math.abs(mc.x / W - 0.85) * 6
+  ));
+  if (handProximity > 0.1 && p.convergence > 0.2) {
+    const handAlpha = handProximity * 0.18 * p.convergence;
+    const handSide  = mc.x < W * 0.5 ? -1 : 1;
+    const handX     = cx + handSide * W * 0.13;
+    const handY     = H * 0.52;
+
+    ctx.strokeStyle = `rgba(170,185,210,${handAlpha})`;
+    ctx.lineWidth = 0.4;
+
+    // Palm outline
+    ctx.beginPath();
+    ctx.ellipse(handX, handY, W * 0.018, H * 0.022, handSide * 0.2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Fingers — 4 short lines extending from palm
+    const fingerLen = H * 0.025;
+    for (let f = 0; f < 4; f++) {
+      const fAngle = -0.5 + (f / 3) * 1.0 + handSide * 0.3;
+      const fx = handX + Math.cos(fAngle) * W * 0.018;
+      const fy = handY - H * 0.022;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(
+        fx + Math.cos(fAngle - Math.PI * 0.42) * fingerLen,
+        fy - fingerLen * 0.9
+      );
+      ctx.stroke();
+    }
+
+    // Thumb
+    const tAngle = handSide > 0 ? -0.9 : 0.9;
+    const tx = handX + Math.cos(tAngle) * W * 0.014;
+    const ty = handY;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(
+      tx + Math.cos(tAngle) * fingerLen * 0.7,
+      ty + fingerLen * 0.4
+    );
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 // ─── Module 5 — Render Mirror ──────────────────────────────────────────────
 function renderMirror() {
   const canvas = document.getElementById('mirror-canvas');
@@ -1335,6 +1934,9 @@ function renderMirror() {
 
   // 1c. Soft metaball orbs — ambient glow layer
   if (state.metaballs.length) drawMetaballs(ctx, W, H, p, t);
+
+  // 1d. Liquid-black mirror — central glossy pool beneath portrait
+  drawLiquidMirror(ctx, W, H, p, t);
 
   // 2. Sink offset — scroll sinks the portrait
   const sinkY = p.sinkDepth * H * 0.06;
@@ -1441,11 +2043,26 @@ function renderMirror() {
   // 7. Hover wound points (enhanced heat blooms)
   drawHoverWounds(ctx, W, H, t);
 
+  // 7b. Cursor heatmap scars — persistent burn marks
+  drawHeatScars(ctx, W, H, p, t);
+
+  // 7c. Cursor afterimage trail — smoky/oily
+  drawCursorTrail(ctx, W, H, p, t);
+
+  // 7d. Motion-activated anatomy (ribs, jaw, spine, halo, hands)
+  drawMotionAnatomy(ctx, W, H, p, t);
+
   // 8. Type tremor rib-flash overlay
   if (p.typeTremor > 0.15) drawTypeTremorFlash(ctx, W, H, p, t);
 
   // 9. Erasure scratch overlay
   if (p.erasure > 0.2) drawErasureScars(ctx, W, H, p, t);
+
+  // 9b. Glass crack propagation map
+  drawCrackMap(ctx, W, H, p, t);
+
+  // 9c. Ritual circle geometry
+  drawRitualGeometry(ctx, W, H, p, t);
 
   // 10. Smear overlay — violent scroll aging / peeling
   if (p.smear > 0.05) drawSmearOverlay(ctx, canvas, W, H, p);
@@ -2187,6 +2804,11 @@ function mainLoop() {
   // Update drifting polygons and metaballs every frame (even before awaken)
   updateDriftPolys(dt);
   updateMetaballs(dt);
+  updateCursorTrail(dt);
+  updateHeatScars(dt);
+  propagateCracks(dt);
+  updateRipples(dt);
+  state.ritualPhase += dt * 0.001;  // slow rotation for ritual geometry
 
   if (state.awakened || state.phase === 'landing') {
     updatePortraitState(dt);
