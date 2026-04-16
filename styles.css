@@ -258,3 +258,48 @@ body.awakened #controls {
     transition: none;
   }
 }
+
+/* ─── Light mode ─────────────────────────────────────────────────────────── */
+/* Porcelain glare, ash-glass, pallid chrome, exposed dust, interrogative */
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --silver:      rgba(165, 158, 148, 0.65);
+    --silver-dim:  rgba(145, 138, 130, 0.30);
+    --glass-dark:  rgba(18, 16, 14, 0.88);
+    --ink:         rgb(12, 11, 10);
+  }
+
+  html, body {
+    background: rgb(12, 11, 10);
+  }
+
+  #vignette {
+    background: radial-gradient(
+      ellipse 68% 65% at 50% 38%,
+      transparent 0%,
+      rgba(10, 9, 8, 0.30) 55%,
+      rgba(10, 9, 8, 0.75) 100%
+    );
+  }
+
+  .text-fragment {
+    color: rgba(155, 148, 138, 0.00);
+  }
+
+  #landing-veil {
+    background: rgb(11, 10, 9);
+  }
+
+  .mirror-title {
+    color: rgba(180, 172, 162, 0.58);
+  }
+
+  .invitation {
+    color: rgba(140, 133, 125, 0.35);
+  }
+
+  .landing-hint {
+    color: rgba(110, 104, 96, 0.20);
+  }
+}
