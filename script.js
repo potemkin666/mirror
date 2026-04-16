@@ -35,6 +35,9 @@ const CONFIG = {
   noiseFrames        : 10,     // pre-rendered noise canvases cycled for static
   hoverSpeedThreshold: 0.04,   // px/ms below which a cursor position is treated as lingering
   maxFrameDeltaMs    : 80,     // cap on dt to prevent large portrait jumps after tab suspension
+  maxTrailPoints     : 120,    // max points per finger trail
+  activeTrailMaxAge  : 15000,  // ms before active trail points expire
+  inactiveTrailMaxAge: 8000,   // ms before inactive trail points expire
 };
 
 // ─── Global State ──────────────────────────────────────────────────────────
@@ -463,7 +466,7 @@ function trackInteraction() {
           age: 0,
         });
         // Cap trail length
-        if (trail.points.length > 120) trail.points.shift();
+        if (trail.points.length > CONFIG.maxTrailPoints) trail.points.shift();
       }
     }
   }, { passive: true });
@@ -1677,8 +1680,8 @@ function updateFingerTrails(dt) {
     for (const pt of trail.points) {
       pt.age += dt;
     }
-    // Remove old points (>8 seconds for inactive trails)
-    const maxAge = trail.active ? 15000 : 8000;
+    // Remove old points
+    const maxAge = trail.active ? CONFIG.activeTrailMaxAge : CONFIG.inactiveTrailMaxAge;
     trail.points = trail.points.filter(pt => pt.age < maxAge);
   }
 
@@ -2956,7 +2959,10 @@ function drawNoise(ctx, W, H, p) {
 // behind the 2D canvas. Falls back gracefully if WebGL / Three.js unavailable.
 
 function initGlassRefraction() {
-  if (typeof THREE === 'undefined') return;
+  if (typeof THREE === 'undefined') {
+    // Three.js not loaded — glass refraction layer disabled
+    return;
+  }
 
   const glassCanvas = document.getElementById('glass-canvas');
   if (!glassCanvas) return;
@@ -3123,7 +3129,7 @@ function exportPortrait() {
 
   // Create a temporary link and trigger download
   const link = document.createElement('a');
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const timestamp = new Date().toISOString().replace(/[:.T]/g, '-').slice(0, 19);
   link.download = `mirror-portrait-${timestamp}.png`;
 
   // Use toBlob for better performance on large canvases
