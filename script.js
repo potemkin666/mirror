@@ -56,6 +56,9 @@ const state = {
     actionSwitchRate  : 0,
     lastActionType    : null,
     lastActionTime    : Date.now(),
+    typingBurstIntensity: 0,  // 0–1 how bursty the current typing rhythm is
+    scrollSmooth      : 0,    // smoothed scroll velocity for gentle/violent discrimination
+    resizeInjuryRaw   : 0,    // raw resize injury signal (set to 1 on resize, decays)
   },
 
   portrait: {
@@ -68,6 +71,13 @@ const state = {
     sinkDepth   : 0,    // 0–1  scroll-driven distortion
     autonomy    : 0,    // 0–1  self-driven motion when idle
     split       : 0,    // 0–1  doubled ghost from rapid action switching
+    panic       : 0,    // 0–1  extreme cursor speed → shard multiplication
+    smear       : 0,    // 0–1  violent scroll → vertical aging / peeling
+    breathDepth : 0,    // 0–1  gentle scroll → slow revelation breathing
+    typeTremor  : 0,    // 0–1  burst typing → jaw / rib tremor flashes
+    erasure     : 0,    // 0–1  deletion-driven self-erasure / scratched surface
+    resizeInjury: 0,    // 0–1  resize-driven geometric distortion / injury
+    desync      : 0,    // 0–1  rapid action switching → temporal desynchronisation
     lightAngle  : 0,    // radians — timezone-driven
     lightWarm   : 0,    // 0–1  warmth of light (0=cold silver, 1=amber)
     shardBias   : 0.5,  // 0–1  geometry bias from browser family
@@ -256,7 +266,9 @@ function trackInteraction() {
     const now = Date.now();
     const dy  = Math.abs(window.scrollY - inter.lastScrollY);
     const dt  = Math.max(1, now - lastScrollT);
-    inter.scrollVelocity  = inter.scrollVelocity * 0.7 + (dy / dt) * 0.3;
+    const raw = dy / dt;
+    inter.scrollVelocity  = inter.scrollVelocity * 0.7 + raw * 0.3;
+    inter.scrollSmooth    = inter.scrollSmooth * 0.92 + raw * 0.08;
     inter.lastScrollY     = window.scrollY;
     lastScrollT           = now;
     recordActionSwitch('scroll', now);
@@ -269,6 +281,12 @@ function trackInteraction() {
     const gap  = now - typ.lastTime;
     if (typ.lastTime > 0 && gap < 2500) {
       typ.rhythm = typ.rhythm * 0.8 + gap * 0.2;
+      // Burst detection: short inter-key gaps → high burst intensity
+      if (gap < 180) {
+        inter.typingBurstIntensity = Math.min(1, inter.typingBurstIntensity + 0.15);
+      } else if (gap < 400) {
+        inter.typingBurstIntensity = Math.min(1, inter.typingBurstIntensity + 0.05);
+      }
     }
     typ.lastTime = now;
     typ.count++;
@@ -279,6 +297,7 @@ function trackInteraction() {
   // Resize
   window.addEventListener('resize', () => {
     inter.resizeCount++;
+    inter.resizeInjuryRaw = 1;   // flash injury on resize, decays in updatePortraitState
     rebuildShards();
     recordActionSwitch('resize', Date.now());
   });
@@ -332,10 +351,11 @@ function buildVisitorProfile() {
   if (state.memory && state.memory.visits > 0) {
     const returnBoost = Math.min(0.65, 0.18 + state.memory.visits * 0.08);
     p.convergence = Math.max(p.convergence, returnBoost);
-    // Inherit some prior crack (memory scars)
+    // Inherit some prior crack + erasure (memory scars)
     if (state.memory.scars && state.memory.scars.length) {
       const lastScar = state.memory.scars[0];
-      p.crack = lastScar.crack * 0.5;
+      p.crack   = lastScar.crack * 0.5;
+      p.erasure = (lastScar.erasure || 0) * 0.35;
     }
   }
 }
@@ -381,39 +401,90 @@ function updatePortraitState(dt) {
   const inter = state.interaction;
   const now  = Date.now();
 
-  // --- Autonomy: builds during stillness ---
+  // --- Autonomy: builds during stillness, richer idle motion ---
   const idleMs = now - inter.lastMoveTime;
   const targetAutonomy = Math.min(1, idleMs / (CONFIG.idleThreshold * 1.8));
-  p.autonomy = p.autonomy + (targetAutonomy - p.autonomy) * (dt / 1200);
+  p.autonomy = p.autonomy + (targetAutonomy - p.autonomy) * (dt / 1000);
 
   // --- Jitter: cursor speed drives fragmentation ---
-  const targetJitter = Math.min(1, inter.cursorSmooth * 18);
-  p.jitter = p.jitter + (targetJitter - p.jitter) * (dt / 280);
+  const targetJitter = Math.min(1, inter.cursorSmooth * 22);
+  p.jitter = p.jitter + (targetJitter - p.jitter) * (dt / 220);
 
-  // --- Convergence: assembles slowly over session time + calm moments ---
+  // --- Panic: extreme cursor speed → shard multiplication ---
+  //     Only fires above a high-speed threshold; creates sharp, multiplicative chaos.
+  const panicThreshold = 0.06;  // cursorSmooth above this triggers panic
+  const rawPanic = Math.max(0, inter.cursorSmooth - panicThreshold) / (0.18 - panicThreshold);
+  const targetPanic = Math.min(1, rawPanic);
+  p.panic = p.panic + (targetPanic - p.panic) * (dt / 160);
+
+  // --- Convergence: assembles over time + calm moments; slow cursor accelerates ---
   const sessionSec   = (now - state.startTime) / 1000;
-  const calmBoost    = (1 - p.jitter) * 0.0008;
+  const calmFactor   = 1 - Math.max(p.jitter, p.panic);
+  const calmBoost    = calmFactor * 0.0012;
   const timeBoost    = Math.min(0.0014, sessionSec * 0.000015);
   const targetConv   = Math.min(0.95, p.convergence + calmBoost + timeBoost);
-  p.convergence = p.convergence + (targetConv - p.convergence) * (dt / 800);
+  p.convergence = p.convergence + (targetConv - p.convergence) * (dt / 600);
+
+  // Fast cursor actively tears apart convergence
+  if (p.jitter > 0.5) {
+    p.convergence = Math.max(0, p.convergence - p.jitter * 0.0008 * dt);
+  }
 
   // --- Pulse: typing creates a heartbeat ---
   const sinceType = now - inter.typing.lastTime;
   p.pulse = sinceType < 2800 ? Math.max(0, 1 - sinceType / 2800) : Math.max(0, p.pulse - dt * 0.0004);
+
+  // --- Type tremor: burst typing → cracked articulation, jaw/rib flashes ---
+  const targetTremor = inter.typingBurstIntensity;
+  p.typeTremor = p.typeTremor + (targetTremor - p.typeTremor) * (dt / 150);
+  inter.typingBurstIntensity *= (1 - dt * 0.0028);  // natural decay
 
   // --- Crack: built from high deletion ratio ---
   const delRatio     = inter.typing.count > 5 ? inter.typing.deletions / inter.typing.count : 0;
   const targetCrack  = Math.min(1, delRatio * 2.2);
   p.crack = p.crack + (targetCrack - p.crack) * (dt / 1500);
 
-  // --- Sink depth: scroll velocity sinks the figure ---
+  // --- Erasure: deletions cause self-erasure, injuries, scratched surfaces ---
+  //     More aggressive than crack; high deletion ratio creates missing patches.
+  const targetErasure = Math.min(1, delRatio * 3.2);
+  p.erasure = p.erasure + (targetErasure - p.erasure) * (dt / 1000);
+
+  // --- Scroll: violent → smear / aging; gentle → breath / revelation ---
+  const scrollSpeed = inter.scrollSmooth;
+
+  // Violent scroll: smearing, aging, peeling, drowning, sinking
+  const targetSmear = Math.min(1, Math.max(0, scrollSpeed - 0.08) * 25);
+  p.smear = p.smear + (targetSmear - p.smear) * (dt / 120);
+
+  // Gentle scroll: slow revelation, breathing depth
+  const isGentle = scrollSpeed > 0.005 && scrollSpeed < 0.08;
+  const targetBreath = isGentle ? Math.min(1, scrollSpeed * 14) : 0;
+  p.breathDepth = p.breathDepth + (targetBreath - p.breathDepth) * (dt / 600);
+
+  // Sink depth: scroll velocity sinks the figure
   const targetSink = Math.min(1, inter.scrollVelocity * 60);
   p.sinkDepth = p.sinkDepth + (targetSink - p.sinkDepth) * (dt / 180);
   inter.scrollVelocity *= 0.94;
+  inter.scrollSmooth   *= 0.97;
+
+  // --- Resize injury: physical distortion that decays ---
+  const targetInjury = inter.resizeInjuryRaw;
+  p.resizeInjury = p.resizeInjury + (targetInjury - p.resizeInjury) * (dt / 60);
+  inter.resizeInjuryRaw *= (1 - dt * 0.003);   // decay the raw signal
+  p.resizeInjury *= (1 - dt * 0.0012);          // slow visual decay
+
+  // Resize also damages convergence
+  if (p.resizeInjury > 0.1) {
+    p.convergence = Math.max(0, p.convergence - p.resizeInjury * 0.002 * dt);
+  }
 
   // --- Split: rapid action switching splits the form ---
   p.split = inter.actionSwitchRate;
   inter.actionSwitchRate *= (1 - dt * 0.003);
+
+  // --- Desync: amplified temporal desynchronisation from rapid switching ---
+  const targetDesync = Math.min(1, inter.actionSwitchRate * 1.6);
+  p.desync = p.desync + (targetDesync - p.desync) * (dt / 200);
 
   // --- Eye intensity: hover near the head region ---
   const shift   = state.portrait.skeletonShift;
@@ -428,7 +499,11 @@ function updatePortraitState(dt) {
   p.eyeIntensity = p.eyeIntensity + (eyeTarget - p.eyeIntensity) * (dt / 400);
 
   // --- Overall brightness ---
-  p.brightness = 0.26 + p.convergence * 0.46;
+  //     Breath gently raises brightness (revelation); smear and erasure dim it.
+  const breathLift = p.breathDepth * 0.08;
+  const smearDim   = p.smear * 0.12;
+  const erasureDim = p.erasure * 0.10;
+  p.brightness = 0.26 + p.convergence * 0.46 + breathLift - smearDim - erasureDim;
 
   // --- Decay hover points ---
   for (const hp of inter.hoverPoints) {
@@ -488,6 +563,13 @@ function rebuildShards() {
 }
 
 // ─── Noise / Static ────────────────────────────────────────────────────────
+
+// Deterministic hash for stable per-shard decisions (avoids flicker)
+function shardHash(idx, seed) {
+  let x = Math.sin(idx * 127.1 + seed * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 function initNoise(W, H) {
   const nW = Math.floor(W / 5);
   const nH = Math.floor(H / 5);
@@ -532,29 +614,82 @@ function renderMirror() {
   ctx.save();
   ctx.translate(0, sinkY);
 
-  // 3. Autonomous portrait sway when idle
-  const swayAmt = p.autonomy * 3.5;
-  const swayX   = Math.sin(t * 0.28) * swayAmt;
-  const swayY   = Math.cos(t * 0.19) * swayAmt * 0.5;
-  ctx.translate(swayX, swayY);
+  // 2b. Resize injury → geometric shear distortion
+  if (p.resizeInjury > 0.04) {
+    const shear = p.resizeInjury * 0.08 * Math.sin(t * 12);
+    ctx.transform(1, shear, -shear * 0.5, 1, 0, 0);
+  }
 
-  // 4. Shards
-  state.shards.forEach(s => {
+  // 2c. Breath depth → gentle vertical oscillation (slow revelation)
+  if (p.breathDepth > 0.01) {
+    const breathY = Math.sin(t * 0.6) * p.breathDepth * H * 0.012;
+    ctx.translate(0, breathY);
+  }
+
+  // 3. Autonomous portrait motion — richer idle behaviour
+  //    Breathing, head drift, micro-movements
+  const autoBase  = p.autonomy;
+  const swayAmt   = autoBase * 4.5;
+  const swayX     = Math.sin(t * 0.28) * swayAmt;
+  const swayY     = Math.cos(t * 0.19) * swayAmt * 0.5;
+  const breathAmt = autoBase * Math.sin(t * 0.85) * 1.2;  // breathing
+  const headDrift = autoBase * Math.sin(t * 0.12) * 2.0;   // slow head drift
+  ctx.translate(swayX + headDrift, swayY + breathAmt);
+
+  // 4. Shards — with erasure, panic multiplication, and type tremor
+  const erasureSeed = Math.floor(t * 0.4);  // changes slowly to shift erasure gaps
+  state.shards.forEach((s, idx) => {
     s.glowTarget = s.inPortrait * p.convergence * (p.brightness + p.autonomy * 0.1);
     s.update();
 
-    if (p.jitter > 0.35) {
-      // Jitter: shift each shard's draw position temporarily
-      const mag  = (p.jitter - 0.35) / 0.65;
-      const jx   = (Math.random() - 0.5) * mag * 4;
-      const jy   = (Math.random() - 0.5) * mag * 3;
+    // Erasure: skip some portrait shards → dark wounds / self-erasure
+    if (p.erasure > 0.15 && s.inPortrait > 0.4) {
+      const erasureChance = p.erasure * 0.45 * s.inPortrait;
+      if (shardHash(idx, erasureSeed) < erasureChance) return;
+    }
+
+    // Compute per-shard displacement
+    const ny = s.cy / H;
+    let tremorX = 0;
+
+    // Type tremor: jaw region (0.34-0.42) and rib/chest region (0.52-0.68)
+    if (p.typeTremor > 0.1) {
+      const inJaw  = (ny > 0.34 && ny < 0.42) ? 1 : 0;
+      const inRibs = (ny > 0.52 && ny < 0.68) ? 0.7 : 0;
+      tremorX = (inJaw + inRibs) * p.typeTremor * (Math.random() - 0.5) * 7;
+    }
+
+    const needsDisplace = p.jitter > 0.35 || tremorX !== 0;
+
+    if (needsDisplace) {
+      const mag = p.jitter > 0.35 ? (p.jitter - 0.35) / 0.65 : 0;
+      const jx  = (Math.random() - 0.5) * mag * 5 + tremorX;
+      const jy  = (Math.random() - 0.5) * mag * 4;
       const jverts = s.origVerts.map(v => ({ x: v.x + jx, y: v.y + jy }));
-      const savedV  = s.origVerts;
-      s.origVerts   = jverts;
+      const savedV = s.origVerts;
+      s.origVerts  = jverts;
       s.draw(ctx, p, lightDx, lightDy);
-      s.origVerts   = savedV;
+      s.origVerts  = savedV;
     } else {
       s.draw(ctx, p, lightDx, lightDy);
+    }
+
+    // Panic: extreme speed → draw phantom duplicates (multiplication)
+    if (p.panic > 0.2 && s.inPortrait > 0.25) {
+      const copies = p.panic > 0.7 ? 2 : 1;
+      for (let c = 0; c < copies; c++) {
+        const pMag = p.panic * 8;
+        const pverts = s.origVerts.map(v => ({
+          x: v.x + (Math.random() - 0.5) * pMag,
+          y: v.y + (Math.random() - 0.5) * pMag * 0.7,
+        }));
+        ctx.globalAlpha = p.panic * 0.18;
+        const savedV2 = s.origVerts;
+        s.origVerts = pverts;
+        s.draw(ctx, p, lightDx, lightDy);
+        s.origVerts = savedV2;
+      }
+      ctx.globalAlpha = 1;
     }
   });
 
@@ -566,20 +701,36 @@ function renderMirror() {
   // 6. Eyes
   if (p.convergence > 0.28) drawEyes(ctx, W, H, p, t);
 
-  // 7. Hover wound points
-  drawHoverWounds(ctx, W, H);
+  // 7. Hover wound points (enhanced heat blooms)
+  drawHoverWounds(ctx, W, H, t);
 
-  // 8. Film grain (static)
+  // 8. Type tremor rib-flash overlay
+  if (p.typeTremor > 0.15) drawTypeTremorFlash(ctx, W, H, p, t);
+
+  // 9. Erasure scratch overlay
+  if (p.erasure > 0.2) drawErasureScars(ctx, W, H, p, t);
+
+  // 10. Smear overlay — violent scroll aging / peeling
+  if (p.smear > 0.05) drawSmearOverlay(ctx, canvas, W, H, p);
+
+  // 11. Resize injury flash
+  if (p.resizeInjury > 0.08) drawResizeInjuryFlash(ctx, W, H, p, t);
+
+  // 12. Film grain (static)
   drawNoise(ctx, W, H, p);
 
-  // 9. Split ghost (doubled form from rapid switching)
-  if (p.split > 0.08) {
+  // 13. Split / desync ghost (doubled form from rapid switching)
+  if (p.split > 0.08 || p.desync > 0.06) {
+    const splitAmt = Math.max(p.split, p.desync);
     ctx.save();
-    ctx.globalAlpha = p.split * 0.12;
-    ctx.translate(p.split * 9, 0);
+    // Right ghost — slightly red-shifted
+    ctx.globalAlpha = splitAmt * 0.10;
+    ctx.globalCompositeOperation = 'screen';
+    ctx.translate(splitAmt * 11, p.desync * 3 * Math.sin(t * 2.1));
     ctx.drawImage(canvas, 0, 0);
-    ctx.translate(-p.split * 18, 0);
-    ctx.globalAlpha = p.split * 0.07;
+    // Left ghost — slightly blue-shifted
+    ctx.translate(-splitAmt * 22, -p.desync * 6 * Math.sin(t * 2.1));
+    ctx.globalAlpha = splitAmt * 0.06;
     ctx.drawImage(canvas, 0, 0);
     ctx.restore();
   }
@@ -657,20 +808,189 @@ function drawEyes(ctx, W, H, p, t) {
   }
 }
 
-function drawHoverWounds(ctx, W, H) {
+function drawHoverWounds(ctx, W, H, t) {
   for (const hp of state.interaction.hoverPoints) {
     if (hp.intensity < 0.04) continue;
     const x  = hp.x * W;
     const y  = hp.y * H;
-    const r  = 22 * hp.intensity;
-    const hg = ctx.createRadialGradient(x, y, 0, x, y, r);
-    hg.addColorStop(0, `rgba(205,220,252,${hp.intensity * 0.38})`);
-    hg.addColorStop(1, 'rgba(205,220,252,0)');
-    ctx.fillStyle = hg;
+    const age = hp.age * 0.001;
+
+    // Outer heat bloom — warm amber glow for old wounds
+    const bloomR = 34 * hp.intensity + age * 4;
+    const warmth = Math.min(1, age * 0.3);
+    const bR = Math.floor(205 + warmth * 50);
+    const bG = Math.floor(200 - warmth * 40);
+    const bB = Math.floor(252 - warmth * 120);
+    const bg = ctx.createRadialGradient(x, y, 0, x, y, bloomR);
+    bg.addColorStop(0,   `rgba(${bR},${bG},${bB},${hp.intensity * 0.42})`);
+    bg.addColorStop(0.4, `rgba(${bR},${bG},${bB},${hp.intensity * 0.18})`);
+    bg.addColorStop(1,   `rgba(${bR},${bG},${bB},0)`);
+    ctx.fillStyle = bg;
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x, y, bloomR, 0, Math.PI * 2);
     ctx.fill();
+
+    // Inner core — bright fingerprint-like centre
+    const coreR = 8 * hp.intensity;
+    const cg = ctx.createRadialGradient(x, y, 0, x, y, coreR);
+    cg.addColorStop(0,   `rgba(240,245,255,${hp.intensity * 0.55})`);
+    cg.addColorStop(0.6, `rgba(220,230,250,${hp.intensity * 0.22})`);
+    cg.addColorStop(1,   'rgba(220,230,250,0)');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.arc(x, y, coreR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye-like dark pupil at centre of intense wounds
+    if (hp.intensity > 0.45) {
+      const pupilR = 2.5 * hp.intensity;
+      ctx.fillStyle = `rgba(2,2,8,${hp.intensity * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(x, y, pupilR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pulsing ring — the wound breathes
+    if (hp.intensity > 0.25) {
+      const ringR = (16 + Math.sin(t * 2.4 + hp.x * 10) * 4) * hp.intensity;
+      ctx.strokeStyle = `rgba(200,215,245,${hp.intensity * 0.14})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(x, y, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
+}
+
+// ─── Type tremor rib-flash overlay ──────────────────────────────────────────
+// Burst typing produces rib-like horizontal flashes across chest / jaw
+function drawTypeTremorFlash(ctx, W, H, p, t) {
+  const shift = p.skeletonShift;
+  const cx    = W * (0.5 + shift);
+
+  ctx.save();
+  ctx.globalAlpha = p.typeTremor * 0.35;
+  ctx.strokeStyle = 'rgba(200,215,240,0.6)';
+
+  // Rib flashes — thin horizontal lines across the chest area
+  const ribCount = Math.floor(p.typeTremor * 6) + 1;
+  for (let i = 0; i < ribCount; i++) {
+    const ribY = H * (0.53 + i * 0.025);
+    const ribW = W * (0.06 + p.typeTremor * 0.04);
+    const flicker = Math.sin(t * 18 + i * 2.7) > 0 ? 1 : 0;
+    if (!flicker) continue;
+    ctx.lineWidth = 0.5 + p.typeTremor * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(cx - ribW, ribY + (Math.random() - 0.5) * 2);
+    ctx.lineTo(cx + ribW, ribY + (Math.random() - 0.5) * 2);
+    ctx.stroke();
+  }
+
+  // Jawline tremor — flickering horizontal line beneath the chin
+  const jawY  = H * 0.375;
+  const jawW  = W * 0.042;
+  const jawOn = Math.sin(t * 22) > 0.3 ? 1 : 0;
+  if (jawOn) {
+    ctx.lineWidth = 0.6 + p.typeTremor * 1.2;
+    ctx.beginPath();
+    ctx.moveTo(cx - jawW, jawY);
+    ctx.lineTo(cx + jawW, jawY);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ─── Erasure scratch overlay ────────────────────────────────────────────────
+// Deletions scar the portrait surface: scratches, stitched-over mouth
+function drawErasureScars(ctx, W, H, p, t) {
+  const shift = p.skeletonShift;
+  const cx    = W * (0.5 + shift);
+  const seed  = Math.floor(t * 0.3);
+
+  ctx.save();
+  ctx.globalAlpha = p.erasure * 0.45;
+  ctx.strokeStyle = 'rgba(140,150,180,0.5)';
+
+  // Scratches across the face / torso — 2 to 6 lines
+  const scratchCount = Math.floor(p.erasure * 5) + 1;
+  for (let i = 0; i < scratchCount; i++) {
+    const sx = cx + (shardHash(i, seed) - 0.5) * W * 0.22;
+    const sy = H * (0.22 + shardHash(i + 37, seed) * 0.42);
+    const ex = sx + (shardHash(i + 71, seed) - 0.5) * W * 0.10;
+    const ey = sy + shardHash(i + 99, seed) * H * 0.08;
+    ctx.lineWidth = 0.4 + p.erasure * 0.9;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+  }
+
+  // Stitched-over mouth — horizontal cross-hatch near mouth area
+  if (p.erasure > 0.4) {
+    const mouthY = H * 0.34;
+    const mouthW = W * 0.032;
+    const stitchCount = Math.floor((p.erasure - 0.4) * 8) + 2;
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < stitchCount; i++) {
+      const sx = cx - mouthW + (i / stitchCount) * mouthW * 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, mouthY - 2);
+      ctx.lineTo(sx, mouthY + 2);
+      ctx.stroke();
+    }
+    // Horizontal line through them
+    ctx.beginPath();
+    ctx.moveTo(cx - mouthW, mouthY);
+    ctx.lineTo(cx + mouthW, mouthY);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ─── Smear overlay — violent scroll aging / peeling ─────────────────────────
+// Redraws the current canvas vertically offset at low alpha, creating a motion blur
+function drawSmearOverlay(ctx, canvas, W, H, p) {
+  const layers = Math.min(4, Math.floor(p.smear * 5) + 1);
+  ctx.save();
+  for (let i = 1; i <= layers; i++) {
+    const offset = i * p.smear * H * 0.012;
+    ctx.globalAlpha = p.smear * (0.08 / i);
+    ctx.drawImage(canvas, 0, offset);
+    ctx.drawImage(canvas, 0, -offset * 0.5);
+  }
+  ctx.restore();
+}
+
+// ─── Resize injury flash ────────────────────────────────────────────────────
+// Bright crack lines and warping that flash on resize, then decay
+function drawResizeInjuryFlash(ctx, W, H, p, t) {
+  ctx.save();
+  ctx.globalAlpha = p.resizeInjury * 0.6;
+  ctx.strokeStyle = `rgba(220,230,255,${p.resizeInjury * 0.7})`;
+
+  // Crack lines radiating from centre
+  const cx = W * 0.5;
+  const cy = H * 0.4;
+  const crackCount = Math.floor(p.resizeInjury * 6) + 2;
+  for (let i = 0; i < crackCount; i++) {
+    const angle = (i / crackCount) * Math.PI * 2 + t * 0.5;
+    const len   = p.resizeInjury * Math.min(W, H) * 0.15;
+    ctx.lineWidth = 0.6 + p.resizeInjury * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * len, cy + Math.sin(angle) * len);
+    ctx.stroke();
+  }
+
+  // Brief white flash over everything (impact)
+  if (p.resizeInjury > 0.5) {
+    ctx.fillStyle = `rgba(255,255,255,${(p.resizeInjury - 0.5) * 0.08})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.restore();
 }
 
 function drawNoise(ctx, W, H, p) {
@@ -841,6 +1161,7 @@ function saveMirrorMemory() {
     timestamp  : now,
     convergence: +p.convergence.toFixed(3),
     crack      : +p.crack.toFixed(3),
+    erasure    : +p.erasure.toFixed(3),
     jitter     : +p.jitter.toFixed(3),
     delRatio   : inter.typing.count > 0
       ? +(inter.typing.deletions / inter.typing.count).toFixed(3)
@@ -965,11 +1286,15 @@ function updateDiagnostics() {
     `storage: ${env.storage} | return: ${env.returnVisit}<br>` +
     `<br><strong>portrait</strong><br>` +
     `convergence: ${p.convergence.toFixed(3)}<br>` +
-    `jitter: ${p.jitter.toFixed(3)}<br>` +
+    `jitter: ${p.jitter.toFixed(3)} | panic: ${p.panic.toFixed(3)}<br>` +
     `brightness: ${p.brightness.toFixed(3)}<br>` +
-    `crack: ${p.crack.toFixed(3)}<br>` +
+    `crack: ${p.crack.toFixed(3)} | erasure: ${p.erasure.toFixed(3)}<br>` +
+    `pulse: ${p.pulse.toFixed(3)} | tremor: ${p.typeTremor.toFixed(3)}<br>` +
+    `sinkDepth: ${p.sinkDepth.toFixed(3)} | smear: ${p.smear.toFixed(3)}<br>` +
+    `breathDepth: ${p.breathDepth.toFixed(3)}<br>` +
     `autonomy: ${p.autonomy.toFixed(3)}<br>` +
-    `split: ${p.split.toFixed(3)}<br>` +
+    `split: ${p.split.toFixed(3)} | desync: ${p.desync.toFixed(3)}<br>` +
+    `resizeInjury: ${p.resizeInjury.toFixed(3)}<br>` +
     `phase: ${state.phase}<br>` +
     `<br><strong>memory</strong><br>` +
     `visits: ${state.memory ? state.memory.visits : 0}<br>` +
