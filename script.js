@@ -23,13 +23,15 @@ const CONFIG = {
   shardColsDesktop : 24,
   shardRowsMobile  : 22,
   shardColsMobile  : 16,
-  shardJitter      : 0.42,   // fraction of cell size used for vertex jitter
-  textInterval     : 9500,   // ms between ambient text fragment emissions
-  textFadeDuration : 4200,   // ms a fragment stays visible
-  idleThreshold    : 6000,   // ms of stillness before autonomous motion begins
-  memoryKey        : 'the_mirror_v1',
-  maxScars         : 6,
-  noiseFrames      : 10,     // pre-rendered noise canvases cycled for static
+  shardJitter        : 0.42,   // fraction of cell size used for vertex jitter
+  textInterval       : 9500,   // ms between ambient text fragment emissions
+  textFadeDuration   : 4200,   // ms a fragment stays visible
+  idleThreshold      : 6000,   // ms of stillness before autonomous motion begins
+  memoryKey          : 'the_mirror_v1',
+  maxScars           : 6,
+  noiseFrames        : 10,     // pre-rendered noise canvases cycled for static
+  hoverSpeedThreshold: 0.04,   // px/ms below which a cursor position is treated as lingering
+  maxFrameDeltaMs    : 80,     // cap on dt to prevent large portrait jumps after tab suspension
 };
 
 // ─── Global State ──────────────────────────────────────────────────────────
@@ -228,7 +230,7 @@ function trackInteraction() {
     if (cur) { cur.style.left = cx + 'px'; cur.style.top = cy + 'px'; }
 
     // Record hover point when nearly still (lingers > 0.25 s without moving > 8 px)
-    if (spd < 0.04 && state.awakened) {
+    if (spd < CONFIG.hoverSpeedThreshold && state.awakened) {
       inter.hoverPoints.push({
         x: cx / window.innerWidth,
         y: cy / window.innerHeight,
@@ -312,11 +314,14 @@ function buildVisitorProfile() {
     ? Math.sin(Math.PI * (h - 6) / 14) * 0.65
     : 0.0;
 
-  // Browser → shard geometry character
+  // Browser → shard geometry character.
+  // Lower values give sharper / more angular shard patterns; higher gives rounder, calmer facets.
+  // Firefox = angular (0.22), Safari = softest (0.82), Chrome = mid (0.55), Edge = firm (0.62).
   const browserBias = { firefox: 0.22, chrome: 0.55, safari: 0.82, edge: 0.62, other: 0.38 };
   p.shardBias = browserBias[env.browser] || 0.38;
 
-  // OS → subtle skeleton lateral shift
+  // OS → subtle skeleton lateral shift (negative = left / inward, positive = right / outward).
+  // The shift moves the portrait centroid slightly to give each platform a distinct posture.
   const osShift = { windows: 0.03, mac: -0.04, linux: 0.08, ios: -0.06, android: 0.06, other: 0 };
   p.skeletonShift = osShift[env.os] || 0;
 
@@ -976,7 +981,7 @@ let lastFrameTime = Date.now();
 
 function mainLoop() {
   const now = Date.now();
-  const dt  = Math.min(now - lastFrameTime, 80); // cap at 80 ms
+  const dt  = Math.min(now - lastFrameTime, CONFIG.maxFrameDeltaMs);
   lastFrameTime = now;
 
   if (state.awakened || state.phase === 'landing') {
@@ -1003,6 +1008,9 @@ function init() {
   buildVisitorProfile();
   rebuildShards();
   trackInteraction();
+
+  // Activate the custom cursor (hides the system pointer via CSS body.js-cursor)
+  document.body.classList.add('js-cursor');
 
   // Ambient text timer
   setInterval(() => {

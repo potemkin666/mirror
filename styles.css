@@ -18,8 +18,15 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: var(--ink);
-  cursor: none;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Hide the system cursor only when the JS custom cursor is active.
+   The 'js-cursor' class is added to <body> during init().
+   This preserves the default pointer for users who need it (e.g. assistive tech,
+   or when JavaScript fails). */
+body.js-cursor {
+  cursor: none;
 }
 
 /* ─── Canvas ─────────────────────────────────────────────────────────────── */
