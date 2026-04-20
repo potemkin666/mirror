@@ -1,52 +1,43 @@
-/* ─── The Mirror — script.js ──────────────────────────────────────────────────
- *
- * Architecture
- * ────────────
- *  collectEnvironment()  → reads browser / device / locale / referrer signals once
- *  trackInteraction()    → wires event listeners; updates state.interaction
- *  buildVisitorProfile() → translates raw signals into artistic portrait params
- *  chooseTemperament()   → selects mirror temperament (flattering/cruel/silent/devotional)
- *  updatePortraitState() → evolves portrait params each animation frame
- *  renderMirror()        → draws one canvas frame (shards, glow, eyes, noise)
- *  initGlassRefraction() → Three.js WebGL glass refraction layer
- *  generateTextFragments()→ generates nonsensical ambient text from user input
- *  saveMirrorMemory()    → persists a minimal poetic profile in localStorage
- *  clearMirrorMemory()   → wipes that profile
- *  exportPortrait()      → canvas → PNG download
- *
- * Artistic mapping notes live in buildVisitorProfile() and updatePortraitState().
- * Visual constants live in CONFIG.
+/*
+ * ༷̺͉́𐤘̏̆̒༻̂̎𒀌̓͌̕𐍃̤̗̼̋𒀛̐𐌰̆𐍊̽ᚋ̰͊༛̫̫̣̄𐤈̪͇̎͊༱̬̊𐍆̩̥༺̺̯̮𐌽̝̔̀𐤛̼̏̚𐤒̰̘̥ᛋ͈̻̗́ᚡ̹̉ᚍ̣̙̎͌𐌱͊𒀯̖̮̰͋𐤀̋̀̌̚༪̟̘̪̩༈͍̑༥̍ᛅ̲̳́͌ᛈ̙༬͋̃ᚋ̮̫༆̘̊̒ᚐ̭́̀̕ᛉ̿̏𒀯̾༮̲𐌾̬༖̡̳̔͊𒀝̐̏𐤕̤̖༣͇𒀇̲̬̓ᚇ̟̺̺̱𐍅̲́ᚁ̢͎
+ * 𐍊̣͎̬༁̢̺̜̦᛬̯̉̀𐌽̣͎༝̖̪̝̂ᚾ̪̋̚𒀩̘́̊̒𒀒̜̿̏༃̙ᚐ̊𐌵̋̅𐌱̦̼̈́̅𐤛̨́̋𐍀̺͈͈̫𒀝̱̆ᚏ̨̝̒༌͊̅𐍅̈̾̌ᚉ̲ᚏ̲̂̈́ᚁ̥̋̀𐤈̢̬̙̏𐌾̚ᚽ͈̏̒̔ᛉ̺̹ᚾ̧̮͎̎ᚎ̞̓̃༴̈̍𐤍̒̇𒀅̡͇̦
+ * 𒀙̄̎𐍀̨̭𐍇͉𐤇̲̗̒ᚸ͈̙̋𐍅̪͎᚜̦̪𒀢̖̭̻̒ᚎ̄̂ᚊ̡𐌼̰̞̚𐤓͎̰̾ᚍ̗ᛩ̈́̋་̩̯́̉𐌼̩̪̦̮ᛌ̖̎༰̧̤͆ᚊ̖̓̄̿𐤚͇̟𒀅͂̐𐌵̩༗̗̟̀༐̘̀́̅𐌳̡͉̅ͅ
+ * 𒀎̮̀𒀺̧̬̈́̓𒁈̳̍༩̤̼͍̱ᚑ̧͍̓ᛐͅᛒ̍͆ᚕ̗̄ᚍ̥̕ᚍ̱̖̦̊𐌽̽̅𒁎͉̗̠͇ᚑ͍͍̌ͅ༜̐̍̒̀𐤊̧̓̊ᚘ̡͈̜གྷ͎̇̍༮̓̋𐤆̜༬̣ᚩ̦𐍆̾́𐌽̆ᚑ̧̞̰̌𒀄̫̋̃ᛢ̺̍̋𐤘̜̂̍ᚑ̘̥̍ᚘ̡̰͎𒀞̺̋̋͆༖̗̘̿ང̣͂𐤃̂̉𐌻̨̬́̏𐤑̹̼𐍁̤ᛰ̡̾༫͋
+ * 𒀕̈́͋ᚱ͉̓̅ཁ̙̈́͆̍𒁉̞̌̎̿𐍄̹̳༺́́̔́ᚋ̈́̈́̕𐌲̓𐤕̨̱͂ͅ𐤗̜̩̓𐍉̪̝̉𐌰̣̀͋𒁍̺𒀯̜̦͈̈𐌷̒͆͌༱̒̇ᚕ̟̖̔𐌿̯̳̿ᚙ͌̑̉̉𐤐̨͎̋𐤘̠̱̭̋ᛀ͍̱̙ᚆ̜̞̀̂ᚅ̹̠̤𐌶̜̌ᛤ̢͍̊̑𐤘̺𐌵̜͇̈̕ᚔ̪̬̽̄𒀛̈́༌̊̏ᚅ͌̓ᚤ̮̄̓༱̰̯̜ᛪ̹ͅ𐍂̜͈͊̏
+ * 𐤚̡̡̒̚𒀱̓̀̚𐤅͈𐌹̦̉𒀀̪̈́ ̥̉ᚖ̐𐌳̙̙̇̂༽̢͈̀͊𒀑̡̰̇ᚄ͆̆𐤍̚ᚿ̙ᚉ͍̖́̅༜̇𐌶̧̈́̔̉𐤈̥̳͂̇𐌾̾ᚓ̓𐌳̺̼̻̅𐤌̓༪̜͋͊𒀌̝̠̻𐤒̆̈𒁋̧̭̽༛̆̓̿𒀹̙̭͊𒁍̳̌ᛡ̥͎̀ᚒ̳̬𐤆́̋𐍁̿༂̰̆̽̓ᚚ́ᛘ́̉𒀆̞̑́ͅᚑ̺̠̒̈́𐌿̞̞̯ཀ̟̲̳̓𒀅̙̀͋𐤄̢̘̽̆༡̡̳̥༷̲̂̔ͅ𒁁̡༘̯̃̊̿𐤋̲ᚲ̟̝̱̞ᚊ͉̊ཆ̋̽
+ * ᚋ̭̥̑͊ᚅ̠͊ᛒ̨̺́ͅ𒀛̆༕̲̌̚ᚏͅᚈ̠̗༨̢̗̪͌༼̰̺͌̕ᚱ̡̘𒀲̂᚛̥́̇༞̫͇̒̍𒁃̕ᚆ̻̠̫͌𐌰̞̔𒀷̖̖̬̟ᛞ̘̃ᛞ̹͇̄𒁆̗̣̳̄𐤔̜̄̇͊𐤈̨͈̻༠̦̼̍̌
+ * 𒀔̲̗̑𐍊̯̟͊ᛩ̡̝̖͂༓̧̜͊̅𐤅͈̾ᛒ́̌̚༮̨͇̻͆ᚍ͇̼̀𐍃̢̭ᚆ͂̓𐤈̼ᚎ̣̤̇𐍉͆̈́𐤎͉̤ͅ𐌰͊𐤐̣͈́̔༻̬͍𐌲̏𐌹̨̀̉༬̗͎̹ᛐ̧̤̏̿ᚏ̮̺𐍊̪̐̋͋༺̽𐍅̘̣ᛑ̗𐤍̰̼̔̄𐤊̽̎̽᚜̭̿̽
  */
 
 'use strict';
 
-// ─── Configuration ─────────────────────────────────────────────────────────
+// ᚆ̀̊̚ᚏ̹ᚏ̤̘̆𒀁̲́̓̌𒀰͍̑̀ᛘ̱ᛢ̫̠̙̏ჶ̟̌̑ᛊ̋𒀅̙̰̐ܲ̀̒ᚾ̰̗̝݁̀ͅሚ͉͎݈̱͍̣ჶ̅̀𒀛́̌
 const CONFIG = {
   shardRowsDesktop : 32,
   shardColsDesktop : 24,
   shardRowsMobile  : 22,
   shardColsMobile  : 16,
-  shardJitter        : 0.42,   // fraction of cell size used for vertex jitter
-  textInterval       : 9500,   // ms between ambient text fragment emissions
-  textFadeDuration   : 4200,   // ms a fragment stays visible
-  idleThreshold      : 6000,   // ms of stillness before autonomous motion begins
+  shardJitter        : 0.42,   // ძ̬͈̽ᚹ̩ܖ̜́ܝ̪́͌̄༡̅ჶ̢̐̀ᛠ̺̻̝̿
+  textInterval       : 9500,   // ሞ̨̗̳̻̇͋݀༁̡̾𒀊̭͍̈ͅტ̺ᚪ̺ჳ͇ᚱ̡̱̄̚ሣ̯̥̪༄̅ᚁ̼̝̀გ̝̐༚̢̺̇༗̰̓͋𒀕̠̑ᚏ̦ე̉̓̍༁̟̰̂͋ܠ̨͎̬᚜̨༜̩̫̀
+  textFadeDuration   : 4200,   // ༲̯̃̀ჴ̠̞̯ჸ̪̀̿̓᚜̲̞̽༼͉მ̰̹̉ᚇ͌ᚙ̲̀ᚏ̦̣̦̈̀݅ܓ̡̹ᛇ̡ܙ̮͎̬̗ᛉ̣ᚕ̓ჲ̥̲̲̄𒀫̔̉𒀱̻̍̽ე̦͎̘ᚇ̮მ̠̥̉ᚏ̨̯͌̒ჩ̭̭̤ͅሚ̺̜͆̊ᚊ̤̑ᛃ̗̠̺̥
+  idleThreshold      : 6000,   // ᚅ̚ი̝̃ᛆ̎ܜ̾ᚏ̽ᚇ̰̮̬̀ሖ̜̹პ͇̿ͅᚈ͈̏̈͂ᚣ̱̯̍̓ሿ̳͌ܧ̙ܱ̫უ̤̇͆ሒ̌̈́ჺ̓̓͆ማ͇̀̏ሙ̻̉ა̺̇̃ཁܸ̤̎̈́̽̕̕ܒ̟̞̼̀პ̟̔͆ܥ͎ܡ̘̾𒁊̮̋̋̄ܔ̫̪̈́ል̞̤ስ̨̯༳̱̤͌̀მ̚ᛤ̆̈́ᚆ̩̝̥̊ሬ̪̽༂̙̟̿̿ሔ̫༸̝͎̳
   memoryKey          : 'the_mirror_v1',
   maxScars           : 6,
-  noiseFrames        : 10,     // pre-rendered noise canvases cycled for static
-  hoverSpeedThreshold: 0.04,   // px/ms below which a cursor position is treated as lingering
-  maxFrameDeltaMs    : 80,     // cap on dt to prevent large portrait jumps after tab suspension
-  maxTrailPoints     : 120,    // max points per finger trail
-  activeTrailMaxAge  : 15000,  // ms before active trail points expire
-  inactiveTrailMaxAge: 8000,   // ms before inactive trail points expire
+  noiseFrames        : 10,     // ნ̈́̈ܣ̦̽ᚹ̙̖̉𒀉̧̧̜̬ᛛ̋̔̍ቃ̮ܷ̙̖̲͂̍͊ሔ͈̺̚𒀮̝͈̂̕༇̡̧༤̙̹̄ሔ̧̈́ረ̪̦̆ܔ̩̀𒁀̋͌́𒀉̠͇̌ღ̩༙̮̽̕𒀸̻𒀼̺̆መ̠͍͆̀ჰ̆ჳ̹̬̬̎𒀃̨ჵ̫̙̒𒁀͍͍̺́ლ͉
+  hoverSpeedThreshold: 0.04,   // ̺̳ܽ̔ᚍ͊ᚸ̜̊̔́გ̌ཀ͈̯͋ჸ̼̋̃༣̫͆̋უ̡͈͂𒁋̯̼́ჴ̥ჩ̜̩̏𒁉̪̺̪́ረ̹̇
+  maxFrameDeltaMs    : 80,     // ሉ̯̀̀ჷ̑ძ̓ფ͍̺̤̇༲̘ቇ̗̈́̿
+  maxTrailPoints     : 120,    // თ̨̇̊༠̞̰ሷ̩ܚ̧̻͉̹ᛞ̀ᚃ̩͍̉
+  activeTrailMaxAge  : 15000,  // ༻̡̐̔̔ᚕ͇̖ᚺ̣ჶ̬̩̏̀ሊ͎̆̽̒ᛘ̩̥̎͌ᚂ̑͊̀ር͈̆́͌ܩ̓ܒ̮̂ჯ̱̏ܖ̧̒̚ჶ݆̹̻͋́𒀥̨̺̕ͅ᚛̀𒀵̽̓ᛔ̨̻𒀙̦̂͆̚ሼ̳ჰ̝̰́ܰ
+  inactiveTrailMaxAge: 8000,   // ሰ̪̓̒ც̬̉̂ო̖̃̎ᚘ̅̅ሪ̨̠̼̌ჸ͎̓̈́𒀱̳༚̬̫́ܚ̨ფ̹̃ᚺ̹̦͌̓ܥ̪̪̏ᚧ̗̄ᚉ̃༼̊ራ̹̠̆𒀽̧̼̖͂ჺ̭̝᚛̋𒀴̯̀ᛥ̏̾
 };
 
-// ─── Global State ──────────────────────────────────────────────────────────
+// ሌ̹͈̍ᚎ̂̇𒀌̨̮݆̲͋̈̈́ვ̲̰̖̊𒀀̅
 const state = {
-  phase    : 'landing',   // landing | awakening | observation | interaction | recognition
+  phase    : 'landing',   // ᚃ̨͈̍ሞ̹̟̼̚შ̂̀𒀀̹ሩ̘𒀣͇༁̗͂ᛖ͋𒁄̟̿༜̣̿́ཇ̳͈༮ܑ̝͉̅́ᛍ͉̑ܮ̡̬̑ᚕ͇̖̫ᚍ̗̩̑გ͋̆̔ჷ̯̻݊გ̾̄ܳͅᚘ͈̣̥̉ᛞ̈̔ང͇͊ܝ̓͆̓᛬̱̊́ᚹ̂ܘ̦͌̅༑̂̇́ᚁ͍̺́ი̗̄ᛃ̧̹༿̀ჴܑ͈̱ራ͂
   awakened : false,
   startTime: Date.now(),
 
-  // Mirror temperament: flattering | cruel | silent | devotional
+  //  ̫͈̽༳̜̅̅̌ሗ̻͌̔͊ᚐ̖́͂̄ሗ̡̽̐̅ᛟ͆́ე͉̌დ̨̙̂̓ე̰͍̔̀ᚸ̡̗̜̇ᛟ̀̿
   temperament: 'flattering',
 
   environment: {},
@@ -54,10 +45,10 @@ const state = {
   interaction: {
     cursorX           : window.innerWidth  * 0.5,
     cursorY           : window.innerHeight * 0.5,
-    cursorSpeed       : 0,   // instantaneous
-    cursorSmooth      : 0,   // exponential smoothing
+    cursorSpeed       : 0,   // ሕ̦̙𒀺̝̭̽ლ̖̻̋𒁌̞̬ყ̪̍̇᚛̖̰̐̆ᚇ̣́̋ህ̡̰̈́ᛰ̹̓ܫ̭ᚡ̰ᚌ̀̌ሊ͎̇̕ም̡͈̫̯̦̣́̔ܲ݉ሂ̽̎ᛔ͉̎ჷ̥̿̄̏𒀠̕𒁋͎̒̏ሮ̭̹̓̂
+    cursorSmooth      : 0,   // ሌ̯̟͆ᛩ̭̄༡̹̌ჯ̫̼༤̨̢̳́ჸ̧̫̂̅ᚻ̡༷̑̔̀̈́ቇ͋𒀏̈́ሞ̲̾̊𒀈͊ᛓ̓ቅ̍̈͂ჯ̺̜̼̗ཆ̳̊ሄ̤̭̈༽̈́პ̰̫ᛁ̧͈ሐ̨̫̇༸̫͉̒ᚒ͈̌̕༅̮̭̉̂
     lastMoveTime      : Date.now(),
-    hoverPoints       : [],  // [{x, y, age, intensity}] — lingering cursor wounds
+    hoverPoints       : [],  // ܕ̭̱̙͂ܗ̦͈̂̄𒁌̕დ̄ܥ̇̌ܔ̙́͋̋ᛛ̝̎̚ሳ̨̬̐ჲ̮̪̯̒ሸ̡̮̽̔ᚾ̡̟̞̂𒀷̺́ჸ̢͈̅̀
     scrollVelocity    : 0,
     lastScrollY       : 0,
     typing            : { count: 0, deletions: 0, lastTime: 0, rhythm: 0, buffer: '' },
@@ -65,72 +56,72 @@ const state = {
     actionSwitchRate  : 0,
     lastActionType    : null,
     lastActionTime    : Date.now(),
-    typingBurstIntensity: 0,  // 0–1 how bursty the current typing rhythm is
-    scrollSmooth      : 0,    // smoothed scroll velocity for gentle/violent discrimination
-    resizeInjuryRaw   : 0,    // raw resize injury signal (set to 1 on resize, decays)
-    clickCount        : 0,    // total clicks — triggers cracks
-    // Touch-specific finger trails
-    fingerTrails      : [],   // [{points: [{x,y,pressure,age}], active: bool}]
-    activeTouches     : {},   // touchId → trail index
+    typingBurstIntensity: 0,  // ཁ̲̤̊̌ᛒ̧̯̰͋ܦ̓ᚏ̍ሱ̼̼ზ̝͈̏̂༛͉̏̋ሊ̽̅ᛨ̰̗̿͋𒀸̝̓̃ᛋ̭̱̋̉ܮ̍ᚁ̤̹̏𒁌͈͍̉𒀮̍̈ᚈ̺̠͎ህ̃͊̅̀ც̓ზ̨̎͊𒀵͈̄̓ܣ̩̗̹̈́̍̋ܽ̋ᛈ̭͍̫̿ᛚ̯̹̜̒ᚂ͍ც̔ᚂ̼̌ნ̻݄̀̃́𒀵̯̱ܢ̨͋͋
+    scrollSmooth      : 0,    // ᛟ̺̈́̃ᛑ̤ሯ̝̑ᚅ̚ᛑ̪̍̓͊ფ̎͊̐ᚔ̢̀̉̏ᚌ̺༉̾ܭ̜̇ͅᚖ̩̓̚ሎ̦̣ᚪ̣̓༐̳̰𒁄̾̽ყ͇̀ძ̏̆ᚼ̌̓ᛣ̼༊̙̔̄̀༤̧̮̲̻ቂ̬ᚖ̢̹ᚃ̢ᛢ͎̹̕ს̯̺̒ე͌༏̈́̉ᚐ̲̲ܫ̳̠̘𒀂̘̦̀̆ქ̥̉༰̨̨͍𒀀̒ᚘ͎̒༄̢̠̄ᚒ̧͇̭̾
+    resizeInjuryRaw   : 0,    // 𒁄̨̯̭̍༰̌ሏ̪̫̇̀ቃ̽̕ჺ̰̓ሣ̞͉̄𒀻̨̎𒀢̗̺̝̈́𒀴̰̞̺͂́݃̕ᚱ͍ᛓ̌̉ሠ̢̣ܻ̤̄͋͂̚ሱ̐̚ᚩ̚གྷ̗̼̆̌ܩ̳̐𒀽̨̟̉𒁏͊ܬ̰ᚕ͉𒀋̟ܴ̫̔́̅́̃ᛕ̳༨̇̀̀̌༽̨̌̆̕ხ̺ᚗ̘ᚙ̰
+    clickCount        : 0,    // ჷ̦̍ᚺ̮𒀒̍̑ͅ𒀉̡̖̳̅ᚉ̒̚𒀰̀͋ჩ̘̙̓ფ̲͂𒁏̬͍ሡ̢͎̽̂ቆ̀ᚱ̣მ̟𒀗̪ᚥ̖̈ა͆ሖ̟̮̒ͅᚃ̡ᚌ̨̫༩̞͈༩̄ቄ̝̟̹༪̥𒀱̼̗̔̚ჷ̎ቄ̎ܞ̬̓ᚕ̢̓̕ͅ𒀰̱̩ቁ̻͉̤ܽ̓𒀊̹̫͂გ̝ᚴ̒̒
+    // გ̱̠ቇ̦̣͌̚༡͍͋ͅ𒀵̡̐ძ̹̄ᚆ̠̔̋ሕ̧̪̰̿ი͎̼̑̈༺͇̑̆̂ܗ̙͉ང̤𒀌̭̒ᚋ̈́᛬͍̆ሬ͈̈𒀺̩̅́ᛠ̺̫̒ማ̲̐ᚄ̔𒁁̅ᚒ̾͌̓̚ᚁ̰̅́ᛆ̦̺̩͌ܪ́ሌ̹ሻ̘̘̃𒀓̞̼̘͈ᚍ̜́
+    fingerTrails      : [],   // ᚡ̼̄̒̊ᚎ̞̍̽ላ̖̩̜̾̅݃ᚍ̥̈́̾༟̼̽̈́𒁁̱̣̺ሁ̝̒წ̻̎̈
+    activeTouches     : {},   // ᚷ͎͈́̐ᛧ̲̈́̊́ᚉ̌უ͎͂̓ᛅ͎݄̑ᛁ͍̲༔̬་̨̺̕ሯ̡̦݂̼ᚖ͋ᚶ̘̺̻ᚨ̼̅̓́𒁂̹̌𒀾̯̿ᚂ̯̗̥͉კ̨̪݈̳̠̇̑͊ᚔ̮ᚄ̤̾̇̕𒁇͍̖̰ܐ͇̮̹̎༆̜̫ᚤ̨პ̲̑͋ჰ̡̰̍̓ܬ̧ᛢ̠̟𒀅̦𒀋̮͋̀̍
   },
 
   portrait: {
-    convergence : 0,    // 0–1  how assembled the figure is
-    jitter      : 0,    // 0–1  fragmentation / speed-driven chaos
-    brightness  : 0.28, // 0–1  overall luminance
-    eyeIntensity: 0,    // 0–1  eye glow
-    crack       : 0,    // 0–1  deletion-driven damage
-    pulse       : 0,    // 0–1  typing rhythm heartbeat
-    sinkDepth   : 0,    // 0–1  scroll-driven distortion
-    drowning    : 0,    // 0–1  accumulated submersion from sustained scroll/wheel
-    autonomy    : 0,    // 0–1  self-driven motion when idle
-    split       : 0,    // 0–1  doubled ghost from rapid action switching
-    panic       : 0,    // 0–1  extreme cursor speed → shard multiplication
-    smear       : 0,    // 0–1  violent scroll → vertical aging / peeling
-    breathDepth : 0,    // 0–1  gentle scroll → slow revelation breathing
-    typeTremor  : 0,    // 0–1  burst typing → jaw / rib tremor flashes
-    erasure     : 0,    // 0–1  deletion-driven self-erasure / scratched surface
-    resizeInjury: 0,    // 0–1  resize-driven geometric distortion / injury
-    desync      : 0,    // 0–1  rapid action switching → temporal desynchronisation
-    lightAngle  : 0,    // radians — timezone-driven
-    lightWarm   : 0,    // 0–1  warmth of light (0=cold silver, 1=amber)
-    shardBias   : 0.5,  // 0–1  geometry bias from browser family
-    skeletonShift:0,    // small float — OS-driven silhouette offset
+    convergence : 0,    // ሂ̄̓̀𒀃̄ܕ̙͇̍ᚋ̥ᛈ̳̳̠͌ܗ̡̘̈ქ̢̨̻̌݁̋ᚇ̿ს͉ᛠ̯̫̂̑ნ̡
+    jitter      : 0,    // ༖͍͌͂ᛅ̝̪͉́༃̖̠̼̓̆̀ܶ𒁊̜̟ቃ̌ჺͅቆ̓̒͌ᚓ̱̎̂ᚌ̪̑༩̆̍༩̒̔ᚽ̡͇̜͌ܙ̅༖̗ͅᚿ́ܮ̱̯̅́ܧ̡̌̆ሣ͍ᚈ̟̟̹̿ჶ͂ი̫̗̔̆გ̦͇დ̖͇̐̀ᚣ̞̠̈́̐ᚒ͆༶̦̣̍̇ᚕ̝ძ̑̄̓ბ͍̉͆𒀰̭̊͋ᚆ̀̄
+    brightness  : 0.28, // ᚙ̫͎́ሀ̣̾ͅ᚛͈ჵ̡̰̀༂̣̣̒̒ܠ̢ܸ̣̈́შ̈̾̔ი̢͇̹ᚯ͇̪̯͋𒀩̼̑̓𒀭͉̲̇̎̔ܵ͆𒀛̳̽̈́ሜ̐̂ᚮ̢̮̑
+    eyeIntensity: 0,    // ሾ͎̟༻̬ᚬ̺ܷ̯̯́̓ሱ̦̉𒀭̹́͌̉ܦ̣̱̫̥ᛓ̖მ͆̇༭͈̚ܭ̫͍̎͆ტ͉̒ვ̗̥̅̍ܪ̰̥͉̹͈̻ܺ̋დ͉̓̏ܧ̝ᚍ̓̈́༟̉̒ༀ̫̭̣
+    crack       : 0,    // ᛛ͆ͅ𒁌̡̼̉ܒ̮͂̚᛫̄̓ხ̦̃ᛗ̪̊ሯ͎ᚒ̥ᚫ̏ᚆ̮̓ཁ͈̗̔̚ᛛ̩̖̼̿݉𒀄̧̇̊ჩ̞̞̔𒀶̪̓̋𒀝̪̲̽ჹ̤́ሒ̤̀ܔ̞̂ᛓ͉̙̥ሲ͆̆̓ᚃ̆̕̚ᚪ̞ᚄ̝̍̈́ͅᛗ̲ᚄ̭̤̩̒ჟ̩̞̐̒༤̼̺́͂ᚾ̼̼ᛛ̮༎̣̩̋
+    pulse       : 0,    // 𒁋̫̝̤უ̻ᛠ̢͍͋̎ᚅ̒ሔ̲̂ᚩ̣ᚆ̒̏ᚄ̇̐༁̭̮̍ቃ̼̽̂მ̡̋̚ᚊ̏𒀒̩̀̏̽ᚕ̢̟̽ᚐ̜̜̔̉𒀍̠̰̋𒀰̢̝̮̐̆̂݀̽̉𒀺͉̘̚
+    sinkDepth   : 0,    // ༺̞ᚊ̰̲̀ሒ̻̜ܸ̀̍̆ᛚ̓༨̥̔𒁌̥̜̞͈͆ܰ̏ሺ̟̘̂༳̊̀̽ሊ̝͍̖̱͉ܿ̆̔݇𒀋̳ᚇ̅̚ᛄ̌́ჹ̞̬̬ܹ̃̄𒀨̺͎̄́ሉ̘̜̪̥ܶ༸̞̅ቄ͋̅ღ̨̕̚𒀈̾ሡ̓ܦ̞̆̓̇ᛛ̰̰̏̓ሡ̳̅ᚃ͆
+    drowning    : 0,    // ཆ͌༨̮̭ს̐ᚙ̨͇̯̎༝͉𒀛ͅ𒀟̝̯̄̽ᛏ̮̎ሁ̡̱̙̅ሆ̪̬̱̦გ̽̓݀̇̋𒀣̀ሳ͍̈̋დ͎ᛕ̦̗̔͌ᚓ̝̊ფ͈̀̇ᚙ̨ሄ̀𒁋ܾ̓̒ཅ͍̗̀̉𒀢͌𒁉̞ტ̙̉͋ ̧̟̎ᚓ̦̝ლ̮̟̝̹̟̑݊̏ ̫༒̧̋ܥ̐̊̂𒀈̅͌̎̾ჴ̎̅ለ̀ᚰ̞͇̫შ̢̻̑
+    autonomy    : 0,    // ᚉ͍̫̟̀𒁏̺ቅ̼͋ᚘ͉̖̬̽ჶ̈́ᛨ̡̞𒀺̝̀ሌ̇̏ ̪̽ܐ̣̦̓̽᛫̋͂̔̓
+    split       : 0,    // ჷ̰̂༿̕𒁎̠̬̐ᛟ̺͍̓̔༦̯̫̂ᛆ̉რ̧̫̝̘̈́ܵ̀̓ᛛ̾͌̔ჩ̦̲̄𒀸͉̘̈́𒀜̟̐̿̐𒀙͈ხ̦̪͊𒀏̨ቈ̱̋ᛦ̣̆ჲ̠̄ჩ̨̤̥̈́͋݃ზ̗̕᛭͎̣̝̍ܓ̂ሆ̝̟̋ჰ̃̿ܟ̢̃̆̋༔͂𒀞̗መ̮̀
+    panic       : 0,    // ᚵ̭̚ ̠̪̂̾ჭ̺̣̒ᛕ̝̉𒀱̌̈̀̒ᚕ̏̃ჟ͉̠̜̎ᚾ̩̎ᚚ̗̮́̑გ̗̉̚ᚙ͆̽ზ̭༁̀̑𒀝̜༧̼̈́ᚍ̧̫ᛓ̬̏ܢ̕ͅ༄̀ሰ͇̖̗̽ሂ̽ༀ̦̟̬𒀱̲̎ܫ̳𒀙̜̖̿̋ს̖̀ძ̰ᚋ̘̽ܘ̙ܽ̋̚ᚋ̙ᚊ̀
+    smear       : 0,    // ቅ͎̈́̋̈ᛍ̹̄́̽𒁏͍̔𒁆̠̘̯̃ᚗ̺ ̢̳̈ሐ̘̀̉́𒁈̰ᛒ̞̻̏̑ሓ̦̿ሏ͌̀᚜̼͋ሑ̈ᚡ̠̌̐́ᚌ̨͈̲͌ძ̪ᚴ͎̂ራ̺̘ሐ̙̮̋𒀽̡̻͇ᚍ̩̋̃̀ቁ̢̤კ͉̼̅̄
+    breathDepth : 0,    // წ̰̦ᚋ̭̎ም́ܟ̖͍́̊༺̒ᛢ̟ᚔ̼̻̲݄̈͂ᚊ̭̗ᚏ̻̬
+    typeTremor  : 0,    // მ̣̃ܧ̅ሢ̢̼͉̍༾͎ვ̊̏̄წ̊̓ሮ͎𒀄̫̹̋𒀛̦̏̚𒀚̘͊𒀖͂༟͇̈ܦ͌ᚿ̑ሽ̝̃̔დ̱̀̋̈ሺ͉̽̊̚ሲ̩͇̱𒀻̮̇ᚊ͍͇̚ᛅ̐༡̲̀𒀺̍̓̄͆᚛̗̠ሰ̖̃̔ܒ̟̭̣̃݃͆̕ᚘ̤̤̿̀ᛘ̹̎̐𒀚̢̬̝̙̏̀݇́ყ̱̤̿̔𒀱̧̨ܱ̉̎̍̚ყ̦̗̥݊̍𒀦͆ᚔ̀
+    erasure     : 0,    // ჹ̯̬̋ᚭ̰ᛰ̡͍͇̍ܗ̾ჹ̉̈̕ཇ̞̫̆𒀉̉̀ზ̐༛̙ܱ́̑̎ᛈ̜̙͉̌ᚐ̘̬̜𒁎̧̖̿ሜ̣̟̖̲༲̭̝́༞̟༘̘̓̿͊𒀯̦̍̐ᛥ̻̣ᚊ̝͎̌ᛎ̡̡̮ܴ̭͌ͅღ͉ᚒ̙̼̞̇݉̂༎̊̇̀̚
+    resizeInjury: 0,    // პ̝̉̕ᛞ̘̯̀༿̫ܼ̔̓̐̓༰̪̯̉ᛧ̲ჺ̮̚რ͇ᛋ̯͍̺ማ̡ቅ̠̓̀͂ქ̭̪̮̬ܼ̮̃̉̍ᚴ̗ͅ༰̥𒁈̹ᛞ̜̓ᚚ̫̫
+    desync      : 0,    // ᛀ̃𒀿̽̓̎ᚂ̅ል̃̍ᚿ͉༡̳̲̂ᚾ̻̦̽
+    lightAngle  : 0,    // ᚙ̞𒁋̜ܬ̂ᛙ͊̓̉ᚌ̜༎̨ჭ̓ሺ̩𒁆̹̌ᛀ̙̑̈𒀉̫
+    lightWarm   : 0,    // ზ̌𒁎͂̑̓ᛙ̂შ̱͉̞̽ᛪ̢͋̎༔̠ሙ̡̨̹̱რ̣͆𒀪̙ሺ̍ᚌ͋ܚ̇ᛢ̰̀̈́ܦ̘̽ბ̉̄́ͅ𒀵̂ᚁ̥̘𒀶͉ᚏ̂𒀺̨̤̓̓ᛎ̮̀ሀ̪̖̦͂ᛪ̂̈́ᚍ̲̟͌ᚳ̨͎̯ܻ̑̂̑ნ̹̞̤̇̍̅݃̌ᚑ̘̝̩
+    shardBias   : 0.5,  // ᛢ̌༾̼̯̇̈́ᚩ̊𒀋́ჟ̩͋ሩ̧̞̓ხ̢̉̇𒁏༹͍̳̗̠͂̚ᚃ̹͍͋ო͎͋̓ᚐ̳ჶ͋ᛰ̆ܭ̝͎̫𒀰̲̫̣̈́ᛘ͍̩͆͆༉͆̿̚ᚺ̦́͌𒀯͈̉̋̑𒁋̲̅𒀹̡̓ༀܑ̡̜̤̙̭́݁̂̊ᛞ̎𒀁̍̾𒁋̡ܪ̡̙̌ሒ̳̘̑༉͇̀
+    skeletonShift:0,    // ܪ̙̹ᚃ̈́̄̔̕ძ̝̪̙̞𒀟̪͈͉ᚑ̼̔̎̉ሑ̼ᚉ͇ͅ༪̡̭༙̟̫̈́̌ᛅ̖͉̽𒀦̜̜ሞ̌ܦ̡̯̈́̏ე͂̏̏ჴ̖͂̑ܩ̆̽͊ᚦ̨̳̒ᚍ̖̟̭ჷ̥ᚲ̞ሹ̩̿̇𒁀̭̈̈́̂
 
-    // Environment-driven artistic parameters (set once in buildVisitorProfile,
-    // then threaded through rendering each frame).
-    // Grouped by the three artistic dimensions: structure, material, behaviour.
+    // ም͈̍ܦ̇͊𒁀̜̱̭͂𒀢̝ͅᚖ͌ܠ̣̺̈́ᚎ̓ჹ̜̏̉ሂܑ̲̀̉̍̌ቁ̩̀ᚕ̢̢̜
+    // ༧̧̟ᚵ̨ო̟̗ܓ̿̋̏ܮ̢̎̔༣̗͈̅݅̏̆ᛍ̘̖̃̚𒀷̱̦̀͆𒀫͉͈̇̄ᚰ̜ჸ̈́͊̽ᚙ̑ሇ̘̤̉༡̹̞ͅ
+    // ༄̆༶̖̽ል̄𒀭̽ჯ̦̏̌̿𒁍̧̭̗ቂ̧̟̻̊𒀱̬̯̦̾݃̚ሎ̱̻̓ቅ̽̏ቂ̜̓͂༫̥̫͊̎ሹ̳̻ᛣ̧̭͈̗ᚍ̙̬༺͋̂𒁈̨̯͇̎ᚫ͌𒀣̱ᚘ̀𒀛̠̥̇
     env: {
-      // ── Structure ──
-      edgeQuality:     0.5,  // 0 = brutal/thick cuts   1 = hairline/delicate fractures
-      symmetry:        0.5,  // 0 = wild asymmetry       1 = rigid mechanical symmetry
-      anatomyHardness: 0.5,  // 0 = smooth organic curves 1 = hard angles/hinges
-      compressionY:    0,    // −1 = cathedral-tall stretch  0 = neutral  1 = coffin-compressed
-      shardDensity:    1.0,  // multiplier on grid rows/cols (hardware-driven)
-      secondaryEyes:   0,    // 0–3 count of peripheral almost-faces in the darkness
-      intimacy:        0.5,  // 0 = distant/surgical gaze  1 = skin-close/touch-intimate
-      sovereignty:     1.0,  // 0 = caged/nested (webview) 1 = sovereign/full window
+      // თ̩͆ܟ̘͇͋ᛑ̨̮ܢ̈́ᛞ̬̓́𒀮̘̜͆ᚃ̳̠̙̈ᚅ͊̕ሳ͇̭̂̋𒀁̼ᚫ̢̺́́ܝ̈ᚇ̥̓̀̓𒀛͍̇ሀ̭̍͆ቃ̪͎̐ᛙ̩̙𒀺̰̮ሮ̰ᛚ̺̳ᛕ̰ᛝ̪𒀔̠༵̝ჷ̧̌́ͅሰ͊̓ܩ̐ᛞ͇͌ᚄ͉̅̊𒁆̟̈͆̀ᛚ̥̌༯̿̀̔͆𒁍̼̟́̀༒̂ᚏ̋𒀼̊̍༬ܱ͍̮͎͋̏͆
+      edgeQuality:     0.5,  // ᚅ̯መ̥̭̀̓ܣ̼̰͍̾შ͊ᚙ̫͂𒀩̳̊̀̄ᚚ̳͈̓͌ჸ̊ሷ̥̼̜𒁊̃ሤ̞̀ሯ̓
+      symmetry:        0.5,  // ᚚ̦̞̋͌༈͋𒁂͍̙ܜ̜̿ᚔ̼̔ܧ̺̥ሕ̲̍შ̭̟̪̈́ང̄ܕ͇̙̱͆𒀅̳̪̲̀ᛅ̫̞́
+      anatomyHardness: 0.5,  // ᚚ̨̪͎͊𒁎̧͍̬༢̐̄ღ̔ቄ͇̘ᚈ̝͇̿͋ܟ̀ͅდ̽̑ᚇ̡̫̂
+      compressionY:    0,    // ܪ̧̺༠̢̗̣́ჩ̥̬ሠ̺̟̉̽ᚏ̳͊̓ܣ̣𒁇̹༘̙̋̇̆ლ̰༡̧̬̎᚛݆̤̲̅̊̏͋̾̈ᛛ̖̆ሌ̡༙̞̙͎̿̔ძ̣̈̓ᛥ̨́͂̄ᚏ༷̙̇ᚧ̨̻̤ჩ͉̎ᛞ̂͌ᚕ̆༛͊ሹ̫͋́͌ܘ̒̎༂͇ᛋ̠̱
+      shardDensity:    1.0,  // ̡ܷ̦͊̓ᛂ̻̦ი̮̈́ህ̠༣̒𒀭̅͆ფ͇̈̉́༖̅̚༩̘̟̏ཁ̮̘̃ܣ̈́ᚚ̥̯᛬̰̬͌ნͅܙ͈̻ܢ̠̃ᚲ̧̲̇̓༻̮͌̿𒁏̧̺̥̄ቄ̨̠̉ᛆ̤̦ሩ̥̙̪̅𒀦̫̎ͅჹ̕ܓ̈̀́ᚲ̰̓ᛔ̐𒁂̨̣̥̝ᚘ̪
+      secondaryEyes:   0,    // 𒀥̣̲͂͋ᚊ̯̭̼̏༢̓͊̏̄𒀥̋༓̓ሙ̍̂ო̠̯͎̚ᚘ͉̭̗̕ᛏ͇̝̠݅𒀁̙̮̏ᚭ͋̋𒀂̨̘̤̣༘͎̼̓͆༚͊̑𒀑͂𒀷͎𒁂̚ᚑ̮̓რ̤ᚱ͉̓𒁀̌ܜ̅̇𒀇̈༛̢̦̤̟̣݀̉̆ჹ̠̄༖̢༳͇̔ᛡ̠ሿ̓̎̓ᛰ̧͉̿ᚖ̲༮̼̖̼̓ᚷ́̚𒀄̬̬̌͊ܐ́
+      intimacy:        0.5,  // ᚵ̝́͌̈༉̥ᚕ̢͂ሿ̭ᛩ͎ሾ͈̔ᛏ̃̽ი̢̣̃ჸ̘́̊ሪ̌ᚍ͈༰̀̅̄̚ሑ̇ᛅ̡̟̰̅༰̀́ሶ̥̏ᚩ̏̓ሌ̯ჸ̜̐̉̆༫̰ሳ̧̣͈̳ᚂ̼̯̭̐ሶ̀̈𒀧̠̬̩𒀘̣𒀳̍͌̂̎ܮ݈̙̎̈́ͅძ͍͈͋ͅᚧ̹̃ᚱ̹̓̓̚༃̒ᚎ̤̔ᛪ̇ᚭ̨
+      sovereignty:     1.0,  // ሊ́̾𒀴̬̯̂́༄̪̒༜͇̉̉᛬̟̲̣̠̊ܶ͌ᛢ̳̳̐ᚁ̻̌̄ᚥ̀ሲ̟ᚑ̗̯̐̍ჴ̞̜̹̦𒀋̞ܖ̗̎̾ሣ̖̯ᛚ̦̣ᚍ̨͈̆̃ᚘ͆̄̽͌ᚆ̺̲̱𒁂̎̉͆͂ᛎ͇̜̔ᚌ͍̤̀ͅᛮ̞ܱ̮̦
 
-      // ── Material ──
-      surfaceWet:      0.5,  // 0 = dry ash/dust   1 = wet lacquer/black water
-      grainCoarse:     0.5,  // 0 = fine silver dust  1 = rough brutal grain
-      specularWidth:   0.5,  // 0 = broad milky wash  1 = razor-sharp glint
-      lacquer:         0,    // 0 = raw glass   1 = sealed/varnished/fogged
-      paletteR:        185,  // base tint R — influenced by mode + browser + hour
-      paletteG:        198,  // base tint G
-      paletteB:        220,  // base tint B
-      bgR: 2, bgG: 2, bgB: 5,  // chamber background colour
+      // ሡ̾̒̊ᛃ̑ჸ̘͈̊̔ჺ̤წ̓ᚊ̝̬̩᛭̡̺̗̀ሖ̌ᚆ̮̔́ሇ̨ᚃ̫𒁅̧̹̪̋ሰ̦̐̑𒁇̝ᚋ̢̜̬̒
+      surfaceWet:      0.5,  // ᚃ̰̗́ሴ̝̼̳ܟ̡̦̽̓ᚬ̐ᛮ̺͇̻ܾ̘ᚳ̺̘͌̃𒀽̪̐̒ᛤ̉ᛌ̢̳̊𒁀̡𒁂̨̗̂ሊ̩̠̖̓ჭ̲̳𒀇̲̿̕ᚱ̕ሖ̂̈́ᚊ̿̓̎ሻ̓̏
+      grainCoarse:     0.5,  // ჯ̘ᛡܑ̯͈̌̊̀̉𒀤̦̙̓̈ᚚ̕ᚋ̝̅̋̚რ̺̗͌̀༝̡́̄ᚏ̮̈́̄ᛀ̦ᛔ̣́̄̾ჺ̹̪̻̈ღ̞̱̆ნ̖̋͆ሕ̂ვ̡̟̝̈ᛨ̠̀͂̚ሃ͇༐̘̋̊ሿ̳́̐𒀚̀̊𒀲̨̓̈ნ͌ᛡ̱̒̇̂ማ̨̗̿ე́̔ር̺͉
+      specularWidth:   0.5,  // ܝ̼̍͂̿𒀝̆̚̕ᚳ̮̮̉ძ̟̽ረ̀́ܡ̠̋ܫ̎༱̖̺̋༞̢ܠ̗̏ሚ̨̣̠ܱ̱̑̅̂ͅ𒁇̣̼ᚽ̋ᚭ̨̲̥̖ܤ͇̪̀᚛̣͇̄𒀂́̒ᛌ͍̐̍̿݀ს̥̐͊ჲ̻ᛁ̘̦̳ል̾
+      lacquer:         0,    // ᚐ̻̩̃ᚏ̨ს̨̜̃̀ᛛ̜̦ͅᛅ͇̓̆༂̏༢̢́̒ͅ ̀ᚑ̌
+      paletteR:        185,  // ყ̰̄͌ᚄ̠̻༚̞𒀅̤̏̂ᚂ̩̤̻̥༁̜̫͂̽᚜̜̉̋𒀿ܑ͉̲̩̇̎̈ჳ̤̓ᚨ̰̏̍ሏ̓ᛧ̢̨̙̹།̞ᚇ͈̪͊ͅሤ̓𒀁̉͊ሓ̟ᛖ̎ᚗ̹̮ሸ̢̟̃𒀇̯ᛙ̂ܠ̥̜̕𒀏̼͊̓̂༊̥ሱ̰͊̍ᚳ͌ᛊ̡͉༘̗̠̇̔̒̕ለ̣༵͇̜̽̔̏ܧ̡̒̕ܪ̰
+      paletteG:        198,  // ᛨ̍͌̓̚༗̰̋̃ሕ͈𒀅̲̭͍༛̭̙̊͌𒀽̰̺̀ቅ̦ᚓ̆̎̕𒀤̓𒀿̼𒀟̩ሩ̯̲̓̏ს̪̼̳́ሌ̜̋ᚌ̌̓ᚣ̓ራ̾𒀳̯̅ᛗ̝̈̕༉̈́̌ᚎ̨̀̈́ሮ̮݄́̄ᚐ̣̈͂̀ራ́᚛̠̀͆̚ძ̾᚛̣𒀈̭ሏ̹̐ᚙ̠̚̕ሒ̩წ̝͋̔ͅᚧ̥̓ͅ𒀺̜ܻ̔͊́ჸ̯̿̀́ბ̲̳̬݁͊ᛍ̨̳
+      paletteB:        220,  // ᚳ͈̊̓𒀡̩͌̾̉ᚵ̲͋́́𒁃̡݈̘͌̈́ܐ̟̥̌ᚌܷ̦̓́̉ქ͇ჲ̱̭̟ᚄ̊ჱ̩̻ᚄ̲̹̉̚წ͌̈༈̲ყ̟̉ሤ̘̿̓༱̩̮̽ᚏ͉ᚣ̥̏𒀀̺̘͌ܥ̌̇̕ͅܠ̣͈̥̊༎̺̓̆
+      bgR: 2, bgG: 2, bgB: 5,  // ሿ̹̙ᚖ̖̜̆̌ᛜ̎̓̎ᚅ̗̖̠̀ჰ̫́ყ̦̱̞̌ᚌ̒༱̮̃̌ᚄ̈́𒀕̔ᚨ̿ᚭ̌ሦ̱̱̪̐༜̡̥̈̚გ͌̈́ᚪ̈ᛥ̡̞̘̉ᚤ͈̌ᚐ̡𒁅̊̚ͅ༔̞́ቆ͍ማ̢͂́̕ᚁ͌
 
-      // ── Behaviour ──
-      motionScale:     1.0,  // 0 = ritual stillness  1 = full predatory motion
-      approachSpeed:   1.0,  // multiplier on convergence rate (visit pattern)
-      idleRestless:    0.5,  // 0 = serene held breath  1 = predatory self-animation
-      driftDir:        1,    // 1 = LTR drift   −1 = RTL drift
-      anticipation:    0.5,  // 0 = purely reactive   1 = moves before input
+      // ༜͇̿͋᚛̑̀ᚠ̩̓ᛡ̃ᛪ̼̪̩ᚏ̚̚ᚂ̘ჶ̢ᚁܼ̮̳̒ሞ̖̇̄̊ܜ̡̖̳ለ̈́ჲ̠̂ᚱ̻͊̕༉̨̙̪́ܔ̱̫ܬ̢͇̗̳̬͌݃̄༦͉̉ᚰ͉̲̒ჱ̳ཁ̙̕ᚊ̌̈́̾̔ძ̲ͅ ̜̩̀͊ᚱ̳͉͇
+      motionScale:     1.0,  // ܻ̍̒̌ሒ̲̌ܜ̐კ͈̟̄̎𒁋̎ܡ̧̫݆́̄ܚ̀̈́ᚌ͇̇𒀯̤̤თ̝͊ቀ̽𒀷̟̅̂͋𒀛͍̒̽ᛅ̧̗̭̈́ܨ̤̈̑̇ᚍ̖̜̬́ᚑ̦̩ძ͌གྷ̖ᚖ̤̘̓𒀖͇͎̥ሊ̺̞̜̀თ͎̘̎̓ል͈̎𒀈͇̉𒀃̼͆ᚒ̌ᚦ̆ܶ̇ხ̟͎̳̄ܶ̒ܕ̖ძ̣͎̫͉ᚲ̞̹̉̏
+      approachSpeed:   1.0,  // ሥ̲̄̏ᛕ̮͉̿̒ᚏ̎ሽ̈́͋̌̊ᚁ̲ܿ̑ᚁ̠̺́ͅᚁ̧̇̅ሧ̞̯݈̻݄̠̮̖̅̿̊ᛋ̝̼̉ܶ̇ܲ̏̍̆ሙ̕ᚦ͊̾ༀ̝̻͉̃ხ̨̇̅ტ̋̈́̈ང͈𒀼̲͍̈́̕ܘ̋ᚗ̳̌ܢ̣𒀟̦̉ჭ͋̋ܞ̔ሓ͌ᚺ༙̟̉̓̀ჸ̟̹ܷ̣̄̓𒀓̢̩̯̕ლ̡͎̅ሎ̜̮̂
+      idleRestless:    0.5,  // ܐ̯პ́̔ሕ͉̇ͅ༯͈ტ̽𒀓̰̱̊̽ᛡ̨̳͎̄ሥ̞̩́𒀮͉̆̀ͅᚻ̙̄̐ᚍ̩͌̈༠̼́̚༡̺̥̰̍პ༵̪̣́̆̉ሤ̚ሉ̧̥͌̃ܗ̬̣̭̽༿̈͊͆ሖ͉̻͂ჱ̊͊ቈ̱̍𒀢̿ሴ̈̓ᚒ̧̟̪݉ჯ̾̌𒀧̞ᚿ̙̺͎̓ᛚ͈̈𒀡͍̼̬̈́
+      driftDir:        1,    // ሉ̼͎̺̪݇̕ᛌ̠̳̍ᚣ̫͂͌ᚸ̡͍̪͎̼̄݅𒀱̅̐მ̥̲̆ͅ༚̻̬͎༚̗̈́ᛔ̡̼༙̹݉̽̎̕̚༪͍͈ᚕ̮
+      anticipation:    0.5,  // ᚅ̀̑ܧ̹ስ́͌̄༫̙ᚒ̘̬̍̓ᛮ͍̦̏̿ᚲ̨̟̐́𒀻͇̌̈́ჶ̩͂ሿ̥ᚤ̰ͅᚷ̪༘̲̼̕ᛋ̈́𒀸̳̤̓ܬ̢̈𒁇̡̬̫͂ᛖ̉̓༪́̈́̌𒁅̥̺̄̈𒀎̽ܭ͈༵͎͇́̒̽ܜ̘́͆ᛠ̗͉͍ͅር̍́̊̽მ͇ᚍ̠̪̍ሚ̧̦̅ላ̢𒀡̤𒀱͍ᚘ͉༆̺̍ቄ̹̐ᛊ͉
     },
   },
 
-  // Delayed mirror cursor — spring-physics follower of the real cursor
+  // ᚘ̐ሓ̒́ᚘ̡̠͉̠༑̬̳̀ሻ̅ᚂ̪͂̇ძ̽̄ܨ̰̽̚ლ̥̻͊ჩ̡̗́ᚢ̠༕̡̙̆͊༞ܾ̍̔̍̓̕ლ͂̎̆𒀭̟̾ᚑ͎̎̉ܪ͉͊ᚳ̭̋𒀖͍̭̉͆𒀊̳ሙ͈̜͂̏𒀎̪̉̽̚ᚓ̰̻͉ͅჵ̹̍̄༟͂̍̾͆༰̮́̆ሕ̥̑̉̿ᛪ̯ა̯̭𒁃̤̿̈́༑̦̬̓̐𒁄̡̓ᚗ̩̭̠̈́ღ̞̗̈̐ე̢̩͌̍
   mirrorCursor: {
     x:  window.innerWidth  * 0.5,
     y:  window.innerHeight * 0.5,
@@ -138,40 +129,40 @@ const state = {
     vy: 0,
   },
 
-  // Drifting polygon particle system
+  // ᚧ̖͈̞̉݉̆̈ሿ̨̉ᚢ̖̠ሙ́̉𒀀̭̩̮̎ლ̽̓̍͂ᛐ͈̍̓͌
   driftPolys: [],
 
-  // Soft metaball orbs
+  // დ̡̨̇̄ሣ̞݂̪̜̘̄ቀ̗̺̏̑༬̻̑ᚍ͈̚ᚑ̼̂ᛞ͍̾ტ̞̉̏̕༱̤̖̞ᚐ̟̘̍𒀡̮̔͋༨̀́༕̯̗ᚙ̼̉𒀈̟̣
   metaballs: [],
 
-  // Cursor afterimage trail — smoky/oily positions
-  cursorTrail: [],    // [{x, y, age, speed}]
+  // ᛗ̺̬̉დ̧̨𒀆̊̓̔𒀶̹̊𒁈̧͎̄ჟ̙̹̾̕༎̟͈̬͊ܰ̏͆𒀸̙ቀ̟̤̄ᛞ͇̖̑ᛍ̮̮̝̤ᚂ̨͆ჸ̗͈́̀༭̱̣̲̿𒀡̹̻̌̌ᛒ̗̦̍̐ᛄ͉͇̰̘ᚌ̢̗ᛗ̮̌̓̓༲̞ᚱ̋̈ሁ̹̿̾მ̝̺̾ჩ̧̤
+  cursorTrail: [],    // ს́̓̕̕ᛣ̿̽ჭ̠̰͍͌ᛢ̦̍̂𒀣͇͈̇̑ᚏ̢̼͂ტ̩̠̠̈༄̨̝̦̼ܿ༸̜̆̍̋་̂༅̨̐͋ᛖ̧̩͉ᚄ̢წ̓ᚴ̡ܱ̤͋̀ჯ̡̠̤̘̳݁̓༢̐ᚧ͆𒀷̡̀̈̇𒁊̩̍̈ሦ̍̀ሎ̦᚜̤̓̽ሠ̢̥𒁈́́ሗ̺̣
 
-  // Glass crack propagation map — persistent fracture lines
-  cracks: [],         // [{x1,y1,x2,y2,gen,age,alpha}]
-  crackQueue: [],     // [{x,y,angle,len,gen}] — pending branches to grow
+  // ༈̞͎̗͌ሎ̂̾́̄ܐ̹̩̒𒀮̻ሬ̼̈́ሏ̳̳̝̀༻̤̮̄ᚃ̝̯ᛜ̐ფ̹͋ჸ̯𒀺̖̟͆𒀸̮͍̺͌ܿ̏̾ᛉ̡̯̎̍ܣ͉͂̌͂ሚ̤̆̍ͅᛯ̤̂ᛍ̟̺ხ̟̄̀̑𒀋͋ᚼ̳̲̱ܮ̨̺̌ᛑ̝ሽ̟̱̀̏ᚌ̟̌ც̼ᚌ̠̫̄ཇ̨̻̽̓
+  cracks: [],         // ༙̘̰̻༒̒ᛚ̭̖̬༓̬̅̈́̋༔̻̜ܻ̯̳̊́༞̖მ̹ሐ̮͍̍͋༯̦̦̀͊ტ̆͌͌ᚂ̠̪ ̳𒀕̨ᚄ̗̊ᛣ̧̨̫ܳሽ͉̇͊̊ ݈̝̘̈̎ᛗ̻̠̖̤ሿ̝͆̊་͆ᚍ̜̋̆̚ძ͈̪̉̃ᚿ͉𒀊̨͌᚜̈̔̔̏𒀐̌͂ረ̮ᚏ̠༡͎༻̬̃̇
+  crackQueue: [],     // ქ̍̚ᛈ̿ჳ̢͌͌ሌ̦̏́༓̬ቇ̐ཆ༹͎̊͋̎̅ᚔ̞̣̎ᛗ̃̓ܣ̠̓ᚭ̿͆ܛ͉̍༃͉̺̂ც̟̬̾̚ᛩ͌ᚊ̳̓𒀘͋͆ჺ̚𒁋̹̆̉̑ᚗ̅̍́ჩ̂𒀈͈̑̉ܧ̜̝̫̊
 
-  // Liquid mirror ripples
-  ripples: [],        // [{cx,cy,age,maxR,intensity}]
+  // ܙ̧̾̉́𒀶͉̙̈́𒀻̲̀̀͌ༀ͋კ͊ᚚ͊ᚄ̢ᛁ̓𒁋̭̃𒀸̣̹̽ᚅ̡̻̔̏ჴ̹̍̌̐ܺሯ̻̈༰̖̔ሦ̧͇̾༉̆̀̂͂ܒ̭̐݇̃̕ᚐ̨̑ᚉ̭͂̓༴̯͇́ზ̝̄̋ሤ̟̼̿ჰ̝̭̘̑
+  ripples: [],        // ܥ̊̑̿ ̳̇ჳ̻ᚕ͊̓ ̤̽̿𒀸̰̀ჳ̤̲̎̍ᚭ̥̻̹ሤ͍͆ჰ̄͌ᚄ̔̊ᚈ̰༒̤́შ̺̈͆̇ᛋ̧̱̱̣̮̓݃͂ᛨ̎ჰ̼༤̦̯̏̂ᚗ̨̆̑̆ܥ̾
 
-  // Cursor heatmap scars — persistent burn marks from lingering
-  heatScars: [],      // [{x,y,heat,radius}] normalised coords
+  // ༹̬̆𒀭̡̺ܴ̞͋̓𒀍̣͉̋𒀥͂ჹ̎ሼ̢̨̊ყ̻̹̓̇შ͍༸̡̠̪̿ᚁ͍́ᚘ̤̐̎̈ᚌ̱༙͎̑̀́ᚙ̱𒀃͌།̰̔პ̘́̀ܳ̎ሐ̢̑̒̕ሃ̟̗̈́̍ܵᚖ͊̓̈́̆ᚘ̊ᚂ̧
+  heatScars: [],      // წ̏̾̚ሹ͉̙̊̉𒀀̍𒀷͈̲̙̏ს̟̹̰̞༫̞̺̽͊ᚢ̓̊
 
-  // Ritual geometry rotation phase
+  // ᛏ̜́ͅ༆̝̀𒀩̕𒀜̑̅ܓ̥̞ᚘ̳̇̓̆ღ̳̊𒀻͍̏́ག̭̉̂̎ܡ̩̾
   ritualPhase: 0,
 
-  memory  : null,     // loaded from localStorage
-  shards  : [],       // Shard instances
-  noiseFramePool: [], // pre-rendered noise canvases
-  noiseIdx      : 0,  // current noise frame
-  noiseCounter  : 0,  // frame counter for noise cycling
+  memory  : null,     // ᚱ̙́𒀲̣ᚐ̫𒀟͎༾̱༒̲̃ܔ̦̏̌ᚔ̬̖́̊
+  shards  : [],       // ᚏ̃́͊̓𒀋̯ܢ̡̬̊ᛝ̜̟ስ͇ܿ̊𒀒̾ᛮ̥𒀮̌༲̫̜̤༼̦͌͌ܔ̚ܞ͇ܷ̳̬́̐̿ͅ𒀼̠̎̃̐ᚖ̩
+  noiseFramePool: [], // 𒀕͆ᛁ̣̼̿ჟ̭̜̹̐𒀸̨̔𒁃̲̊𒁊̽̏ܝ̬̂𒁈͉̕ሔ̢̬̭͊༪̲̯̌წ̝݂͇̊̾̔̊ͅც̳𒀓̳͊ረ̆༯̰̰̎
+  noiseIdx      : 0,  // ቇ̢̕ბ̾ሸ̲̹̌ܟ̲̿༢̄ქ̣̲́̂ህ̺𒁃̔ᚎ̕ᚍ̳༵͍̃̈͂̈́ͅ
+  noiseCounter  : 0,  // ᚌ̝̂ᚴ͈̊͂᛭̾დ̧̟̝̳ᚸ̖̲̻͊ሽ̬̀̈̊ᛏ͉̹̓ል̙͋̀̅
 
   audioCtx   : null,
   audioNodes : null,
   audioReady : false,
   muted      : false,
 
-  // Three.js glass refraction layer
+  // ჯ̧̽̃̾ᚄ̈̿ᛚ̘̿̎̄ܛ̟́̈ბ̯ბ̝༗̠̀̄𒀄̟̫̑𒀸̬̩̀ቆ̰ჶ̮̯̟̃ሿ̹ᛯ̝̓ܣ͊ჳ̾ᚑ̧̩̌̀̈ܳᚾ̞͎̬̒ᚧ̨̙̄ᚈ̡̳̋ሚ̧ܻ͉̹̥͌͆̈̓݉̊̂̕გ̀̍̔კ̟̍̀̚༣͍͉ሻ̯͈̄ᛁ̠̓ܽ̄̏ᚯ̡͎̆ᛨ̳ ̗̤̯ᚂ̡̟̊ͅ𒀯̦
   glass: {
     renderer: null,
     scene:    null,
@@ -181,17 +172,17 @@ const state = {
     ready:    false,
   },
 
-  // Scar replay ghosts — loaded from memory for visual replay
-  scarGhosts: [],  // [{convergence, crack, erasure, jitter, pulse, autonomy, drowning, brightness, temperament, ...}]
+  // 𒀩̌̋̑ሣ̏𒀷̺́̈ზ͉̤̉̚ሦ̰ᚃ̉̊́ܤ̥ᚚ̭̲ᚳ̝̯̌̅̍݊̑̊̒ჸ̘͂̍᚛̜̓̒̍ܳ̔͋༞̡̔̾ ̪͋̃̚ღ̎ᚍ̯ሗ̧̭̃̋ᛓ̦ᛮ̜̇༿̣̙́̾ჱ̋𒀭̬̹͋̾𒀉̮̽༺̮𒁊̲ܹ̖ሡ̣̩͆̍ᛯ̭̎̿༐̲̬̫ᛊ͍ܜ̘̊̐̕ᚩ͉̓̕ᚑ͎̟̀ሞ̢̈ᚸ̫̎ܺ̌ͅ᚜̻̼͇̈
+  scarGhosts: [],  // 𒀣̭̀́ܥ̰̝̜༎̝ᚂ̼̦̊᛫͊̀ᛰ̡͋͆̿ᚃ̳̬̦̰𒁋̯̀̈𒁏͉̈́̎̚ჟ̬𒀋̜̀ܦ̬̳͈̍༰̯͎ჯ̓͋ቇ̍ა̻͌̉კ̎༲̼́༣̫̂͂ሔ̞̗𒀯̺͌ͅܙ̏̂̽̀ᛤ̱̀͊ს̨̑̅̏ሔ̼̎̓ሶ̢ ̖̻̔̓ܟ̬̉̉ͅ༟̣̭𒀥̤̺̲̽ი̝͂ჭ̪̀̾ͅ𒁆̈́̚ᚎ̲̝̌̈𒀕̳͈́ᛃ͈ᚁ̗̥͇̚ᛯ̟̔̀ᚂ̲̹̬̊
 };
 
-// ─── Shard ─────────────────────────────────────────────────────────────────
+// ܹ̙̻̋͋ᚁ̝̓̂͊༼̀͂༤̡̚ሿ̘͋̆̋ܐ̠̀͊ܚ̺̓ܖ̲ტ͉̃𒁁̰͋̈̏
 class Shard {
   constructor(cx, cy, origVerts, inPortrait) {
     this.cx         = cx;
     this.cy         = cy;
-    this.origVerts  = origVerts;   // [{x, y}] — frozen reference positions
-    this.inPortrait = inPortrait;  // 0–1 proximity to silhouette
+    this.origVerts  = origVerts;   // ༙̩͊̓̚ཀ͊𒀶̀𒀰̄ᚗ͉ᛜ̜̓̓̄ሴ̗ሔ̹͉̽̐ᛛ̧̃ᚷ͍̫́͊ᛰ̝ܔ̙̱̽ሒ̈ሖ༷̍̌ܥ͇̇̐ᚁ̗ᚎ̙͌̉ღ͈͉̒͆ሓ̮̃̇̍ᛡ̋༪̝̞𒀗̕ჶ̑́͆ᚶ̩̑̉̏𒀜̅༤̜̥̺ᛂ͍̳̾༰̥̪ܙ̩̏͂̕ე̙̐̃ܡ̯̀ᚊ̦̠͂̃ᚄ̦ܕ͉̋̿͌ᚮ̢͈ཀ̝ܛ̺ᚴ̣
+    this.inPortrait = inPortrait;  // ᚗ̩̻ሿ̹̌ܔ̣̊𒀟̼̦̏ሁ̟̪͋༧̹̳ܾ̈́ܵ̚ͅሏ̰̭̋
     this.phase      = Math.random() * Math.PI * 2;
     this.speed      = 0.00018 + Math.random() * 0.00025;
     this.driftAx    = (Math.random() - 0.5);
@@ -211,7 +202,7 @@ class Shard {
     if (verts.length < 3) return;
     const e = p.env;
 
-    // Base colour — tinted by environment palette, warmed by time of day
+    // ̥ܽ̋́ყ̤̺ᛨ͍̙̄̑ᚠ̰ᚰ̝ܿ̑͂ᚦ̰͋̃͌
     const base  = this.inPortrait * p.convergence * p.brightness;
     const glow  = this.glowNow;
     const pls   = this.inPortrait * p.pulse * 0.12;
@@ -219,17 +210,17 @@ class Shard {
 
     const lum   = (base * 0.50 + glow * 0.28 + pls) * crk;
 
-    // Palette from environment (cold silver / warm porcelain / etc)
+    // ᚒ́̓̿̄ሠ̱̦ᚅ̡̼ᚲ̙̘𒀨̼̃̀ሻ̈́͂̑̆ჸ̤ሪ̈́𒀻̲ረ͋̕ܒ̥͇݈̭͇̿̂̑̌݇ሴ̣͌ܙ̬̞͊͌
     const pR = e.paletteR, pG = e.paletteG, pB = e.paletteB;
     const R     = Math.min(255, Math.floor(lum * pR * (0.78 + p.lightWarm * 0.22) / 185));
     const G     = Math.min(255, Math.floor(lum * pG / 185));
     const B     = Math.min(255, Math.floor(lum * pB * (1.05 - p.lightWarm * 0.08) / 185));
     const alpha = Math.min(0.82, 0.04 + base * 0.35 + glow * 0.22);
 
-    // Surface wetness adds a subtle alpha boost (wet surfaces catch more light)
+    // დ͌༟̺́̏𒀝̖̯͍́ሳ͈̱̀̂༏̢̲̣̌ყ̻̤̥͌ཇ̆ჲ̜́ሓ̩ჱ̦̠͂༎̲̉༠̌༴̹ሊ͇̿́̐༸̹̺̎
     const wetAlpha = Math.min(0.88, alpha + e.surfaceWet * 0.04 * base);
 
-    // Lacquer: sealed varnished surface reduces contrast variation
+    // ᚄ̞̤̗̈ᚔ̩ܒ̔ܣ͈̮͆̀ᚘ̢̤̊͌ჺ͎̥̋̓༼̢̻̖͆ს̫წ̇ᚊ̇̈́̊ᚢ͈̊ჷ̀́̏𒀞̣̣𒀂̐̚𒀤̣͍̆͊ᚥ̓̋ᛥ͈̼̖ር̠̅პ́ᚂ̧̱̤̦ሬ̗̖̠̚ხ̤̭͇ტ̓̂̈
     const finalAlpha = e.lacquer > 0
       ? wetAlpha * (1 - e.lacquer * 0.25) + e.lacquer * 0.12
       : wetAlpha;
@@ -241,7 +232,7 @@ class Shard {
     ctx.fillStyle = `rgba(${R},${G},${B},${finalAlpha})`;
     ctx.fill();
 
-    // Find the edge that best faces the light direction → specular highlight
+    // ሀ̠͆̄́ᚂ̻̺༴̱̀̈𒀺̖̫̓𒀫̡́ሒ̢̹͍̝̒ܰ̈̏༑̲̮̃̓ᛟ́̈́ܰ̇
     let bestDot = -1, bestI = 0;
     for (let i = 0; i < verts.length; i++) {
       const v1 = verts[i], v2 = verts[(i + 1) % verts.length];
@@ -253,8 +244,8 @@ class Shard {
 
     if (bestDot > 0.15) {
       const ea = (0.04 + base * 0.14 + glow * 0.20) * bestDot * crk;
-      // Specular width: sharp (fine pointer, high DPI) → thinner brighter line
-      //                 broad (coarse pointer, low DPI) → wider milkier wash
+      // 𒁀̺̾̽ረ̞ͅᚅ͉̪̄̕༼̥̙̿ᚄ̳̿ნ̡ᛛ̘̼ܺ̇ᚤ̢̡̯̓̐݃́̿ᛯ̲ሩ͉̄༒̥ᚻ͈̼̽̉ᚕ̹̉̾́ܞ̋༞̻̘̎ᛌ̨̗ო͍͎̏ཀ̙ሗ̡̞̥̫ᚽ̬͋͊ა̞̚ღ̧̭͈ͅᚁ̤͈༦̊̽𒁂̢ᚔ̎̽ܪ̾
+      //  ̼ჟ͉̏ᚪ͍̟͈ვ̩̀̂̚𒀰̃̈͋პ̡̅̊ᚮ͉ᚍ̪̽̓̒ᚋ͉ᚑ̾ᛪ͆ᛨ̰̏̂̽ᚍ̇ᛓ̟̮ჷ̳̉̈́𒁍̦̫ሤ̡̪̉͂ሄ̹̾̆̀ᛣ̪̜̅༦̓ჲ͈̉͂̈ხ̘́̄ᚊ̧̪̭̀ሦ̈́̃̓̑ᛥ͈̑̆̆ሆ̊ͅᚂ͌͆̐གྷ̄𒀶̖͆༧̩͂
       const specMul = 0.7 + e.specularWidth * 0.6;
       const eR = Math.min(255, R + Math.floor(55 * specMul));
       const eG = Math.min(255, G + Math.floor(50 * specMul));
@@ -264,11 +255,11 @@ class Shard {
       ctx.moveTo(va.x, va.y);
       ctx.lineTo(vb.x, vb.y);
       ctx.strokeStyle = `rgba(${eR},${eG},${eB},${Math.min(0.72, ea * specMul)})`;
-      // Edge quality: high DPI → hairline (0.3), low DPI → brutal (1.2)
+      // ܵ̈̈ᚐ̘̂ሞ͇̌̑ᚙ̜̍̎ᚘ̈༾̣̤͈̬̏ܲ̈̾ᚆ̑ሧ͋ᚏ̬̾་͈ܘ̗ჳ͍̉ܕ̝̹̈́შ̲ሉ̞̤̈̄ჹ̿ͅᛒ̗͉͊̆ܓ͇༣̏̓ܪ̩́̇ܗ̟̻ზ̮͇́༓̡ܾ̜̙͉̈ᚚ̞̓͋͋რ̫̳̌ܺ
       ctx.lineWidth = 0.3 + (1 - e.edgeQuality) * 0.9;
       ctx.stroke();
 
-      // Surface wetness → add a second, fainter, broader specular reflection
+      // ᚅ̄ᛨ̟̆̔̒ܡ͍͌̚ᛄ̭̞̒ͅሮ̹̞̬̳̮ܺ̌ሧ́ჟ̪̯̏ᚆ̓ა̰̤̽𒀡̬́𒀾̗ჷ̣̮̯ሷ̢ᛠ̯̇᚜̋ᚯ͍̏̓ቂ̼̅̈𒀰̳ᚉ̟̆𒀚̪༮͉͊̄́ቁ̝̆ͅሓ̀̀͊ር̎̑ላ͈͌̿༱́́༭̙̕ᛖ̞͆́ ̳̇̎კ̢̊༳͇͌̈́́დ̢̿༯̿
       if (e.surfaceWet > 0.5) {
         ctx.strokeStyle = `rgba(${eR},${eG},${eB},${ea * 0.12 * e.surfaceWet})`;
         ctx.lineWidth = 1.2 + (1 - e.edgeQuality) * 0.8;
@@ -278,22 +269,22 @@ class Shard {
   }
 }
 
-// ─── Module 1 — Collect Environment ────────────────────────────────────────
+// ᚊ̈̃𒀈̳༷̝͌̑̈́̌͊ᚄ̕ᚣ̒უ̧̘̗ ̦̞̿𒀖͊̀̾ማ̗̙̗̩̖݃𒀿̬͊ᛮ͎̓̓ე̦͋̀̄ሗ̯ᛇ̈ቃ͎̟ᚼ̩͇ܴ̤͈̎̄̏ᚏ͎̺̅ܢ̈ܯ̑̌ͅ𒀔̽ᚉ͈̟̫ᚼ̒ሜ̠ܬܸ̏́ር̞ᛛ̟̠̈́᚜̺̓ᛎ͉̕ᛦ̡͎̯̾ᚐ̨̀ᚧ̻̹̬ᚄ͉
 function collectEnvironment() {
   const env = {};
   const ua  = navigator.userAgent.toLowerCase();
 
-  // ── Browser family ──
+  // რ̳̝̲̎ܺ͋ბ̇͋𒀇̤̞̳̈́ሣ́ᚚ̲̩̏ስ͍̕ᛡ̩̔́̍ე̼̾ვ̎͂
   if      (ua.includes('firefox'))   env.browser = 'firefox';
   else if (ua.includes('edg/'))      env.browser = 'edge';
   else if (ua.includes('chrome'))    env.browser = 'chrome';
   else if (ua.includes('safari'))    env.browser = 'safari';
   else                               env.browser = 'other';
 
-  // Webview detection — embedded browsers feel less sovereign
+  // ᚋ̫̋𒀋̳ᚃ̙ሆ̤̑̊ͅሯ̮̅̚კ̜ᚏ̈́ቄ̻̂̍̕᛭̈́ͅლ̗̤͎̖̌ܰ̉̕ᛓ༙̾̔͂͂̄𒀣͉̈́̊ܙ̩̿̿̆ᚤ͈ჟ̅́ሮ̦̒̆ე̉̆𒀟̪̘̓̏ܖ̘̂̀ཅ̍͋̋𒀑̒𒁁̞𒀙̡́ܯ̮̾̾ჵ̨ͅ
   env.isWebview = /wv|webview|fbav|fban|instagram|twitter|snapchat|pinterest/i.test(ua);
 
-  // ── OS / platform ──
+  // 𒁊̥͆༉̙̈͌̈𒀤̪ܙ̨̜͋̍𒀭ܴ͇̎́́̆̾ᚉ̥́ܨ̩𒀌̗̹̟͊ᚹ͇̰̩̦ܵ̅𒀅̠ᛢ̮̩̔̂ᚓ̪̩͊ܺ̕ሰ̮̓̊͆ܪ̙̃̈́ჺ͊ქ͎༞̐ღ̊ᛢ̱̾̐̋𒀤̪̉̕ᛇ́ᚵ̘̃̈́ቇ̗ᚖ̯̻́̋ᚙ̯̗̻͆༆̟͆𒀁̩̀ሦ̀̔̄̊𒁏̢̡̊̂𒀗̪𒀺̯̦̇̇𒀬̯̺͊𒀪̼̲̀̕༃̥̰͂͋
   if      (ua.includes('android'))                       env.os = 'android';
   else if (ua.includes('iphone') || ua.includes('ipad')) env.os = 'ios';
   else if (ua.includes('windows'))                       env.os = 'windows';
@@ -301,7 +292,7 @@ function collectEnvironment() {
   else if (ua.includes('linux'))                         env.os = 'linux';
   else                                                   env.os = 'other';
 
-  // ── Screen & viewport ──
+  // ჟ̣̫̣ܴ̪̕ᚓ͂ቅ̖̝̜͍ᚂ̱̅ᚒ̲̀͆ܖ̦̈́ͅ༩̀ᛮ̬͋᛫̞̦̙̓ᛁ̗͋
   env.screenW     = screen.width;
   env.screenH     = screen.height;
   env.pixelRatio  = window.devicePixelRatio || 1;
@@ -309,53 +300,53 @@ function collectEnvironment() {
   env.viewportH   = window.innerHeight;
   env.aspectRatio = env.viewportW / Math.max(1, env.viewportH);
 
-  // Aspect character: cathedral-tall (<0.55), coffin-narrow (0.55-0.72),
-  // normal (0.72-1.5), wide (1.5-2.2), ultra-wide (>2.2)
+  // ܒ̠̩̬̐ᛚ̻̉᛭̃༻̙ቁ̊ᚎ̖̊༧̩̄ᚖ̑̈́ܩ̬̈̇ሤ̢ང̘̀̅𒀊͇ለ̅ᛒ̧̔̆ᚆ̧͎̓𒀭̃ͅܚ̫̠ܱ̥̰̀́̈́̕ჺ̼ლ̮̤̝𒀦̤̆ͅ𒀞̟ܩ̻̓ሐ̯ܯ̭̖ܘ̲̥̅ም̉̾ሒ͋ᚁ̮̍ང̰ზ̖̠̙̎
+  // ༤̖̟̋ሳ̩̱ܼ̻̀̅ሼ̧̗͉ᚈ̪̰̓ჳ̚̚ზ̘̝̒𒀏̮̂͊ᚐ͂ᚸ̋ሰ̯რ̦̈́̆̿𒀦̜̗̙̔ჲ̮ჸ̟̋̔́ᚙ̜̪͌ᛩ̠̲͂̓̽݊̚ܔ̥̎̈͂ሰ́ᛚ̢̖ܩ̨̻̲̈ܲᚳ̗̆́͊ማ̀ᚉܷ̱̬̯͊ᚁ̠̀მ̩̹ͅሖ̪ᚆ̝̓́ሴ̭ͅ༆̫ᚚ̎̎̅ჴ̮̈̂̀
   if      (env.aspectRatio < 0.55) env.aspectClass = 'cathedral';
   else if (env.aspectRatio < 0.72) env.aspectClass = 'coffin';
   else if (env.aspectRatio < 1.5)  env.aspectClass = 'normal';
   else if (env.aspectRatio < 2.2)  env.aspectClass = 'wide';
   else                             env.aspectClass = 'ultrawide';
 
-  // Very small viewport = suffocated pocket-sized portrait
+  // ᚵ̳̮ሆ̓̍͊༩͍ᛉ̢̭̕ᛐ̹̠ᚚ̣̇̕ሑ̻̠̯ሱ̺́ር͋ჰ̒̍ሦ̿ܩ̈̃ܓ̙̬ᚴ̑̕რ̻̿𒀶̡̞̺ܼ̒ཆ̖ᚑ̩̫̩̽༃͈̀̅ᛗ̞ზ̡̍̇݁̉ቅ̣̍̂ሠ̼̜̖͍ሡ̹̻̕𒁏̳͋ͅܖ̭̼̒ჵ͇͆̇̃݉̒̏ͅᛖ̢༘͎̃̊̊̎უ̗̫͋ᛎ̾ͅ
   env.isTiny = env.viewportW < 380 || env.viewportH < 500;
 
-  // ── Input capabilities ──
+  // ༀ̰̍̍̃ᚇ͈̝͉𒀘̯̆̈́̀ܝ̕წ̨̧̬̆ܕ̺̬̗͍ტ̅͋̓̽ᚌ̖̼̊́ᛆ̔ზ̠̈̕ძ̱̜̅ሞ̳̻̟̆ሖ̯̝̂͋᚛̗̈̇ͅᚔ͋𒁊̠̽̈́
   env.touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 
-  // Pointer precision: coarse (finger), fine (mouse/trackpad)
+  // 𒀘̰̬݆̦ܾ̥̀̈̀̕ᚫ̯̝̆̅𒀎̓ᚕ͂̾ܡ̦̍̿ჲ̧̲͆̔ራ̟͇̂ᚓ̜ჭͅ
   env.pointerCoarse = window.matchMedia('(pointer: coarse)').matches;
   env.pointerFine   = window.matchMedia('(pointer: fine)').matches;
 
-  // Hover capability: does the primary input allow sustained hover?
+  // ላ̅ሆ̥ს̭͉ᚻ̅𒀁̯ᚕ̠̗͂ᛪ̬̫ᚆ̭𒀻̥̙̌ᚑ͈̎ራ̄̔ზ̫̳̲̖ܺ̊𒀑̭̋̔უ̱͇̓̀ܖ̣̣̳͆ᛒ̈́̚ᚣ̜̬̂ག̤̬̈̋ܺ̎̀ᛂ̕𒀖̨̞̘̊ღ̰͇͎̊შ̌༢̞̙͋̇ቅ̎̅̏̌༩͎༽̞̎͌ܙ̫̅𒀻́̀ჟ̮̠̻ͅᚶ̭𒀎̲̐̑́ᛐ̩ᚓ̋̎ᚋ̧͂̊݊̕ͅ𒀲̌̒ᚰ݆͉͍͌̕
   env.hoverCapable  = window.matchMedia('(hover: hover)').matches;
 
-  // Screen orientation (mobile)
+  // ᛬̂ሬ̃༧̫ᚎ̢̗̑༡̘̎́̚ሹ̠̊ᛓ̨̍ܒ̢̱ᚪ̅ܙ̫̈͋𒀱̤ᛯ̧̿ቁܹ͎̠̃̆ᚩ̹͉̉͆ሷ̹̚༂͂̃ᛅ̦̱̀̿ᛔ̳̎̀̚ᚌ̪̓̍ཀ̪̣̹̓ᚲ̺̹ܷ͆̔̑̓𒀤̩̈ᚃ̒ᛖ̭̝̰̊კ̊ჱ̰̙̋༢̈წ̪̃დ̨̑̈ཀ̠ᚦ̱̥̀͆ܩ̢̘͆ᚈ̅
   env.orientation = (env.viewportH > env.viewportW) ? 'portrait' : 'landscape';
 
-  // ── Preferences ──
+  // ܧ͆̿̑ᚫ̲̎ᛞ̘̜̂̌𒀷͈̩𒀅̲͌̄̊༑̂̂͂მ̣̀̈́̎ᚎ̊𒀺̧̨̫̘ܹ̦̪̠̄ᚉ̜̓̉ቄ̢̜̍ᚖ̋ᛅ̺͊ሜ͈̉̓͊ቄ̯̲ᚃ͌ܯ̟͉́̓𒀷̘ቁ̫͋གྷ̆̆𒁏͎̄̉ܮ̻̪̓̉ሮ̢̧̣̓͋ܿ̈́̚ᚊ̬̗̹͆༾͎̟̦̒ᚵ̨̱̏ܡ͉𒁇̤ᚁ̡̼͇ძ̳̎ᚴ̈́ᚕ̭̫ᛓ̿́
   env.darkMode          = window.matchMedia('(prefers-color-scheme: dark)').matches;
   env.lightMode         = window.matchMedia('(prefers-color-scheme: light)').matches;
   env.reducedMotion     = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   env.reducedTransparency = window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
 
-  // ── Language / locale ──
+  // 𒀗̓̈̋̅ᚲ̯̞ᚬ̑༬̆̍̎ᚃ̉ͅᛮ̈͌̊პ̤̌̎ᚴ̔͋̌ᛩ̈́̍ე̼̅̈შ̌̑༣͉̘̓ა̺̳̰́ო̢̎͋᛫̞̈ቅ̻̋̍ܩ̢ᛏ̒
   env.lang      = navigator.language || 'en';
   env.languages = navigator.languages ? Array.from(navigator.languages) : [env.lang];
   env.langCount = env.languages.length;
 
-  // RTL detection — check if primary language uses right-to-left script
+  // 𒀲̡̪̿𒀤̧͇͇ხ̪̲̌̓ᚏ̗༞̩̓ሠ̺͉́͌ᚓ̊̒̄ስ̱̎༅̒
   const rtlCodes = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi', 'ku'];
   const primaryLangBase = env.lang.split('-')[0].toLowerCase();
   env.isRTL = rtlCodes.includes(primaryLangBase);
 
-  // ── Timezone / time ──
+  // ሑ̡̻̮̺ᚊ̲͎𒁅̯̂𒀙̞́̉ᚒ̝̓́༪̝̼̝𒀊̫̖̈́̿ሢ̖̳ቃ̾𒀞̯𒁌̅ማ̳̊𒀯̟̗̹̃ᚍ̡̿̔͋ᛠ̏ᚙ̳̱ჵ̘͊̿ͅ༬̼̏ᛔ̦̑̆ᚅ̧̫̞̠ᛛ̠̐ᚆ̞ᚗ̦̻̪͎ሷ̜
   try { env.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { env.tz = 'UTC'; }
 
-  // UTC offset in hours (distance from UTC centre)
+  // ᚱ͉ზ̣͈̤ཆ͈͉̄̓𒀙̃̕༢̖͌̀̄ᛩ̨̖̫ቅ̪̓༌̀༽͆ܦ͇̠̓ბ̯̅ሱ̞̲݁̋̚ሧ̧̯͌̎𒀝̙̹͊̏ᚚ̆༎̠̳̇ᚃ̿̈́ა̭̬̽ሗ́ჰ̙͆̅𒀧̠̝༇̫̠͋ᚗ̧̐̌ᚙ̈́̈́̇̃ᚖ̺𒁊̹̗̙͎ܳ̐̾̓ᚮ̑ნ̻͌͌̑𒁌̯̂̑͂ᚏ̨̎̅̾ᛮ̍ܩ̙̈́̓̎༥̣̊͊̚𒀹̪̀༶̭̅ᛃ̬̐̀̎ܽ̂̎̐̀ᛯ͇̼̄͂
   const offsetMin = new Date().getTimezoneOffset();
   env.utcOffsetHours = -offsetMin / 60;
-  env.tzDistance = Math.abs(env.utcOffsetHours); // 0–12 from UTC centre
+  env.tzDistance = Math.abs(env.utcOffsetHours); // ܸ͈̪̰̮̥ܳ̓ᚱ̤̣͊ᚋ̂𒀠̜̎̐̕უ͉̔ᛖ̼́ᛌ̭̼ܼ̦̰ტ͇́ᚼ̗͌ᚙ͍̫̓ሜ̧̪ܻ̭̂̂̎𒀩̤ᚕ͂ܨ̧ლ̔̑ᛆ̖̼̀́𒀦̨͉̬ფ̞̆༨̫̙͍̃წ̨̌̀𒁄͊̃̕𒀚̬̝̹ე̖͂̒̋უ̦̰ܠ̮̪͎͆𒀽̥̱̟̀ܫ̲̤
 
   const hour  = new Date().getHours();
   env.hour    = hour;
@@ -366,14 +357,14 @@ function collectEnvironment() {
   else if (hour >= 17 && hour < 21) env.dayPhase = 'dusk';
   else                              env.dayPhase = 'night';
 
-  // ── Hardware ──
+  // ᚐ̜̯̥𒀗̧̗̔᛬̯͎̭̽ቂ̏ᚒ̆̓̚ᚏ̮̄̆ᚒ͍̖͍̒ܶ̎ᛣ̧̟̪̃ᚅ̠̯̍༨̳ჯ̙̥̑̽
   env.hardwareConcurrency = navigator.hardwareConcurrency || 2;
-  env.deviceMemory        = navigator.deviceMemory || 4;  // GB, Safari returns undefined
+  env.deviceMemory        = navigator.deviceMemory || 4;  // ܕ̼̜̮̃ვ̦͉̕ሇ̢̣༛͉ཇ̙̥͉̾̽݀𒁇̻͍̥̓༝̦͎̳̐ཅ̜͊༫̺̮̞̼̐ܰ̆͋ማ͍͍̐𒁊̞ᛅ͍̍͋̑𒀥̢͋შ̫̥̜̖გ̄̏ͅᚚ̧̈̓̅𒁅̲̎̚༗̧͍̘͂ღ̨̆̋ᚧ̋ყ̔͆ܙ̮̫̗𒀪̅̈́̄̈́༸̊̔ሜ̏̆̓̎ᛩ̡̍༚̱̋ሼ͇̙̉𒀣̢̫̗̽ᚕ̓𒀲͍̼̀
 
-  // ── Fullscreen state ──
+  // ᚂ̠̥̗̒ვ̪̉𒀔̖̋ᚅ̙̿̚𒀑̠̲͈̈ሃ̺̘̓ᚿ̣𒁅̡ᚘ̨̺͍̊༆̗̒͋̚ჭ̅̍གྷ̂༲̘̻͆̿ღ̧̓̂༲̭̱̅̎𒀭̻༭̙̲ᚉ̏͂ᚕ̓𒀁͊̆̓̕ሉ͌̍̄
   env.isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
 
-  // ── Storage availability ──
+  // ༑̮༛̌ᛰ̡̞̒̈́ჹ͎̟̒ᚖ̣͋̾𒀂̗̥ܜ̧𒀟̪̝̃ᚇ̢̯̘̏ለ̬͊ᚉ̬̾ͅ𒀓͈̟̔ᚷ̼𒁁̌͂მ̨ܹ͆̕ჸ̮̋ᛇ̡̄̌ᚾ̲̠̣̙𒁊̘͌ᚆ̱̑̿𒀴̰̲̆
   try {
     localStorage.setItem('_mtest', '1');
     localStorage.removeItem('_mtest');
@@ -387,7 +378,7 @@ function collectEnvironment() {
 
   env.returnVisit = !!(env.storage && localStorage.getItem(CONFIG.memoryKey));
 
-  // ── Referrer / origin ──
+  // ჰ̙̳̥༼̿͆̓ᚋ̳̜̕༒̱̐݉́𒀎̍ሰ̏ᛖ͍̐̂̍ქ̤̿̈́ሖ̀ᚃ̞̫̽ᚍ͂𒀶́ჸ̤̹͊ͅ𒀬̝ჸ̽წ͎̩͊̽ᚑ̞̋̌ᚦ̲̭ም̨͈ᚦ̦𒀨̦̅̓ᚒͅᚇ̰ჷ̉ለ̱̹̑̕ܒ̀̏𒀚̩́̓̕𒀊̀ሸ̋ቇ̹͎́ᚃ̣̼͆ᚳ̹̦̅̂ܪ̟̏̏ᚆ̣̀̍ͅ༢̔́
   env.referrer = '';
   env.referrerDomain = '';
   try {
@@ -399,7 +390,7 @@ function collectEnvironment() {
     }
   } catch (_) {}
 
-  // Social media referrer detection
+  // ܼ̬̳̽𒀻̅𒀡̩̌̀̚ჸ̨͉͈ܗ̓༻̐̓ᚏ̻̃͂ᚄ̬̟༯̼͊͊̕ჴ̕𒀬̧͊ሜ̏͌͌͂ხ̣̗̯ቃ̩̍ᛍ̙͈̾ჴ̀̓̓༌̢𒀋̧̣༙̪̆̏̕ሯ̤͈𒀾̂༚͌𒁄̈̑̑̚𒀳̖̾ხ͉̻᚜ͅᚥ́༗̼ᚦ̀̆́༅̤ሗ̢ܱ͇̀̏ჴ̈́ሌ̄ᛯ̧̳̇̌ሩ̹𒀃̼̻ღ̱
   const socialDomains = ['facebook.com','instagram.com','twitter.com','x.com',
     'tiktok.com','reddit.com','linkedin.com','threads.net','bsky.app','mastodon.social'];
   env.isSocialReferrer = socialDomains.some(d => env.referrerDomain.includes(d));
@@ -410,7 +401,7 @@ function collectEnvironment() {
   state.environment = env;
 }
 
-// ─── Module 2 — Track Interaction ──────────────────────────────────────────
+// 𒁏̥̒̕ᚼ͉̂̃͋ᚍ͌͂̊̾𒀔̩̠݆̦ი̩̗̘༧͊༒̀ͅი̗̞̕ͅᛚ̽̈̽̈݊̋̈̽𒀱̭̐༁̨̣̯ჴ̺ሎ̧̲ܣ̞͊𒀱̟͂̕ᚙ̤̏̓პ̘̪̯𒀃̈̔̑𒀶̞͈̌̚ᚕ̝̄ჲ̜ჵ̑͌ᚚ̗̒̎ͅთ̭̯̦݄̑̋͊͌ი̗̬ᚮ̓ჵ̘̽̍ბ̿̎ᚧ̇།́͊ჭ̹ᚆ̯̈ᚌ̤̤́ᚇ̞ሾ̧̰̜̈ܩ̩̲
 function trackInteraction() {
   const inter = state.interaction;
   let prevX = inter.cursorX, prevY = inter.cursorY, prevMoveT = Date.now();
@@ -428,11 +419,11 @@ function trackInteraction() {
     inter.cursorY = cy;
     prevX = cx; prevY = cy; prevMoveT = now;
 
-    // Update custom cursor position
+    // ሼ̥პ̗̟̈ჷ̹ჵ̨̪̙̾𒀖̡̖̙̉ܧ̖̤͌ܰ̓ჯ͉̙̓͌ܠ̪ܪ̦ም̞ራ̩̭̙̭̇̇ܺ̈́𒀢̮̣̈́̎ᚺ̧̪̈́ᚔ͈̒̀̾ሽ̦ᛆ̍ሩ͉̆̏𒀃̜̤̭̩̦̅ܶ̉𒀡̧̅̄
     const cur = document.getElementById('cursor');
     if (cur) { cur.style.left = cx + 'px'; cur.style.top = cy + 'px'; }
 
-    // Record hover point when nearly still (lingers > 0.25 s without moving > 8 px)
+    // ሑ̣̣̓ხ͉̀ᛞ̪̬͆̀𒀁̱̩͊𒀉̑̂ሐ̧̬̄̆𒀤̥̇ᚇ̼̂ᛑ̤́ሧ̣ᚅ̒̄̚ሔ̤̦́ܫ̈̔᛭̀̓ᛎ̫̠̬̉ᛣ̎͌̇ᚆ̬̳̊ᚉ̻͆͊̇ᚢ͋ᚂ̄𒀲̒𒀎̿ᚹ༹̤̼̦̞̓̓ܓ̩͎̝ე̿༰̭͈̆
     if (spd < CONFIG.hoverSpeedThreshold && state.awakened) {
       inter.hoverPoints.push({
         x: cx / window.innerWidth,
@@ -452,7 +443,7 @@ function trackInteraction() {
     const t = e.touches[0];
     handleMove(t.clientX, t.clientY);
 
-    // Finger trail tracking — record all active touch points as wound trails
+    // ᚿ̂༌̧̝͍̿༳̟̑̾ᚈ̨̲ሐ̥̓́𒀺̭ᚉ̹̈́𒀼͎ག͍̝̂ᚄ͂ͅሑ̫̺́ᚴ́ܺ̀͋ᚓ̦͇̌ܬ̫̓𒀲༵̯̆̈̚ᚦ̾̔ሽ̃̓ᚈ̼̭༇͌ᛪ̱̿̋
     for (let i = 0; i < e.touches.length; i++) {
       const touch = e.touches[i];
       const trailIdx = inter.activeTouches[touch.identifier];
@@ -465,13 +456,13 @@ function trackInteraction() {
           pressure: pressure,
           age: 0,
         });
-        // Cap trail length
+        // ᛠ̯̔̚ ̨̖̚ܜ̼̗̈ܖ̳̞̟ᚘ̡̳ͅ𒀀̟̋ܕ̢̢̟ᚐ̈́ᛒ̻̹̹̂ܲ̑ᛍ̢̳̬̝ჱ̒ᛃ̠̭̒ܯ̟̓༔͉̝ܜ͌̇̇ყ̅༱͈ᚣ̹̽̇ሌ̋̓ᛕ̣̟
         if (trail.points.length > CONFIG.maxTrailPoints) trail.points.shift();
       }
     }
   }, { passive: true });
 
-  // Touch start — begin a new finger trail
+  // 𒀄̺̖̈́̾ማ̿̍ც̗̭ᛖͅሀ̟ቀ̀̔ሓ̗̌̿̔ბ̮̖̈̾
   document.addEventListener('touchstart', e => {
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
@@ -490,7 +481,7 @@ function trackInteraction() {
     }
   }, { passive: true });
 
-  // Touch end — deactivate trail
+  // 𒀍̰̑𒀄̀ᚇ̰̚𒁈̉ᛝ̪̗̒͌༛͎͈ᚭ̻̥ͅᚻ̤ረ̙̆̑ܗ̩͌ማ͆ሒ̍𒀒̨̗̣͊ራ̜༉̢̞̽ᛢ̠̣̓͊ܖ̧݄͎̾̅͂̔̚ᚘ̨̗̆༬͈̰
   document.addEventListener('touchend', e => {
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
@@ -502,7 +493,7 @@ function trackInteraction() {
     }
   }, { passive: true });
 
-  // Scroll (fires only when document actually scrolls — rare with overflow:hidden)
+  // ሚ̗̒ላ̞ᛤ̫́༐̀ᚼ̨ᚒ̦̏̈́༄̟̊̓ᛀ͉͊ჰ̲́༆̹̓̂ხ͉̫̅͌ܙ͈̖͉ᚥ̘̄̋𒁃̂
   let lastScrollT = Date.now();
   document.addEventListener('scroll', () => {
     const now = Date.now();
@@ -516,13 +507,13 @@ function trackInteraction() {
     recordActionSwitch('scroll', now);
   }, { passive: true });
 
-  // Wheel — primary scroll input on overflow:hidden pages
-  // Drives the drowning / sinking system
+  // ჵ̡̰̿̇ܙ̘̖̅ᛮ̢͉̉̏𒁃͇̯͍̆༟̗̹ᚥ̘ܱ̗̯̈́̓̾ვ̝̄ᛄ̯ͅჵ̱͉ᛈ͊ᛊ̀̎ᚂ͍̼̅̅ᛟ͎̗͊ᛇ̪̓̓𒀬̘̯̎̄ღ͇̗̅̂ሏ̲̊̕𒀀̦̟͎ͅሒ̟ܠ̪̍̂̍ᚰ͊ᛝ͆̍̌ᚒ͆̀𒀦̦͈̗̠ᚒ̆̇̃ͅᚻ̀ᚵ̘ᛛ̭̃̾ᛚ̈̚ო̝̫̑ᚉ͋̉𒀮̖̗͍̇ო̧̥́ᚆ̑̍
+  // ᚔ̐̈ሡ̡͍̪̐ሦ̬̓༤̨͈̊̾𒀶̀̇̉ᛑ̃͋ሐ̜༾̩𒀛̐ᚗ̯ᛢ̃̂ͅܒ̭̍̎̐༝̢̀ჶ͎ሀ̲̝̋̀ሱ̺𒀅͋̀̆ᛏ̥ᛛ̫̉ტ̥̻͉̎ᚚ̫̹͂̌༸̤ሐ̪̬͌̾༼̺̙̍𒀅̞̊ჸ̺̑͌̑ሦ̂̆̔ሾ̱̦̻݇̾̍̓͆𒀚̯̠̭̈́ᚌ̭̼ራ̠ᚑ͍̭͈̗ᛈ̞͍͋
   document.addEventListener('wheel', e => {
     const now = Date.now();
     const dy  = Math.abs(e.deltaY);
     const dt  = Math.max(1, now - lastScrollT);
-    // Normalise: deltaMode 1 = lines (~40px), 2 = pages (~800px)
+    // ሟ̮͍͎̹ჲ̱̺̕ͅܛ̯͋ᚨ̺̏̃̽𒀗͈̯̉ܪ̹̫̈́̎ნ̒̍ᛜ̦̹́𒀭̞̦̇̆ܳᚅ͂̊̄̐ᚦ͈ܼ͉͂̇̈ ̳݈͉̎̄̄̂ܓ̟̬̊ܓ̦ሒ̟̭̾ܵ̿ჷ͈ܬ̭̙̍̓ܚ̲̋̎ჭ̱̭͇̉༝̫͉ᚈ̲́̕ܩ̓𒀦̱̜͊ ̡̘͊ჟ̡̈́͂̋ᚊ̝
     const pxDy = e.deltaMode === 1 ? dy * 40 : e.deltaMode === 2 ? dy * 800 : dy;
     const raw  = pxDy / dt;
     inter.scrollVelocity = inter.scrollVelocity * 0.7 + raw * 0.3;
@@ -532,14 +523,14 @@ function trackInteraction() {
     if (!state.awakened) awaken();
   }, { passive: true });
 
-  // Keyboard
+  // ᚬ̙̉𒀑̰͋͋ᚦ̬̰̌ᚏ͌̔𒀝̹͆͂݊̈͊̌ᚳ̙݈̽ᚊ̙𒀹̨̣̪݂̀̾̀ͅᚊ̜݄̦̇̈ᚣ̣̯݄̰̝̋̓᚛̜̩̊𒀶̰͆̋ᚩ̞̲̪̦ܓ̘̭̪́༫̞̈̌ሓ̽༟́ᚇ̃ᚌ̰ძ̡̀༥̩̃
   document.addEventListener('keydown', e => {
     const now  = Date.now();
     const typ  = inter.typing;
     const gap  = now - typ.lastTime;
     if (typ.lastTime > 0 && gap < 2500) {
       typ.rhythm = typ.rhythm * 0.8 + gap * 0.2;
-      // Burst detection: short inter-key gaps → high burst intensity
+      // ༦̰ჰ͆༸̊ܢ̻́ჵ̭ლ̮ᚐ̲ᛤ̎ሣ́ሺ̞̑ჵ̟ሀ̑ᛚ͎̑
       if (gap < 180) {
         inter.typingBurstIntensity = Math.min(1, inter.typingBurstIntensity + 0.15);
       } else if (gap < 400) {
@@ -558,12 +549,12 @@ function trackInteraction() {
     recordActionSwitch('type', now);
   });
 
-  // Resize
+  // 𒀞̫̟̪ሜ̗̼̆ͅი̓ჯ̡̜̉ᚌ̬̝͌̿༎̖͇༙̞̇̕ር̓̎༎͊𒁂͍̚
   window.addEventListener('resize', () => {
     inter.resizeCount++;
-    inter.resizeInjuryRaw = 1;   // flash injury on resize, decays in updatePortraitState
+    inter.resizeInjuryRaw = 1;   // ᚃ̼პ̅̄̓᚜̬́ܯ̮ܨ̺̓ᚃ̫ᛤ͆༱̮̭̒̚ܪ̯̄̃ሞ̉𒁍̲̘̦̈ܐ̧̧̘̔𒀬̨̧ܜ͈̅̕ᚏ̆̚ܕ̰͇̀̈𒀶̩݈̞͊̅̑რ͉͈̀͌༬̕ლ̲̘͋
     rebuildShards();
-    // Spawn cracks from random screen position on resize
+    // ქ̡͉̳𒁄̘̹ሑ͋ ̦̼̖ᛚ͇̳ᚑ͌༥̮̍̓ჰ̺ͅ𒀗̻ᚍ̥̂̉𒁎̩
     spawnCrack(
       Math.random() * window.innerWidth,
       Math.random() * window.innerHeight
@@ -571,7 +562,7 @@ function trackInteraction() {
     recordActionSwitch('resize', Date.now());
   });
 
-  // Click / tap — triggers cracks and ripples
+  // დ̢༛̦̞͈ሻ̢̳͊̾ო̮̘̳݂̩̓̈́ბ̞უ̱̽͋ܛ̦̀კܾ̈͂̀ቀ̠ቆ̦͆̈̓𒀔̤̤
   document.addEventListener('click', e => {
     inter.clickCount++;
     if (state.awakened) {
@@ -591,21 +582,21 @@ function trackInteraction() {
   }
 }
 
-// ─── Module 3 — Build Visitor Profile ──────────────────────────────────────
-//
-// The artistic mapping engine.
-// Every passive environment signal is mapped across three dimensions:
-//   1. Structure  — shape, skeleton, geometry, density
-//   2. Material   — texture, light, palette, surface quality
-//   3. Behaviour  — motion, tempo, anticipation, approach
-//
+// ༀ̮̍͂ሱ̓ܘ̢ܸ̱̒̏̈́ᚔ͂̋༳̦̻̋̄ᚬ̯̫̒̄ᚇ̲̺̀̔ሾ̡̲͊ჶ̎ሕ̿́𒀀́̊᛫̧̲̞ᚼ͎͉̤ᚏ̜͂̏̋ག̼̉ཁ͈̌̄̽𒀟̢𒀫͎̄̚ሠ͇̙̽༁̣̓̒̀𒀂̥͊͊𒀤͉̆𒀧͇̮̦̽ᛯ̞ܛ̮͂̈
+// ሯ̱̋͂𒀅̣̤͌ܦ̂ᛎ̳̂𒁉͈̙̙̤ማ̯𒀑̀͊ᚫ̟̳̐̽ჳ̧̑
+// ჳ̬𒀣̒̄ᚚ̼̫̍ნ̳̖̘ᛢ̨̭͊ᚃ̙͊𒀦̢༻̧̞་̝̎ሔ̝ძ̢̆༱̝̼̱̑𒀒̩̙̘̌ህ̿ᚎ͎̊ტ͈̭̥̓ო̬̦͊ስ̂ͅა̩̦̖𒀇̕𒀪̻̪͂݉̈́͋ሲ̡̣𒁀̧ሡ̻̝͈̂ᚌ̌ᚗ̥̅ང̟̄̄ᚨ̗̈́͋ᛥ̟̥͋̇
+// 𒀆͈̄𒀖̢̢̯͌ᚷ̭ᚰ̼͈̔ሗ̈́ᛄ̢̅ላ̅̇ᚊ̰ყ̏̓̌͊ܤ̪̀̆𒁎̆᛫̪͂͂ᚙ̧̠͊།̗̱̖̐ሼ̞̗̕ܧ͍ᛈ̭̩̏ᛣ̿͌̇̕𒀴̮́̉༎͍̟̫݈̗͎̌̀༃̰ნ̥̦̄༸̢̳𒀍̥̬݆̙̓༅̰̪༘̤͂̐ሕ̯̔ሧ̯̝̾ሧ̳̜͈ͅܙ̘͋̑̕ᚤ̪͋̔ᚘ̞̹͉̈კ̢̩̜ᚄ̘̯̊͂ᛖ̍̚ს͆ᚹ̀̑
+// ბ̭̉͂̐ყ͍̙ܷ̗̠́ሡ̤̑༶̧͇̑̚ᚃ̤༤̨݈̘̖͆́ᛦ̻̊༭̡͈͋ს̱̐͊𒀹͎ჴ̦̱̏᚛̔̃̅ረ̮̓̋̚ܯ̺̙̝̚უ̥ሣ̖͋̅༚̝
+// ᛕ̿ო̻̮͋̇ག͎̆̈́ᚙ̖̲ჷ͈̟̅ܡ̠̝ხ̰̜̓̀ܵ̍̍ჟ̯̿̓ͅპ̳̎ᛩ͌𒀉̺̩̥̬ᚬ̿̃გ̙̆ͅᛥ̱̅ܡ̥༆̞͌̕𒀵̡̫̈́ᛰ̨̦̃͆ܯ̢̱̌ჵ̫̣̒ܵᚄ̜͉̜̱ᛤ̿ჴ̨̙̍ჱ̲̗ძ̨̬̚ᚁ̅ል̘̅̿̚ܢ͎̹̆ყ̞̓ᚄ̮̖́ሩ̨̾ᚑ̪̎̓ᚳ̞̘̹
+// ᛉ̼᛬̧͌̾̑ყ̝̻͎ሤ̀̎ሿ̅ᚋ͈̫̑̈́𒀎̝̤ܹ͎̰̊̈̀ܭ̹̲̚ᛃ̙̱̄ᚃ̧𒀲͋ሀ̯̀ܓ̖ᛖ̧ܱ̇͊༉́̽͆ܙ̠ᛓ̯̕ჰ̲̌̍ܯ̂͌ሐ̲̅ܐ̮̘̻̒
+// ༲̤ܹ̝̔̀̚ᛚ̡̉͊შ̗̖̂ͅᚍ̰̇ཅ̮͍ሿ̱̍́𒀘͇͌ᛮ̌̓𒀨͍͉́༉̳͋𒀰͎̄𒀍̧̰̇̃༧̢̟̤̿ܐ̯̞𒀒̈༌̦̈ᚌܴ̆́̋̆̇ᚚ̱̪ሑ̠̜༱͇ཆ̤̍༔̥̓́̑༣̘ᛇ̬ᚵ̖ቂ͎̆𒁋̪̒መ̧̝͍͋
 function buildVisitorProfile() {
   const env = state.environment;
   const p   = state.portrait;
   const e   = p.env;
 
-  // ─── Analyse memory for visit patterns ───────────────────────────────────
-  let visitPattern = 'first';  // first | frequent | sparse | brief | devoted
+  // ᚮ̆რ̙͆ᚏ̰̤ཆ̑ᚾ̅ቆ̱͈༧̢̡༙̠̈́̽̀̌ܕ̰͎̃ ̔̚ᚒ͇̹̙̌
+  let visitPattern = 'first';  // ᚖ̥̤̠̿ᚫ̙ᛨ͍ᚚ͂͂𒀾̧̃ი̳݊̀̾̓ܨ̬̰ჳ̐༜͈̽ᚠ̼͇̯̐𒀨̟̝̺ང̙̅ჰ̮̠̐უ̡̆̓༶̀ᛏ̹̠̐ს͈ᚒ̡̥̈ͅܫ̲̈̏̚
   let absenceHours = 0;
   if (state.memory && state.memory.visits > 0) {
     const now = Date.now();
@@ -624,17 +615,17 @@ function buildVisitorProfile() {
     else                                                visitPattern = 'returning';
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  TIMEZONE + HOUR → light angle, warmth, mood
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ᚆ̹̫̌̽ᚆ̦̺̬̂༼̐̑ ̺̎̇ܣܹ̉̐̚თ̩მ̡̩̤̀𒀌̡̇ͅሠ̈ᚋ̗̐̓ᚘ̬̾𒁂̝༬̳̲̮̏ང̱̏́პ̳̖𒁍̐ཆ̦̂𒁋̻̹̅ჲ̂̋̀ͅᚹ̘͍̦̊ᚑ̭̾́ძ̢̹͎ᚅ̧̻̀́
+  // ༢̡ჸ̡͇༵̫̓ᚊ̖ᚚ̨̤͎𒀩̹𒀚̬̇͋𒀋͆༼́́ᛯ̇̌̒ᚖ̢̪̘̲ᛓ̯̤̹ܤ͎̠ᚌ̣̳̐́𒀮̘̻͋̇ჩͅܦ̠͊̀ᚑ́̿𒀚̳̟̊̽ሔ̰ܾ̀́̂̏̓ᛄ͎̜̪̒ཇ̡̟͊̄༤̠ሃ̡̦̜͋ܐ̘̫̮̏ᚆ̪̀́̄ჟ̣ᛗ̭̗́̕ሆ̨̡̱̔ხ̨̾̓̋
+  // ᚮ̋̐͋ܨ̼̺ͅპ̃͌̕༴̦ᛣ̘̇̋ᚊ̀̎̾̄ܒ̦̮̘̑༯̒̊̉͆ሾ̝̗̝̇ᚎ̡̤̣ ̙͆͂̕ᚒ̥𒁇̔ሜ̋̑́𒀈̻̄̃ͅ𒀝͍̞ܰ𒀦͎ᚑ̎ᚇ̹ͅᛐ̃͊𒀜̄̏̔𒀩͇̺̉̅ᚙ̢̻̊ᛜ̙̂̐̂ᚇ̙̩̝̿ᚢ̹̘ܵ̂̓ቄ̧̡̅̔ሇ̌ͅ𒁌̯𒀏̹̗
   const h = env.hour || 12;
 
-  // Structure: tilt of figure and dominant shard cluster position
+  // ᚅ̯̰͊̕᚜̝̯̯́̆݅̄̀ͅ𒀟̡༗͇̀ሱ̫̠̺́ᚉ̗͍͈̕ᚆ̭̐̃ᚤ̉́ͅሖ̩́̕
   p.lightAngle = ((h / 24) * Math.PI * 2) - Math.PI * 0.5;
-  // Far from UTC centre → slanted, migratory light
+  // ܗ̻̩̃ე̪̍̕ჹ̘ლ༙̙͆̇ᚿ̍ᚱ̫ܙ̳̣̅ᛣ̥͎̺༘̩̎̄̀̈ሏ͈̞݇̓̔༧͋𒀲̺̗𒀇̘̙̯̈́ሡ́̕ᚨ̉ᛪ̤̈̑̀ܗ̟̉ჲ̚ሾ̹̱̀ሙ͇̠̒͆ᚪ̧̑̀̈́ܒ̆ᚎ̃ܛ̭̉̆ͅሴ̦̾̎̄ሲ̘̹̪ͅჶ͍̿𒀀̺̠𒀚̙̍𒀇̠̈ᚍ͇̹͋་̫̜݄̺̓̂͊ᚨ̜͉͋ᚓ̰́̓̔
   p.lightAngle += (env.tzDistance || 0) * 0.015;
 
-  // Material: warmth — dawn=cold/washed, noon=harsh/clinical, dusk=warm/devotional, night=cold/intimate
+  // თ̖𒀤̤༢́ხ̢̙̌ ̱̄͂̈᚛̬ა͉̐𒁆̢̼ܒ̤̐̈༆͇̄ᚓ͇̼̜̊𒀒̉༯͋ག̿მ̬̓̚𒀃̬̝̈𒁆̪͇̑̚𒀅̰̊ᚑ̭ჭ͇̾̈𒀋͉̘͆̓ܒ̜́̊𒀣̥̞ሐ̨̘̋ͅᚋ̢̳́̕ჳ̳̉
   const hourPhaseMap = {
     dawn:      { warm: 0.08, mood: 'washed' },
     morning:   { warm: 0.22, mood: 'pale' },
@@ -646,23 +637,23 @@ function buildVisitorProfile() {
   const hourData = hourPhaseMap[env.dayPhase] || hourPhaseMap.night;
   p.lightWarm = hourData.warm;
 
-  // Behaviour: tempo — night is slower/more intimate, noon is impatient
+  // ᛎ̯̇̑̇ფ̤̋̀̎ሐ̗უ̰ᚼ̠͈༾̫̺̇ܩ̩̹̤̱ሖ̼̖𒀱̧́̓̄ჯ͌ܚ̮̲݃̃გ̱͇͋̚༳̳͇̈̚ლ̺̄̒̚𒀭̖̲͋̂𒀁̹̐̍ͅᛥ̈͊̈𒀕ܑ͇̗̳ܤ̧̦ლ̳𒀎͇𒁁͍̾̆̾ሙ̧̯̬̘ლ̜́̃ሸ̓̈́༑̏ᚁ̚༽͋ჱ̞༣̿ͅሴ̾
   const hourTempoMap = { dawn: 0.6, morning: 0.8, noon: 1.0, afternoon: 0.9, dusk: 0.7, night: 0.5 };
   const hourTempo = hourTempoMap[env.dayPhase] || 0.7;
 
-  // Behaviour: idle character — night lets the apparition be more predatory
+  // ܙ͎͊ሌ̩̫̲̝ܘ̮̩̓̕ჲ̀ᚢ̠͇̿𒀁̜̣݊̕ͅ༗̥̓̔ሞ̦̑ཅ̭͎̗̈́݊̉̈́́𒁌̏̆ሹ͍́ͅማ̲́̔ܢ̯̬̭̀ܦ̋ስ̞́̕̚༟́ᚒͅ༎̉ᚁ̺̑𒀗̨̖ܕ͇̆༦̣̮͆̿ᚤ̈༪̥̠̫̞݈̫̈́ሮ̕༺̋̓̄༦̢̦༄̮ჩ̢̟̄༾̳ሜ̂͋̓ᚴ͋ቆ̺̰̓̑ᚓ̃́༽̌̂ᚍ̗͂̿
   const hourRestless = { dawn: 0.3, morning: 0.4, noon: 0.3, afternoon: 0.4, dusk: 0.5, night: 0.8 };
   e.idleRestless = hourRestless[env.dayPhase] || 0.5;
 
-  // Behaviour: midnight-to-dawn wakes autonomous behaviour
+  // ᚩ̢̉𒀫̺̃̀ܩ͈̮̑𒀩̘̾ͅხ̧̮̈́́ሃ̃ሸ༘͇̆̒͆͋̃ა̗̼𒁈̢̫͍ᚸ̠̇ᛪ̨̇ᛛ̈́̒̆ͅ𒀻̖̑
   if (h >= 0 && h < 5) {
     e.idleRestless = Math.min(1, e.idleRestless + 0.2);
-    e.anticipation = 0.7;  // moves before expected
+    e.anticipation = 0.7;  // ᚍ̣ܔ̳̰̙̃ჷ̉͂̊̓ს̠̯͌́༳̞ᚋ̟̭̔ሺ̨̀ ͎̓̎𒁉̖̾ሧ̧̜ᚢ͇̇ረ̮̒́𒀙̻ჴ̢̦̭̮ლ̓͆𒀤̾́̍
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  BROWSER → shard geometry, surface, facial architecture
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ܤ̳ᚙ̬̓̋̀ཀ͉𒁊͍̰ቇ̳რ̼͉̒ᚙ̱̃ͅᚇ̼̟̘̅ჲ̼ላ̮͉̏́ሾ̻̓̓༬͆ჩ̨͇̇́𒀶̉ᛣ̪̺̱̉
+  // ᚒ̫̫݈̀̃̄༻̧̊𒀶̇𒀶͌༦̨ᚫ͎̃༩̯̱̒ሺ̞̱̙̑̾݃ᛊ͉̲𒁇̻̍̓༦̹̏̔𒀅̪͎̓𒀗̩͉͈̎༡̧͈̗́𒀪̫̹̘݂̼̜̋̓ჷ̥𒀮̊᚛̞̬̥́ᚃ̐́༞͇ᛡ̞ᚚ̮̀ሁ̨̊̍̅ᛥ̱̪́ᚂ̩̰̑̌̆ܰ̔ᛂ̤́̌̍ᚂ̪͊უ̞̜̾ᛓ̦ᚖ̦̏ᚤ̙̉͂̕
+  // ር͉̅̆́༟̇̇ᚓ̧͆ᚶ͈ᚁ݄̰̉͆ሚ̬͇̎̈𒀊̩̓̎შ̤̱ჵ̧͎̮̊ሽ̦̲̱͉𒀤̜ᛘ̥̄̔͋ᚿ̘ᚋ͍̓̾დ̘̣́̿ᚔ̺͋̊ͅᚆ̦͊̄ረ̆̏̉𒀆̭ᛟ̯ზ͇̼̅ᚚ̹͎̽̀ᚖ̱̲̣̽༫̥༷̌̏̌ܠ͋͌ሑܑ̬͉̃͆ ͍ᛖ̧͎̤̚
   const browserMap = {
     chrome:  { bias: 0.55, symmetry: 0.72, specular: 0.55, wet: 0.45, name: 'industrial' },
     firefox: { bias: 0.22, symmetry: 0.30, specular: 0.40, wet: 0.55, name: 'feral' },
@@ -672,249 +663,249 @@ function buildVisitorProfile() {
   };
   const bData = browserMap[env.browser] || browserMap.other;
 
-  // Structure: shard tessellation geometry bias
+  // ሆ̢̡̀̒ᚏ̙̮̔ᚂ̃ᚉ͈͉̒̽ሾ̺̆́̎ᚋ̃̎༠͈̰̩ܴ̼̙̓̾̕𒀂̥ܵ̅͂ཇ̠̕𒀶̣̗̔ᚓ͌͋̏ᚌ̅𒀙͈̰̀ძ̉ሮ̖̑̀༏̮̤̎̿᚛̙̅𒁎̻̦̂̑ᚑ̯ሪ͆ჶ͋̉̑ሄ̓͆̑݁̈́̓̕ᚊ̧͈̖̍ሊ͇͇ქ̤̈ᚱ̗̚𒀨̭̬͋̾ჳ̯͂̂̀༠̖̪̘ᛥ̨̮̥̲ሢ̔ᚌ̑̒̐̎
   p.shardBias   = bData.bias;
   e.symmetry    = bData.symmetry;
 
-  // Material: surface character
+  // ܖ̀ჸ̆̎რ̨̩̻̙ჲ̤ᚂ̚𒀬̃̀ᚼ̨̊̔𒀼̧̫̰̐ᚓ̙̐ᚃ̀́ཀ̧̱̍ሼ͍̍͂ჸ̘༷͂̈́ም̙͇ᚨ̘̘̓ᚘ̱̳ᚚ̨͋𒀪̣ᚐ̠̥̏͊ᛐ͂̾̔𒀥̖̈𒀦̤ቂ̝ܱ̤̠̀̅̋ܠ̹̝̀̓̓ܳ̑̏̾უ̧̈͋̔༡͆༳̈́༳̻̈́ሗ̇̂̃
   e.surfaceWet     = bData.wet;
   e.specularWidth  = bData.specular;
 
-  // Webview: partially caged, less sovereign
+  // ᛂ̜̜݃̉́༼̡̑ᛑ̪თ̎̂̕̕ᚆ̢̙̿̊ტ̲̪̓̀ቇ̢̠̂𒁇̡ᛇ̩̼̪̪ᛑ̨̫̽ᚙ͍̊᚛̡̻̐́𒀛̣̤ͅሤ̇ო̪̒̋༰̢̼ᛧ͊ቇ̭̩༢̣̲̰̈༻͌̈́̍̀ᚉ̑̒ܫ̧̧̎𒀜̣̭͊̓༫̲ჷ̭͆̏ሶ̨̂̓̚᚜̀ᚊ͌̈́̀ᚺ͈́̀̽ᚴ͉̺̕ཇ̝̟̏̃ܺ͊̈́̀𒀬̞ᚹ̡̮͋ቇܷ̹̄̑̾ሱ̤̼
   if (env.isWebview) {
     e.sovereignty = 0.45;
-    e.symmetry   *= 0.8;  // less confident geometry
+    e.symmetry   *= 0.8;  // ሒ̖̗̠́ᚉ̹̫̦̾༭͎༅̢̢̼̌ ̥̘͊̓უ͊̆̚პ̪́̏̎ᚏ̡̦̄̀
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  OS → skeleton, posture, anatomy hardness
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ༇̠༌̫𒀘̩ა̯̣̑ᚋ̯̪ሸ̥̤༨̧̧̏𒀶̬̗መ̄̾༾̡༄̤̰̂̐𒀆̫͍̓ᚊ̿ჟ̿̍̚༖̩͈̀༪ܼ̹̒̍̕ᚖ̎́̑̓ཀ̞̉̃𒀮̧̎̉𒁀̳̎ᚍ͍̽̿ܜ͈̋̎͋ᚃ̙̭̃̾ᛃ̳̽̈́𒁅̨̲͉ܴ̹͌
+  // ܬ͈̤͆ሹ̩̅̒̀ᚆ̟ܾ͊̄̇̚ܤ̻̺͇༙̞̍ሻ͎̩𒀌͇̔̊̒༞̱ჹ̰݄̗̔̉̾͌ᚋ̂ᚫ̘̱̓༭̙̀ᚾ̻̾̉ͅᚒ̧̹̋ᛝ̼̦̔ო̤ܖ̢̝̭̐ܡ̢̉༻̘
+  // ᚻ́ܥ̻̊ቁ̪̋̃̎ܣܑ̥̿͂̅ᚍ̼͋𒀒̡̥͌̂ሌ̞ძ̖̺̹ܵ༲͂̑̉𒀬̧̥͊̉༼̑̽ᚱ̧ᛉ̔̾̓መ̼̞დ̏༑̙̠̹̮ሞ̂̾༟́ხ̀̽მ̧ሁ̈̊ᚣ̈̋ͅპ̨͉̚ᚎ̓ფ̫͍̆ܭ̼̹̱𒁊̙̬༎̡͆ሊ̧̪̙̈༫̣̇𒀹̻͊̏̿ܜ̻̱̬̳𒀦̠͍ც̉ᚡ̨̍̾ቁ̪̫̎̉ܲ̇შ͈̉
   const osMap = {
-    windows: { shift:  0.03, hardness: 0.72, name: 'framed' },      // frame-like, hinges, angles
-    mac:     { shift: -0.04, hardness: 0.30, name: 'controlled' },   // smooth, cold elegance
-    linux:   { shift:  0.08, hardness: 0.55, name: 'assembled' },    // wirier, stranger distribution
-    android: { shift:  0.06, hardness: 0.48, name: 'mosaic' },       // fractured mosaics, thumb-close
-    ios:     { shift: -0.06, hardness: 0.25, name: 'reliquary' },    // sealed-glass, polished wounds
+    windows: { shift:  0.03, hardness: 0.72, name: 'framed' },      // ᚤ̠̌ͅሀ̙ც̟̼̕ᚉ̺̟̳ᚓ̧ᚖ̢̢̎ܵ̂𒁅͍̮̒ᚆ̝̱̚ᚄ̿ᚗ̫̌̿კ̲̊༾̺̐̊̓𒀺̡̭͉ᚩ̘̃ᚈ̪̯̏ሥ̭͎̀ᚋ̟͍̈́ሻ̝͇̾ᛙ͌ ̄̓̅ᛗ̈ܠ̱ܴ̾̈ሺ̘̳͌̔ᚖ̱̰̼̈ሺ̡̦͊ᛈ̅𒁂̣͎̌̌
+    mac:     { shift: -0.04, hardness: 0.30, name: 'controlled' },   // დ̝̔̍ላ̀̂̾ᚌ̹̌̑̎༰̲ზ̬ჲ̻̳̼̌༼̈̉
+    linux:   { shift:  0.08, hardness: 0.55, name: 'assembled' },    // ༜̉̌ሠ̖͇̄𒀺̑̎ᚰ̫́̽͊ܥ͈̊̚ཆ̠͍̍̌༃̯̙̈́ሑ̰̋́̚ჯ̈͆ሿ͍̎̈́ͅ𒀡݈̙̓́༶̚ཀ̂ሱ͇̭̔ሤ͂̉̚ᚓ̻̰̙̾ც̠ሃ̻݂̅͋̾ᚧ̇̚ᛈ̦̉ܽ͌͊̈́̕ᛚ͇̦̓̓ᚷ̮̞𒀤̣̝̉݀̉̅
+    android: { shift:  0.06, hardness: 0.48, name: 'mosaic' },       // ܪ́ላ̜̤̮͊𒁉̼̞̙̜݃͌̑༓̠𒀫͍̙̚༞̈ረ̨̆́ᚂ͈̏დ̽̊ᚎ̮̗͊̅ᚘ̙̠̽̈ჸ̥̭̎̃ሡ̪͌̈
+    ios:     { shift: -0.06, hardness: 0.25, name: 'reliquary' },    // ᛨ̯̂̅̉ܔ̝͆̐ᛚ̤̆კ͎ᛛ̝̈́̽གྷ̪݂̟͌͌̎̓𒁈̍ᚐ̩̼̓̓༜̢̥༵̄̚ᛩ̺̝ჰ͎̣̅ག̻̰̆ም̐༨̯̞̄ᚼ̞̯̓́ᛙ̧̬ხ̯̈́̋𒀉̲᚛̞͍༅̳ნ̥̀̎̔ნ̳̘ག̪̕ᚆ̧̐̾ͅᚊ̲̳̲̄།̀̔༱ܼ̍̽͊̾წ̗͆̔̀ም̈́ሤ̯პ̳̚ܭ̪ሏ̼̗̲̏წ̦̐ܪ̹̈̓̈
     other:   { shift:  0,    hardness: 0.50, name: 'unknown' },
   };
   const oData = osMap[env.os] || osMap.other;
 
-  // Structure: skeleton lateral shift + anatomy hardness
+  // ሱ̳͂̊̌ა̣̀̚༗̗ძ̙̏ჯ̗̟̫̯ᛤ̣ᛑ͎ܲ́̈́̕ͅᚪ͈̭༷͉̺͂ჹ̢̗̂ᚍ̩̈̎̊𒁌̟̪̉̑ო̜̜
   p.skeletonShift   = oData.shift;
   e.anatomyHardness = oData.hardness;
 
-  // Material: OS also affects surface — iOS/Mac more polished, Windows/Linux rougher
+  // ᚨ̔༽̽ᛮ̆გ̱̟ᚦ̽̿ ̲̇ܵ͋თ̦̦̟ܘ̤͈̓̾ᚭ̝̈́̋́ܔ̲̑̀ཆ͎ჸ̫ჳ̠̗̥༨̯̲ᛨ̞̳̄ᚗ݄̲̞͉̽݀́̄ც́ᚬ̬̞̲̇𒀍̢ზ̡͍̑͋ᛡ̎ყ̎̐𒀜̜𒀽̥͂̇̚ჸ̥̯ᚑ̙̽̒͋ᚇ̤̦̭͋ᛣ͉̽̄𒀴͎͉̪𒀶̨̻̊̒𒀶̜̽̏ᛁ̺͇̦ር̝̗ሦ̡ᛩ̓̉ཆ̪͎̇̚
   if (env.os === 'ios' || env.os === 'mac') {
     e.surfaceWet = Math.min(1, e.surfaceWet + 0.15);
   } else if (env.os === 'windows' || env.os === 'linux') {
     e.surfaceWet = Math.max(0, e.surfaceWet - 0.10);
   }
 
-  // Android: thumb-close intimacy boost
+  // 𒀺̜̤̺̅ზ̑ჸ̮̬̂͆༻̦̪͎̈ᚸ͆́ჳ̢ག̳̜́̅𒀒̅͂༇̈́ᚩ̩̝͈́ሞ̡̬̳̽ᚄ̯
   if (env.os === 'android') {
     e.intimacy = Math.min(1, e.intimacy + 0.15);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  PIXEL DENSITY → edge quality, grain coarseness
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // High-DPI: hairline fractures, delicate silver filigree, fine dust
-  // Low-DPI:  thicker cuts, rougher grain, brutal fragmentation
+  // ܣ͉𒁉̩𒀺̽᚛̯͍݆́̔შ͎̂́̇᚛̾̈̌̏ᚇ̪̜𒀆̹̘̞̈́ܺ̚ཀ̧̜͉̌ሜ̜͈ყ͂̚ძ̱̔̏ჯ̈̄͋͌
+  // ი̿ሷ̩̻̆მ̢͇̊༼̮̈́᚛̢̊̌ᛣ͇͍̆͂ჴ̨̳̀̾ܵ̏ሓ̤͈̫᚛̜̓͋͂᚛̤ረ̺ሇ̦͂გ̮̹̣̇̔݅͆̓̕ᛑ̞ሶ̺̐̓̅ܫ̩𒀆̡̉ͅ𒀮̙̃𒀫̨̖̓𒀓̃̀̏̓༚̈́ჟ̒ༀ̼̗ረ͈̒ᛆ̹̝̇̄ቄ̨༌̐̂̍ქ̜̬̳͆ᛌ͉̞̑̍ᚗ̗̓༗͎̄̚𒀙̓
+  // ნ̽̓̋ሳ̱́ር̘ܢ̙̼̍̑ܙ̢͇ͅ༮̠̠̉̐ሱ̻̔̈ი̞̰̰̂ܲ̕ჱ͍ᚊ̖̫͋ᚑ̨̣̟̫ܺ̆༪̯̿̐ᚇ̤͉͍̔ღ̘ᚃ̖̠̥̚༏͈̗̊݀̌ᚏ̤͊ᚶ̢̹̌̏𒀵̌̆ᚕ̜̹̬̌ཁ̇̔ც̻̥̓
+  // 𒀾̊́კ̡̱̉̂ܫ̰̀ᚆ̾̄ሯ̧̑̎͌ܫ͉̅ᚉ̡̮̗ܽ̓ჸ̄ܰ̎ܥ̗͍̈́༲̡̬͇̕ܩ̈́
+  // 𒀎̻̏̀ܬ̽̋̽༩́̊ስ̯̓̌̃ზ̯𒀰̝̾ܲ̋
   const dpr = env.pixelRatio || 1;
-  e.edgeQuality = Math.min(1, (dpr - 1) / 2);       // 1x→0, 2x→0.5, 3x→1
-  e.grainCoarse = Math.max(0, 1 - (dpr - 1) / 2);   // inverse of edge quality
+  e.edgeQuality = Math.min(1, (dpr - 1) / 2);       // ༂̤̤̊̓𒀴̘̌͌̕𒀺̺͌ᚩ̼̣̇̂ܒ̹̂ჸ̓̔̾ᚊ̙͈̺༧̩̟̇̀𒀮̒ሓ̘̫ᛞ̱̬̉̽ᚁ͌͊ᚋ̖
+  e.grainCoarse = Math.max(0, 1 - (dpr - 1) / 2);   // 𒀮̗̜̥̻̱́̍ܰᚆ̗͊ང̹̠მ̼̙༦̺̥̅̏ᛜ̳̝̄̈ᚚ̖̯̎ᚑ̖̓̍ሟ̦ჳ̻̯̋ሥ̪̭̺̍ᚾ̧̑᛭̧̇̀̑𒀏̟̈́̒̀ܭ̪̘́𒁂̹̤ჰ̭ሱ̨́̒ᛄ̮̤͌́𒀽̆ܦ̨̖̂𒁆̲̹̫̈ᛐ̪
   e.specularWidth = Math.min(1, e.specularWidth + e.edgeQuality * 0.15);
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  VIEWPORT & ASPECT → compression, intimacy, sovereignty
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Structure: cathedral-tall stretches the figure into saintly thinness
-  //            coffin-narrow compresses and suffocates
-  //            wide makes it architectural and severe
+  // ᚂ̡̼̈̓༅͇ᛄ̝̭̾ᛪ̫̰͊́𒁇͍̪༞̢̀
+  // ᛢ̪ᚋ̥́̌ܘ͍̄̊̅ሄ͇̟̲ཆ̨̿̎ᚘ̨̯̗კ̞̻͈͆𒁊̣̥̣ܐ̦̈́̐ᛦ̩̬̊ቄ̠̅̚ზ̳ᚊ̨̜̇ܽᚲ̭̹რ̪̘̚༫̡̋̚̚༯̓ᛚ͈̝͈༎̟̞̃̾༯̀̿̋͌ܪ̈̉𒁍̬̎̓შ̢̓̐ც̢͉̝ა̃ህ̨̲͍̀ܗ̹̫̹𒀰̢༙̻̺́უ̰̲̯̀༆̏ᚂ̻̣ܦ̇ᛊ̯̇ᚌ͎͉̱̃𒀱̔ᚐ̕ᚈ̝̃ჶ̘͌̈̏
+  // 𒀸̼𒀻̫͈̉ሏ̯༇̢༹̜̦̞̮͌ͅሦ̼͉̖̊ܓ̎̾͊̒ᛧ̫̉̀გ̙̄̈ᛉ́͂ܤ̕𒀦̼༊̡̝̀ჯ̥̊ሑ̐̔͌ቁ́̂𒁋̧༘̝̖̀̅ლ̢̳̖̓ᚚ̣̓ሰ͍̂ܯ̰̍𒀾̣̉
+  // ᛢ༹͆́̐̚ᚘ̡̧ᛆ̬ᛋ̙̔̾კ̤̤༅͈̀ለ̮̆̎
+  // ሆ̋᚜̪̜̮͌͋݀̈́ܡ̙̮̦̘̭́̊ܽ̅݃̚ᛓ͍ሱ̫̫̫͊መ̒̕ܦ̧́̽ܽ̓ሦ̝̄͌̄༖̝̞ᚢ̻͍̦̃༣̏̂ᛂ̘͈̊̈შ̤̞͂ᚗ̲̆༖̘̣͌༏̗͆͌̓𒀡̻͆̅ᛈ̹͍̯ܛ̲́
+  // ᚓ̃ሥ̼̘͆̀གྷ̂ᛀ̩ሼ͎̳݃̔ᚽ̰ܻ̖̜̊͋͌ܮ̡̥̮̀ܯ̜̆̇༊̼͆ᚱ̩́̆̔ᚑ̼ܙ̨̊𒀓̏̃ᚄ̺̩̩̏ሣ༹͉̥̐͌გ͈̌ሼ̩̣𒀧͉̗̞̍
   const aspectCompression = {
     cathedral: -0.7, coffin: -0.4, normal: 0, wide: 0.35, ultrawide: 0.6,
   };
   e.compressionY = aspectCompression[env.aspectClass] || 0;
 
-  // Narrow screens force intimacy — the figure crowds the visitor
+  // ሄ̘̂ი̣̿ტ̣ᚈ̖̯̑̅ሻ̖̻̯̔ܝ̩̥̩̜𒁎̨̝݂̮̥̀̒𒀪̨̹̀̿ᚉ̇უ̃̔̚ͅܯ̍̀༰̰̯̚ხ͎̬̚ͅ᛭̔̄ሻ̙̣̒༣̧͊ܧ̀̒ᛣ̜ᚔ̺̲́̀ሄ̡̝̂𒁆̭̦́̀ჹ̟𒀅̹͌ቄ̻̾̿
   if (env.viewportW < 600) {
     e.intimacy = Math.min(1, e.intimacy + 0.25);
   }
-  // Wide screens make it distant, architectural
+  // ჹ̭̅თ̅͌ᚔ̭́༑̓ሜ̱ᚌ̠̭̬𒁄͎͇̋̈́༈̤ܓ̡͉უ͇̃̔།̫̾̄ᚴ̩̙̍̕ჱ́̚ჲ̝̯̓̅ᚃ̏ᚿ͉ᚈ̋̓̅ᛥ̳̇ჵ̨̑
   if (env.viewportW > 1600) {
     e.intimacy = Math.max(0, e.intimacy - 0.15);
   }
 
-  // Very small viewports: suffocated, pocket-sized
+  // ቈ̱̖̈̀ᚁ̮̾̀ᚷ͈̆̂̈ሾ̧̗̩̝̈̀݊̀̃ܠ͉̕ᚫ̝̹̉ܘ͎̦̐კ͍̋ჺ̓̀̀ͅგ̧̉͋༺̭̱̀𒀑̗̬̲̌ᚃ̨̐̍ሺ̤̊̔̒ᛡ̒̂რ̰̤̈́̊თ̭
   if (env.isTiny) {
     e.compressionY = Math.min(e.compressionY + 0.3, 1);
     e.sovereignty  = Math.max(0, e.sovereignty - 0.2);
   }
 
-  // Fullscreen: apparition more confident, complete, invasive
+  // ᚏ͎͌༏̨ᚒ͇༦̱͆ሱ̢ܓ̩̚ܓ̠̱̀ሢ̙̥ჭ̫̬͋
   if (env.isFullscreen) {
     e.sovereignty = 1.0;
     e.anticipation = Math.min(1, e.anticipation + 0.15);
   } else {
-    // Browser chrome = fragmented, ashamed, interrupted
+    // ო̖༳̳̦̯ܟ̗̅̔̆𒀸͊ᚊ̍𒀴̨͇́͋ᚼ̝͂̉ܦ༘̝̬̐თ̏̃ქ̗̩̅ܡ̬́̕ͅᚃ̘̑̉ܨ͆ቅ͉̗̀̔ᚄ̦̆̅ᚚ̙̝̉༉̡̜̳̩̽݅ᚙ̯̦̣̓ᛨ̻̇̍̚ხ̣̅̚ᛧ̘̠ͅܨ̝ܙ̪̿ლ̔𒀳̜̚კ̅͂ሚ̐̀́ჺ͇͎ᚔ͈̿́𒀱͎̍̉ᛋ݄̙̾̀̄̊ͅᚓ͍̓̕𒀸̢̟̎̍𒀆͍ܱ̥̗̌̄̌̅
     e.sovereignty = Math.max(0.4, e.sovereignty - 0.15);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  INPUT TYPE → touch/pointer/hover intimacy and wound character
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ᛤ̡̊̓ሡ̜𒀟̞̹𒀽̅̈́ᚈ̼̕ღ͉̘͍̂თ̡̀᚛̲̞̥̐ለ̧ላ̳͈̈ሌ͉̓̾ሾ͌ም͎̦̓̚𒀪̏̋̈́̚ቁ̠͊ܞ̉̇𒀥̢̔̽ე̮̪̠̿ܫ̨̳̫͌ᚴ̤ܒ̧͍͉̱݁̈̀ᚲ̝̦̰̉̓݃̃͊ህ̧̉𒁉̬͊༯̧̞ܻ́̕ሲ̡̨ስ̆𒀆̀ܖ̻̏𒀫̗
+  // ܜ̞̖̇̄ܤ̻̟ሬ̤͈́̋ᚒ̨́͆ሔ͉͊̕ᚯ̱̮͎͌ᛣ̹̱̇ሳ̣̦͌͆ሲ̊ቃ̹ሒ̿̉᚛̘̓̋̆ღ̈͌̃̃ᚱ̲̪͆ი́ሸ̩̜̂ሁ̩͍̙̥̬݁̈̌ᚄ̏̓ᚼ̟𒁎̱̦̥͌݃̆͊ཁ̣͎͊ͅᚠ̺̫͋̇ܶ͂́ჲ͎͍̣ሔ̑̐ტ̱̮̰̻̭̖݀́̔ᚍ̐ᚿ̘ᚈ͉̙̯𒀳̫ᚽ̧̧̮͈ܴ̬̀კ͉ვ̳̓̑͌𒁂̪̲̐̿༇̩͋
+  // ܔ̠͊̊ᛘ̺́ܒ̭͇̐༨̮̫̐̆ᚷ̄ᚪ͎̱͌͂ᚗ̯
   if (env.touch) {
-    // Touch: smears, fingerprints, pressure-ripples, skin-close
+    // ᚜̧̡͉̲ༀ̘̃̀ͅქ̢́𒀌͇̄ܙ̼̏̽̽𒀋̙̎̓ᚦ̯́̕ܧ̱𒀩̩͉ᚄ̫̀̍ܤ̅͆̏ሀ̤̎༕̧̠̱ܷ͇
     e.intimacy = Math.min(1, e.intimacy + 0.20);
-    e.edgeQuality = Math.max(0, e.edgeQuality - 0.10);  // slightly more blunt
+    e.edgeQuality = Math.max(0, e.edgeQuality - 0.10);  // ሦ̨̫ܗ̨͌̔ሄ̐̃̀ͅჴ́̌ܤ̪̦̙̾ᛁ̼̍͋̇ቈ̠̾͂̐ܦ̝̻̺̯ᛆ̳̐ሪ̘̏ህ̧̖̏̚ሎ̭͈͆ͅ𒁄̊ე̼݈̍̃̐̕ც̑̕𒀣̼̰ᚚ̤̯̀𒀰̿ᚃ͇̼͍༏͍̝̠͇ཇ͍̤͋͂𒀖͉͌́̏ ͍̼̚ᛨ͇́̽༌̮͇͌༸̰̍̎ܡ̩̪̉ლ͆ჴ̝̅ܨ̩̍̋𒀥̡̤̒̈́̓ܺ̎ᛀ͈̳𒁎̚༦̳̜̲̍ᚐ̑̂༟͆̃ᛩ̌̚ሀ͆
   } else {
-    // Non-touch: distant, gaze-based, surgical
+    // ᚑ̙̲̃ᚓ͎ᚁ̽̈́༥͇̳̾̀ᛆ̦͆̾ჰ̗̦̚𒀽̜̈́ͅ𒁄̖̀͆ሟ༹̺̫̃ᛋ̄̓ም̼́̒ሸ̣̋̽̂ܡ̧͉͇ሬ͌̊𒁎̙́༁̜ܼ͉̪͎̿
     e.intimacy = Math.max(0, e.intimacy - 0.10);
   }
 
   if (env.pointerCoarse) {
-    // Coarse pointer: larger, slower, more ceremonial responses
+    // ሕ̞ሒ͈̜̒ܩ͋ᛪ͇̓ܨ̨͈̑ზ̱̹ᚥ̯̔𒁉̰͊ͅᚪ̺ᚎ̯̤͎́݅𒀐̒̿̐༫̣́༥̘͉̇ም̝ᚾ̮̙̝ܬ̘ᚖ̤̹̰̆༬̺̺͋ჶ̲̈̀̄༄͆ᚂ̗̗̼𒀟̯̓༭̬͇̃ܞ̟̥̍̒݀̏ܛ̿̚ሪ͊̈̊ͅᚦ̳͌̾𒁈̤̞̏̚𒀢̳̭̀𒁍̩͋̈́ᚰ̲̐𒁋̘̄ᚖ̙̩𒀒̎ჴ̝̚̚
     e.specularWidth = Math.max(0, e.specularWidth - 0.10);
   }
   if (env.pointerFine) {
-    // Fine pointer: needle-like precision, subtler injuries
+    // ᛗ̣́𒀻͉̕ᛨ̺̏ሢ̜̜̅གྷ̯̳ე̌ᚃ̬̠̖̉༤̨̱ܚ̠͇༵̾̏͋𒀧̱͇
     e.specularWidth = Math.min(1, e.specularWidth + 0.10);
     e.edgeQuality   = Math.min(1, e.edgeQuality + 0.08);
   }
 
   if (!env.hoverCapable) {
-    // No hover: contact is more abrupt, portrait reacts as if struck
+    // რ̪̃ᚚ̨̃ᛉ̦̅̾̔ር̬̲̐წ̨̄̽ᛡ̫͂ჲ̒̓༈̑გ̬̘̉̉ᚃ̼̭̱𒀯̢̟̈̅𒀩̦ჵ̠̻̑᚜̈́̋ܝ̹ჟ̫͍̮ͅ𒁏̳̫̄ᚽ̨̓𒀔̲ᚻ̥̀ͅሒ̳̚༱̯͇̈̕༊̺̋მ̫̳͈̓
     e.anticipation = Math.max(0, e.anticipation - 0.2);
   } else {
-    // Hover: hesitation is heat, ember-spots, glowing wounds
+    // ჵ͇͈༑̠̰༘̰̲̐͊̓ረ̈̎ჺ̩̰ܼ̞̎̑ᚴ͇͈̯𒁉̪̗̯̎ᚋ̖̙̔ቁ́༉̝̗̒͌ག̡̘̞̒
     e.anticipation = Math.min(1, e.anticipation + 0.1);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  DARK/LIGHT MODE → palette, material, depth
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ቆ̼͈͌ი̤̦̏ܡ͊༬̈̈̀ͅ𒁎̨𒀚̏𒀜̂ͅᛤ͂ᛚ̤̘͆́ህ̝̺̋ᛇ̺ჵ̣̔𒁏̦͌̾ቀ̫ჺ̲̰̽ሯ̢̟̱̓ܙ̭̻ቆ̢ჶ̞͂̇༔̡ხ̡̆ሙ̗̅̀̊ხ̭ჵ̞̻̝̕ჯ͉̰̟̓ሟ͎̋ሺ͇̄̿̋ᛍ̟ረ͉ͅᚈ̺͎
+  // ሉ̨ሟ̝͊̀̓ሎ̍̕𒀰̱̣̯̌𒁏̖̬̭̕ᚗ̧̹̌́།̣̂̔༮̟ቂ̪༩̞ᛉ̿̔𒀾̬ ̥༎͉კ̑ᚫ͈̓̑̉ჴ̧̧̣̚ᛑ̗
+  // ̣̘݁ᛠ̍ᚅ̒ܐ̭ჩ̹̈̌́༾̔͋̕༫͇ᚉ̗͇̅ሗ̦͇ᚯ͍̻̳̊༚̡ᚥ̣̪̈́ᛙ̢̲͍ሠ̬̾̎𒁋̓̒͊ܢ̹̥͋̐ᚁ̬̋რ̡̆༨̢̝᚜̳̣༆̉̔̈ሂ̙̮̊ܙ̟̪̩̳ᚢ͍̑͊̓ሞ̧̨͉̏ᚴ̭̗̑͋𒀊̙͈̽̿ሡ̘༏̲
   if (env.lightMode && !env.darkMode) {
-    // Light mode: porcelain glare, ash-glass, pallid chrome, exposed dust, bone-like
-    e.paletteR = 210; e.paletteG = 205; e.paletteB = 198;  // warmer, paler, ashier
-    e.bgR = 12; e.bgG = 11; e.bgB = 10;                    // dark grey instead of pure black
-    e.surfaceWet  = Math.max(0, e.surfaceWet - 0.30);       // drier, dustier
-    e.grainCoarse = Math.min(1, e.grainCoarse + 0.15);      // more exposed dust
-    p.lightWarm   = Math.min(1, p.lightWarm + 0.12);        // harsher, more interrogative
+    // ܑ̭̭̇̔ღ̪́̉ᛙ̣̑̒ܚ̢̻̂̇݀𒀽̡̑ሄ̘͈̾ᚖ̅̕ᛰ̈́ܠ͍̼ლ̡̢̇გ̡ͅ༫̼͋̔͌𒀢̣̓ᚽ͎̱̀ᛨ̢̙̜̋ᚡ͊ܺ̓༫̖͎̀̄დ̳͂̈ͅᚘ̡͉́ͅᚁ̧̝̚༯̖̤ͅფ̿𒀺̅𒁄̓
+    e.paletteR = 210; e.paletteG = 205; e.paletteB = 198;  // გ̢̺̋ჺ̬ჷ̊ܕ̡͉̯̖ᚗ̡̫͉̀𒀺̦̔𒀰̿̀̌ܖ́
+    e.bgR = 12; e.bgG = 11; e.bgB = 10;                    // ̧̬̻ܵܽ͋𒀾͇̥͇̗𒀀͈̪̈༓݆͉̽͂༐̺̤ᚉ̜̹̩̰ܱ͈̑ܰ̿ͅჺ͍̋ሺ̼̅̃ܔ̨̊̓ͅᚉ̧ሖ̨̳͎݈͇̀̓ͅܭ̞ᛩ̜ᚊ̠̎ᚭ̘ᚷ̙ᚁ̺̜͉̻ሧ̣ᚤ̥̥̉̓༚͎̺̓̑ᚧ̱დܑ̠̗̐̃𒀰̼̇ሀ̪̩𒀘̍̀̎༓̧̥́༗̺̯͋̈ᚪ̬͇̏ͅ
+    e.surfaceWet  = Math.max(0, e.surfaceWet - 0.30);       // 𒀋̥წ̢༕̈კ̨͋ቃ̜̆̏ᚆ͉͎𒀱͍́
+    e.grainCoarse = Math.min(1, e.grainCoarse + 0.15);      // 𒁋̋̀̕𒀭̺͇̊̿ᚐ̺̯̖ܜ̢̊ᚦ́ᚚ̡̣̀ᛓ̥̋̔ܖ̈́́ᚲ͉̥́ᚚ͎ᚃ̃დ̀ሬ̀̚ᚉ̃͌͋༔̘̎ᚅ̺ཀ̧̼̽ᚘ̺༚̡̭̊ͅᛂ̱̀̈́ᚊ̦̺̂̎ნ̨ሟ̈༱̈́༄̨̳̎ᚘ̫̬̠̐ᚌ̬̃̇̍𒀲̣̭ᛙ̪̈́ܺ͊ܖ̙̘̅̕ᚔ̤𒀖̪̥̒̚ᛨ̳̀
+    p.lightWarm   = Math.min(1, p.lightWarm + 0.12);        // ཇ̋𒀟̘̓ხ̺͈̉ͅᚗ̜̫̊𒀉̅̀ᚻ̫͂̽ჭ̌͊̂͂ᚅ̏ᚍ͈̻̎ ̩͍ჸ̝𒀈̄̔༎̦́̾̏ჟ͉ሲ͋̿ᚚ̨̅̎𒀟̋ܡ̮̽𒁃̙̣წ͌პ̱̈́ሙ̻ሪ̥̔͊𒀏̒̽𒀐̨༾̚ͅᚳ̧̢͍̀̎݃̓ᛆܷ̳̭̜̈̉ᚊ̃̓ང̥ܼ̾̒̾ሷ̡͈̖
   } else {
-    // Dark mode (default): black water, obsidian, wet lacquer, silver seam-light
-    e.paletteR = 185; e.paletteG = 198; e.paletteB = 220;   // cold silver
-    e.bgR = 2; e.bgG = 2; e.bgB = 5;                        // deep black
-    e.surfaceWet  = Math.min(1, e.surfaceWet + 0.10);        // wetter
+    // ܑ݂̝͂̓̍̔ᚢ̾͊ო̓𒀓͌༦̡̩̿ܬ̪̻̓ሞ̝ᚃ̢̰𒀈́͊̐̋ᚑ̝ფ̅ሪ̰ჳ̂̐༼͇̅̄ᛁ̭წ͊̓༪̞͍̽ᚼ̠̏̾̕ܪ̫ო̮̥༰̥ܡ̀̚༖̰𒀺͉̒͂ͅ༺̗̫ᚆ̗̪ሪ̅̕᚛̢͍
+    e.paletteR = 185; e.paletteG = 198; e.paletteB = 220;   // ᚄ̀͌መ͍̬́͌ሃ̩̙͇ფ̨̐͊̓ᚋ̺͆̆ͅܨ̬̓݉̑̐̕𒀫̯̮̲͆ᚗ̪͎̒ܦ̨̠̝̒ܨ̨͌̃͆༊̬̏̾̊݃̈̈̂ማ̗̯̍̚𒁆̔̕ᚕ͇̂̽༸̮ᛃ̣ܠ̨̈̃̽ܝ̧̳̀̉𒀧̨̦ܯ̥̅ᛝ͈̒𒀀͍̊̒ᚘ̅̌ܮ̥̯̓ᚗ͉͋̅ༀ̥̄̿𒀨̻̾̒̕ჹ̣̯̩̼̠̀̈ܶ̍ᚹ̧̇̕ͅᚓ̗̀́ͅ𒀐̲̹̪᛭̚ᚚ̡̢݊
+    e.bgR = 2; e.bgG = 2; e.bgB = 5;                        // ༑̌𒀺̭͎̼ͅ༣༵̺̻̃̆͆̔̑́რ̧͋ͅჴ͈ᚈ͉̘̑ბ̢̂́͋წ̩ܱ̯ቃ̧͉̺ᚒ͇̊̔̐ሻ̜̙͊݉ܨ̲̅༄̥̎̌̄༥̦́ᚕ̨̈̍ͅ𒀏̃ͅܭ̝̻̾̈
+    e.surfaceWet  = Math.min(1, e.surfaceWet + 0.10);        // ᛖ̧̣̑̚𒀀̩̉ቁ̾𒀟͊̔ᛓ̔ᛌ͇̙͎უ̙͋𒀘̲̆̋ሆ͆ስ͈̻𒀰̇́͆ᛰ̿̔ሉ̻̳́̒ც͂͊ᛄ̻̹ᚯ̌𒀐̖͉͌ᚐ̮̋ܠ̰͇͎̒ᚷ༹̿̃ᚅ̺̦̋ᛕ̪ᛡ̐𒀶̧̪̅༸̏̌ᚅ͋̀ჶ̦͈̂̌ტ̖̫̦݂̱̠̞̓̋ᚂ̅ო̗͋
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  REDUCED MOTION → ritualistic stillness, not disabled
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ᚭ̡̓̽გ̬ᚚ̍ლ̌ᛑ̢̗̦͆ᚕ̰̯̅ሾ̔̿ᚍ̧̄𒁃̥༻̡̓𒁌̻̻̘̽ᛚ̰̞̎
+  // ܡ̠̘̒̅ჶ̠͋ܦ̐𒀗̠რ̦༟̖̖༸̭̼̟̬͌ܳ̒ძ̪ᚋ̎̚ᛆ̧̖̇ჺ̒̾༒̖͂ჳ̱̃
+  // ნ̪ჯ̢͊̿ሪ̟ᛢ̢̹͈݂̹̜̽̎̽༣̱͋𒀻̰͉̪ᚍ̰݈̯̈͂̏𒀘̺̬ሡ̫̋༇̟́̊̉ሩ̂ქ͎̇ཇ̱̯́̓𒀛̾̄ܤ͇̜̉ᚹ͍̫͊͂ᚏ̚𒀮͉ሳ̼̯̺̒ሖ̧̞̈́̔ᛈ͍༠̣ᚨ̬ሌ̣̐᛭̗̰̳̚
   if (env.reducedMotion) {
-    e.motionScale   = 0.15;   // eerily still, ceremonial, breath-held
-    e.idleRestless  = 0.1;    // nearly frozen
-    e.anticipation  = Math.min(1, e.anticipation + 0.2);  // compensate with gaze/light shifts
+    e.motionScale   = 0.15;   // ᚯ̳̠̎𒀋̞̀͊თ̳̲̈ܤ̖̂̃ͅჹ̤̐ስ̲͊ᚖ̅ሺ͊̚ჯ̲̹̣̖༸̱̙̽ቈ̭̈́༎̩͍̺ᚂ̦̑̽̓ჟ̨̰̾̊ᚅ̡̮།̲̌̍
+    e.idleRestless  = 0.1;    // ም̉̊̀ͅ𒀥̅̒ག̬̩̇̉༲̮̐̃𒀯̭༇̖𒀣̄̄̌
+    e.anticipation  = Math.min(1, e.anticipation + 0.2);  // ჵ͈̮̿̌ቆ̗̾ͅሒ̽̑ܪ͈̜̿̽ᛖ͍̯̝წ̼͇̎̐ᚢ̖ბ̧̎ͅ𒀊̇ሡ̎̓̒ሜ̈́𒀵̢̟́̽̓݅̊̂༧̠̔̔̌ᚔ̹̗̔̕ᚆ̜̽ჴ͌ሰ̥͇ᚗ̦͎̆ᚶ̯̅𒀃̔ჲ̻͇̅ᚐ̊͆̓̄ე̭̬̾̑დ̩́𒁊͎ლ̣̤༽̲͍ሊ̒̿ራ̭̍̕ᚐ́̓ሄ̨̦̳̓̇݅̂̃ᚂ̼̌ለ̿ᚯ̙̣̯̈́ᛙ̞̓
   } else {
-    e.motionScale = 1.0;      // full drift, recoil, flutter, predatory anticipation
+    e.motionScale = 1.0;      // ܝ̖̻̮̊ሆ͈̬𒀾̙̄̀ᚁ͈ჶ̨͆̈̋ჴ̢̍̓
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  REDUCED TRANSPARENCY → fogged, varnished, trapped behind old glass
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ო͉͊̍༿̢̻̻უ̬̦͂༽̟ᚬ̒ᚅ̯̎༖̻̀̆͂ܛ͈̩͋̾༸̝̰̀̅𒁃̦̒̋ሶܱ̘̥͋̋̊ሩ̖͈̪͂ܮ̐ᚢ̘̔̑̀ቆ̭̅ᚸ̩̑̕ᚊ̢̀̃ም̩̒̃̂ი̟̳̻̆ሀ̢̯̱͇
+  // ܯ͂̄ሢ̥̏̕𒁋̐ᛝ̠̈́̊̌რ̡ᚁ̜̑̔̂༖͈͍ͅᛈ̻̼̚༽̤𒀈̫͇̊ᛊ͉́̓༛̮̥݁̓ჟ̢̟͍ტ̘̿̿პ̲༾̨͈͇შ̲ᚙ༹̪͈̿̊̚ც̞̭̌͂ሽ̧͍̽ͅძ̯̖̌̓ለ̉ༀ͍̑ჟ̝̏̈́ሀ̯̿༢͈͉̦̉ܤ̝̠͍̑ቂ̆ܔ͉͇̱ᚆ̮̗̜͈͂ܿ̕ᚏ͍́݁́̌𒀗̻̙̽̓ᚓ̢̡̏̕ᚍ͉̋
+  // ᚇ̡̪̲ܸ̀̇́̈༫̜͎͂̏ܝ̪̙̤ᚖ̣̇ܶᚎ̓ሙ̧̌ყ͈ᚍ̡͉̅༞̘̲͍ᚩ̄̌
   if (env.reducedTransparency) {
-    e.lacquer = 0.65;    // sealed behind varnish
+    e.lacquer = 0.65;    // ᚪ̚ͅჟ̙̖́ܖ̙͍ᚗ̿̆ቄ̩̗݄̻̅̍̌ܗ̧̣̈́̀ნ̘̥̲
     e.surfaceWet = Math.min(1, e.surfaceWet + 0.15);
     e.grainCoarse = Math.min(1, e.grainCoarse + 0.10);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  LANGUAGE → text drift, whisper layers, RTL direction
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Multiple languages: overlapping whisper-layers, the mirror cannot decide which tongue
-  // This is stored; text fragment generation will use it.
+  // ᚇ̚ܓ̜ሃ̡̝̋༖̎ሳ̭̆ܧ̩̾̍̇ቄ̤̘ᛅ̼ሯ̻ᚑ̗ᛍ͈̜̍༴̨͎͇̿ቆ̳ᛛ̡ᚃ̀𒀽͉̙̹̅ሑ̺ܨ͎̣͂უ̧ሆ̢̻̂ჷ͇̏̑̚ༀ̧̻ܷ̏ᛁ̲̀̄𒀞̩͉̇̚ሺ̇𒀵̻̊ཅ̻̓𒀗̄̿ᚐ̫̥̟̄ܶ͆ራ̘̕༚͇̞̈͌𒀸̩̅̒༉̌̓ᚓ̗𒁃̽
+  // 𒁇͊ᛕ̰͊̿༚̳̦͊ܮ̭̿༕̎̀̏ჹ̇̌͊̑༐̱̟̂ᚻ̹̀ሉ̭̮͇͌ሼ̙̭̓წ̐̍̅
+  // ༲̲ለ̢͎̺𒀶̖̜̆̿ሠ̰̇ᚌ̩͍̃̎𒀆̢̢̮̓
+  // ჰ̑ბ̞̿̐̕𒁆̰̈ሼ̝̜͂ሼ̢͇͈̅᚛̬̺̘𒀥̱͋ᚍ̆ሇ̭͌݉̈́͋̑༧̗݂̽̈́͌́།̠̝༶͈͉̓̾ᚨ̝̠̫̂ᚗ̠͆́̕ᚮ̐𒀦̢͇̮ᛐܑ̗̖̌̓𒀼̖̘̇͆ሐ̲̀ሯ̟̏́̕𒀓̘́́͊პ̩̂̈́𒀨͊ሲ̨̙̐ᚭ̱̘̰̎𒀱̥͈͋̔𒀥ܑ̺̱̈ჵ̠გ͆͊̍̒།̧̖̠̔𒀈̄̕
+  // ᚈ̱ᚄ̺̐̂̕༞̨̠̞̐ჲ̗̍̚ᚯ̌ᚙ̉̓ნ̲̽༫̹ሻ̆̀გ̓𒀯̻͉͈̃ᚷ̩̙̱ᚅ̟̺̺̆𒀴̮͎̺ܸ̀̎̂
 
-  // RTL: reverse drift direction
+  // 𒀦̡̀̀ሷ̤͉̐ང̣ᚌ̘̙༼̬͈́́𒀃̕̕ᚁ̱̊ሹ̦̼̼͂ჺ̢̝̅̐ᚿ̡ლ̫̀𒀢̌ᚈ̯ᚯ̊͆𒀋̦̻̈́𒀕̠̬̠̇ᚊ̀ჱ̡̀͊ܧ̞̯̚ᚣ͎̜ܾ̃͆̉̉༐̩̤̌̋𒀕̘̑͋̕ܙ̓ᚅ̊̀პ̙̗͋ቇ̳̰̼̝͌ܿᚗ͌̊ლ̨̥̹ᚂ̠ᚶ͉̼𒀱̈́̏თ̋ͅლ͂𒀀̯̈́̂༈̙̖
   e.driftDir = env.isRTL ? -1 : 1;
 
-  // Locale/timezone mismatch can split the face —
-  // detected if timezone region doesn't match language region
-  // (e.g. 'en-US' lang but Asia/Tokyo timezone)
+  // ჷ̝̝ܹ̮̥̀̿ᚤ͍̿ᛕ̚ሰ̯̀᚛̬𒀆̈́༄ܼ̥̽̓ܜ̙̏𒀚͇ᚎ̱͉݈̠̂ᛗ̧̜͍̓ᚔ̺̇̀̔ᚊ̜̒́ძ̭͈̾̚ܨ̫̱̖̑ძ̝ܹ̂̽̐͆̂პ͇̘̈́̃ᚑ̆ფ̧͉̩̿ሟ̡ቆ̫̀̿ܯ̀ჟ̩̀̓̐ሙ̗༞̟̙̐̋
+  // ܫ̋ܺ̀̍̕ͅሦ̥͇̀ჺ̬ᚌ̥ሻ༹̭͎͋̾̽́̄ͅ༮̊ሙ̫̬̮̚ሲ̤̅𒁈͋̌̕𒀫̦̼̟ᛑ̢̂̒གྷ̤̹̋͋᚜̺༛̒ሳ̖̤͍̓ძ̧̌ܽ̂̀̚ყ̩̼̰̪ᚱ̧͎ܐ̠͈𒀂͆ლ̖̲̎̈́ᚎ̥̼̌ᚭ̄̃́𒀙̦̫̚ཁ̞̀̾ყ̻̬̋𒀛̤̹̚ሻ͊༯̟ᚉ̙̑͌ᛂ̄༰̈̏̀ͅძ̩͉̃ᚅ͎̕
+  // ܤ̠̺́ჩ̰̓̀̓ᚨ̿̓̔ᚄ̆ᛡ̜͊ა̂͂́ሕ̒̓ᚌ̠̪̔ᚧ̜̈́͆ܩ̧̯̦ܞ̺̾ᚃ̝ჱ̫̤̚༓̡̺᚛̣̹̎𒀖̖̙ܻ̍̊ᛖ̗̬ᚔܴ̘̅̇̀͋̏𒁁̎̎თ͋͌ᚃ̺̞̼ቄ̽ᚦ̖͈̎𒀠̾ყ̑̔𒀯̟̓̍ሆ̢̦̠̣
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  HARDWARE → shard density, secondary eyes, detail level
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ̼ܺᛡ̿ܬ̘༻̀̎̓̑ᛏ̉ܚܻ̼݆̜̙̪̊́́̒͂̀ნ͈̒𒀓̧̜̞̣
+  // ᚚ̍̑ሢ̯̦̣ͅᛃ̿̒̌̊ሙ̍̅͆ᚋ̜ሬ̼̥͆̕ᚒ́͌̀༌̣̾༜͎̰̍ᛆ̱̱̏̉༰̽𒀆̈́༆̫̺̘͆ჴ̥̕ܕ͎̊̏ჸ̨̘ს̏༎༹̼̟͉̂̀̀̔ზ̧̅̌͊ᚃ̜͍̽̿༬̢̰͎̪ფ̅ለ̨̦̋̓༾̗͍̈́ჺ̻̅ფ̹̞̹̺ᚿ̭̈́̆̌ᚦ̡ᚦ͉̽̆𒀎̗ᚂ̺̘̄ᚙ̲̑̑
+  // ᛭̧༆̈́ჭ̞̌̃̉༎̀უ̻༮̓͆̊ܫ̒͆ჳ͇͉̈̂ᚒ̆̀̂̎ሠ̝̱̚𒀰̀̆̕ང̡́͌ხ̥༿͇̖͆̇ሜ͆̚ͅᚲ̦ვ̬̇̚ᛞܑ́̾̒͌መ̻́͆̈́ᛋ̩̓༎̋̾͂ͅᚑ̲̅̃̕ሆ̃͊ᚥ̞ᚃ̲̿ხ̧̼͂̔ር̋̒̕༛̞̏́̄ܧ̡̰͉̉ᚔ͉̩͆̀༆̠͇ᛄ̭̿̕ჰ̮̝̽ሔ̝̳̭̽ᚌ̧᛫̩̙̀̾̍݉̑ᚸ̌
   const cores = env.hardwareConcurrency || 2;
   const mem   = env.deviceMemory || 4;
 
-  // High concurrency: spawn secondary almost-faces in peripheral shards
+  // ᚥ̠̅̎𒀵̔̆͆ቇ̬̯̂͋ჯ͌͆̑̆ᚪ̳𒀤̒𒀓̢̦͆ሹ̝̹
   e.secondaryEyes = cores >= 8 ? Math.min(3, Math.floor((cores - 6) / 2)) : 0;
 
-  // Shard density: more capable machines get denser, more detailed grids
-  // Weaker devices get fewer, heavier, more symbolic forms
+  // ༽̎ᚇ̡̼̭̀ᛕ̩͇ܚ̠̏შ̰ܸ̬ე̳̓̈༸̪̼̀̒ረ̪̗̀༰̯̀ᛕ̓͌̾ሒ̨̲̓̓𒀢̤༜̺̤̩̆
+  // ᚣ̫̍ი̀༉͇̰̀̒𒀍̡̗̜̍𒀦̜ܱ̥̍͆᚛̥̏̓̕ᚆ̈́̆ᚋ̢̞̈́᚛̻̔̏̈༁̘̃͌̎ཇ͉̲̰͊༸̙̳ᚇ̳̳̰̦̼̇̓݉ܧ̧̲༙͉̹̽̔ሷ̫̩̆̔ჲ̣̖̂ሤ̭̎̀̽༎̙̙̖̽͂݃́̈̏𒀒̖̗̊̇ᛋ͊́ܺ̑̾ͅሷ͆͂𒀿̦́ჭ̹͉̬̈́ሧ́̐ᚹ̪̏̚ᚓ̎̾ჷ̯̗͊ᚍ̙̌̈́ᛎ́ͅᚓ̻ჯ̪̀̌̑ܚ̡̣̺
   if (mem >= 8 && cores >= 6) {
-    e.shardDensity = 1.3;   // deeper, more layered
+    e.shardDensity = 1.3;   // ܒ̨̯͉͎ჟ̎༨̮̩̥̈́𒀇̡͍̺͋ზ̘̓𒀡̯̂͊ሤ̖ܸ̈́ང̱̹༡͎͉͇̇ᚧ̲̪́͌ე̱̓̈ͅᚑ༘̊̾̎̉ܟ̕ᚁ̟̘ᛠ̙̞ჟ̰̺̇ᛰ́ᚃ̫ሂ̥ᛐ͆̊ቆ̳̙͋̚უ̑͂̈ܬ̓̀ᚅ̗͌̑༳̖̯͌ᚫ̉ܲ̆̍𒀣̗ჶ̖̉̎𒀒͊̏ᚙ̚𒀝̨̱̥̣ბ̹̗͂͌
   } else if (mem <= 2 || cores <= 2) {
-    e.shardDensity = 0.7;   // monastic, iconic, fewer forms
+    e.shardDensity = 0.7;   // 𒀢༹̝̖̭̉̈́𒀱̂ܛ̺̞̗̔გ̹̽̎𒀰̤̰̊𒀓̕𒀤̙̲ᚁ̜͉̋ᚗ̺̀ჭ̩𒀏͂̔̍̚ტ̠༷͉͇̉ძ̮̩̐́ᚗ́ܵ̀̀𒀄̢͂̎᚛̖̼̐ܬ̱̈̇̓ᚍ͌ᚆ͊̀ᚹ̄͌༿̓ᚇ̲̥༷̀̓̚ᚉ̧̗̈́ᛆ̨̃༧́ᚬ̬͊ᚂ̪̄᛭̒ტ̓́ᚇ̜̒𒀶̤́𒀊̉ᚉ̧͌̎
   } else {
     e.shardDensity = 1.0;
   }
 
-  // Touch + low hardware: reduce density further for performance
+  // ჰ̧ჯ̩̔̔ܶ̾͆̂༲̫̅ቈ̧̟̜̈́ჷ̜𒀆̡̩̠ᚐ̧̘͍ሣ̬̖́̊ᚔ͍̞̈ཀ̙̬ᚷ̓𒀻̎́ᛪ̦̱̀͂ᚈ̳̗͋̀ᚄ̨͍́𒀏̄ሌ͌ᛇ̯̹͊ᚌ̗̗ሯ̤̞ሹ̹ሥ̧༔̗̾̃ᚘ̜̇༽̻̯̓𒀈̌ᛖ̀
   if (env.touch && env.viewportW < 900 && mem <= 4) {
     e.shardDensity = Math.min(e.shardDensity, 0.75);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  ORIENTATION (mobile) → upright saint-icon vs recumbent relic
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // (This is accounted for through aspectClass, but if landscape on mobile,
-  //  the figure could feel more recumbent / drowned / horizontal altar-piece)
+  // ჩ̤ͅᚙ̗̖͍ვ̓̀ሕ̩̾ᛗ̄̿༿̞͂ͅ𒀅̩̔ህ̠ܝ̳͇̄༐̮̽̔̽ჵ͋ᚠ̣̖̗̥ቄ̢̙̥̈ᛥ̡ང͍̇ᚍ̧̧̯༚̙͊́𒀭͉̜ᚄ̱̾̂ᚇ̦̈ᛏ̯͊̓̽ሷ̀ሲ̊̀̀ᚂ͍ᛄ̰͍͌ܩ̦́͆ላ̦ܝ̲͂𒀼̀̎ᛝ̮ᚑ̱̯ܥ̠ს̐̾̔ܧ͇̱ܔ̮̖
+  // ᛠ̻ܭ͈̃༊̡̪̇ܓ̃́ᛋ͈̳̣̄༔̝̳͆̐ჺ̖ᛇ̘̽̉ሥ̦̑͆͊ᚚ̤ሠ̧݈̓̇̕ᛂ̬̰ᚨ̭̿̿̚𒁉͇̽̏𒀅̢ᚴ̋ራ̤͆́̂𒁊͎ჰ͉́𒀾̮̬̿ܿ̒͊̚𒁁̢ሧ̊̚
+  // ܫ̪̩̈̓ᚌ̳̐̋𒁋̺͂̓̚𒀵̩͈̘ᚆ̜͂ᚷ̢̬̣̾ሞ̢̦̠̻̠̋̆̉ܵ̓݀ნ̟́̔̑ᚉ̯ሏ̀ვ͈̦̥ሷ͇̽́̀ᛓ̨̾ᛑ̩͈̋༼͎ᚌ̟̍ᚍ̘̀́̇ܖ̯ሽ̯̍𒀮̺ჸ̦̑ნ̭̽ჷ͌̄̉༤̣́̽͆ሐ̊𒁄̔ᚥ̩͂̋ᛁ̍ᚉ̲̓͌̕
+  // ი̮͊უ̰͊͂͆ܙ̀ᛨ̡ᛛ̆ሟ̩̝́ჵ̧̩̀̊ܖ̈̃̾ܖ̱̜̔ს̺̹ܴ̰ͅሱ̥̥̅ჴ͇̅̋͆༮̭̃͊༳̩̞̊̒ნ̈𒀳̧̭༙̫̟̒ᚚ̰ხ̭𒀰͎͍რ̩̈̎ს̺͋͂ᛗ̙̙́ሷ̤̑͊̄ᚗ̪̀͌𒀪̼̌̌̆ܘ̫̃ሆ̲̣́̈́༤̧̟̥́ᚯ̚̚ᚕ̼̔͌᚜̰̆ᚎ̒̾ᚗ̱̓̇͌ስ̆͂𒁊͂̚შ̫̾რ̬̹̈́̚𒀌̮̇
+  // ༌̮̙̫̽̽݉́̾ᚂ̖̠̙̯ᚑ̨𒁃͈͈ჴ̻̦̳დ̨̖̖̀݅𒀷̟̥̿̕ᛐ̪̫̑ო̮ᛈ̺̐̐̂ᚡ̓𒀅̟̤̓́ᚹ̻მ͉ჭ͍̬̒ᚃ̗ሟ̎
   if (env.touch && env.orientation === 'landscape') {
-    e.compressionY = Math.min(1, e.compressionY + 0.2);  // recumbent shift
+    e.compressionY = Math.min(1, e.compressionY + 0.2);  // ᛌ̢̯ᚓͅგ̾ᚋ̨̼̱̏ᚚ͂༠͍͍̜༒̲̌ܖ̼ᚖ̤̯͆ሁ̥̭̲ሱ̝̟̺ა̨༾͍
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  STORAGE + RETURN VISIT → memory behaviour, approach speed
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ᚜̻̠̎᛬͇̣ᛄ͇́ᚍ̺̔͋ჳ̼̼̒ᚮ̤̒́ᚉ̯̮̩̒ሼ̺̺̓̂༛̳̋̅ͅნ̻̕ᚏ̺𒀸̡̟̜͉݉̆̇ማ̳ᚚ̲͆̂̅༻̢̹͇ቂ̝̈ლ̜̼̂̍ሗ͎͈̃̊ܕ̓̎ზ̮̥̂̕ᛔ̄̇̿͆
+  // ჲ̗ჶ̢̫̅ቀ̬̳̿᛬̯̪̹𒁎̆͂̚ᚚ̫̍ሻ͇̍̈𒀛͉̤̻ሉ̢̠̾́ቅ̧̣ܾ̗̃̄͊̚ᚕ̤̯̃ქ̖͎̀ᚍ̀̏ᚵ͌̾̓̊༴̣̓̏̀ᚒ̼̉̓̊𒀝̂̇ᚖ̋གྷ̢̒ͅᚬ̦̰̓͋
+  // ܡ̧̢̈̎ᛞ̳͉̒უ̦ჺ̩𒀉̙̘̗ሹ̨ქ̔ᚾ̨͇̤̎𒁈̱̱̈́͂𒀢̞̾͆̚ᚳ̲̥͌̌༓̬̳𒀴̯ܯ̑𒀋̋ህ̃𒁈̙̠ᚈ͌ሼ̜̀́ༀ̦ሴ̈̓ᛄ̯̍̽̚𒀑̢̆̍̕ም͇ო̙͇̼𒀑̒̎༛̠̦̰̓𒁎̻̼̝̹ვ̄
   if (!env.storage) {
-    // Blocked storage: portrait forgetful, slipping edges, unstable memory
+    // ቀ̉̏̄ͅᚵ̢̹̙̿𒀢̺ܼ͍̿͋ሀܴ͇̐̔̕ᛏ̇ᚅ̫̰͎̔𒁏̞͋̉
     p.convergence = Math.max(p.convergence - 0.1, 0);
-    e.surfaceWet  = Math.max(0, e.surfaceWet - 0.15);  // newborn, not weathered
-    e.approachSpeed = 0.6;                                // keeps relearning
+    e.surfaceWet  = Math.max(0, e.surfaceWet - 0.15);  // 𒀩̫̚ხ̳̅̽͆𒀔͎̀͌̋თ̘̻̀̆ሗ̇̉̊͂𒁎̬́͆ᛎ̹̩̻͍ܚ̜̯͆༶̥̟ᚒͅ𒀆̤̆͋ᚷ̧̺̔̕ሣ̨̓༊̋ზ͇̣͆ᚙ̜̞ሻ̞̗̬༛͇̰͎ܚ̣̊ჵ̲͊𒀃̟͎𒀺̱̩̞̓ᚍ̨̗̤̯ܕ̩༖̦͆̃͌ማ̡̥̄͌ሤ̘̔༶̪̈́ᛤ̺ል̗̪̗݇̈́̕ᚊ̈́̽͊𒀄͈͇͌͊ᚔ̧̧͎ვ̲̓̎༮̲͂ᚚ̭̳̊
+    e.approachSpeed = 0.6;                                // ܢ̲̀̒̚༐̥̲̿̊𒁅͈̂̊̍ང̘̗̿݅̍̚༏̯ᛇ͉̝̌ቄ̰͌̉͊𒀠̢̺̦ሩ̏ܰ̓̏ᚃ̣̔͊ᛑ̮̑̎ᚪ͆ሒ̨̨̻̮̀݃̀
   }
 
   if (state.memory && state.memory.visits > 0) {
     const returnBoost = Math.min(0.65, 0.18 + state.memory.visits * 0.08);
     p.convergence = Math.max(p.convergence, returnBoost);
 
-    // Inherit prior scars
+    // ሆ̭ܹ̱̀̔̋̕༮͇კ̿ᛚ̪̅̌̀𒀥̉༢̫̌̈́ܣ̨̩̀̌ሻ̏̆̏𒀽̯͆ჳ̝̪̒̕ᚅ̨͇̈ᚧ̮̹̪ܿ̔͌̚ᛋ͊༱̗̃̂ᚷ͊ሊ̤̾ሕ̪̈̕
     if (state.memory.scars && state.memory.scars.length) {
       const lastScar = state.memory.scars[0];
       p.crack   = lastScar.crack * 0.5;
       p.erasure = (lastScar.erasure || 0) * 0.35;
     }
 
-    // Visit pattern → approach speed and surface weathering
+    // ᚊ̡̡̲̑𒀬̚ᚕ̒́ͅჭ̿̅̐ᛐ̥̆́̈ᚿ̹̆̈́̓༏̔ᚗ̦ᚽ̧̲̍𒁍̫̤̂ͅ༉̠̭̟̍ᚳ̙𒀱̝̝༔̩͂݇ჶ́̇́ტ̖̓͆ང͇̫̆̏ჴ̪̞͋ᚌ̐ቀ̬ᚥ̜́ᚍ̃͂͌ჸ̣͂𒀪̡̗̄𒀽͇𒀫́͂༰̍ሗ̗̯̈́𒀋̧͋̒ᚓ̩ሄ̢̩̲̾𒀑̢̥̿ᚂ̼̱̗გ̣
     switch (visitPattern) {
       case 'frequent':
-        // Frighteningly efficient, assembles too quickly
+        // ሩ̯კ̲ᚍ̌̊̉̂𒀚̘̻̈݊̒ቅܑ̠̩̺͍̦̲̒͆̄ܽͅᚇ̡̝̰̈́ᛑ̳̗༗̩̆̇ᚆ̧̟̂ܽ̍ཇ̺͇̏̅༪̠͆̀̕ᛟ̣̉ܓ̢༷̘ሾ̃̂̾ͅܙ̓̃̀ᚇ̩͇̔უ̳̺̗̋ܿܭ̤ሖ̬ܽ̊༳̏ܩ̕
         e.approachSpeed = 1.8;
-        e.surfaceWet = Math.min(1, e.surfaceWet + 0.10);  // well-worn
+        e.surfaceWet = Math.min(1, e.surfaceWet + 0.10);  // ჲ̨̯̠̽ሐ̳̇ᚒ̬̮̘რ́̈́ᚖ͋ቂ̲̭̝̅༥̑͊ღ̍̇̂̀ᚑ̘̀ሄ͎ቃ̂̈́
         e.anticipation = Math.min(1, e.anticipation + 0.2);
         break;
       case 'sparse':
-        // Long absence: dusty, faded, abandoned, then gradually remembers
+        // ራ̱̪̉̓ሪ̜༙͈͆̓̋̚ܐ̲̹̋݁̐ቇ̮̗ᚁ̙͋̑̉ܕ̙༤̧̙͎̈ሟ̹̕̚𒀖̺ᚌ̝̺̻̺ჴ̤̔̑ᚻ̗̂ܔ̖̊̃ሣ͂̿ᛗ̰̀༲̮̯͂̅ሥ̽̈༔̲ᚕ̫̖ܪ̡̰̈́ሗ̺̎̂ᛂ̔𒀨͇
         e.approachSpeed = 0.5;
-        e.surfaceWet = Math.max(0, e.surfaceWet - 0.15);  // dried out
-        e.grainCoarse = Math.min(1, e.grainCoarse + 0.10); // dusty
+        e.surfaceWet = Math.max(0, e.surfaceWet - 0.15);  // ༼̜̎̄𒀊̜͊̆ᚢ̨ᚐ̜̪̅ͅ𒀔̟̜̗̟ܛ̯̰𒀚̒᛬̆̊̏ܐ̈̏̂ͅᚕ̘͈̄𒀳̡̇̈༺̼́̕ᚄ̮̈́̃͌
+        e.grainCoarse = Math.min(1, e.grainCoarse + 0.10); // །͆ܗ̖ܕ̎̔𒁏̩̱ሲ̨͈̀ᚉ̬̈ფ̟̲̑͌́ܰሆ͊̄ᚁ̱̍̊̈́ᛘ̱༵̝
         break;
       case 'brief':
-        // Many short visits: skittish, incomplete, suspicious
+        // ̪̭̥ܽ̂ᛗ̋𒀧̤̆̑ᛪ̤̘̓݃̎ሾ̦ܸ͋̏͆̉̚ܛ̙̎ᛇ̘̫༙̓ო̬̲̚𒀤̺̜̔̈́𒀈́ᚷ̦̈́ᚮ̬ᚺ̯̬̎̎ᚴ̣̖ለ̦ܷ̗༵̖̱̄͌̋ͅᚬ̬̓ᚦ̿།͍̘ܼ̠̮̽́̇̄ჳ̰̟༗͂༢̠͈̽ܶ̔༖̋ለ̹̎͋ᚮ̦̜̒̍𒀗̠᚜̳̈́ᚐ̂
         e.approachSpeed = 0.8;
         e.idleRestless  = Math.min(1, e.idleRestless + 0.15);
         break;
       case 'devoted':
-        // Fewer long visits: calmer, more intimate, anatomically coherent
+        // ܗ̩𒀔̫̀ᚚ̙̘̒̏ᚑ̺̫̍̚༮̮༘̙̮̿̊̈̕ᛄ̭̟̉̂𒀠̯༔̼̮̒̕
         e.approachSpeed = 1.2;
         e.intimacy     = Math.min(1, e.intimacy + 0.10);
         e.idleRestless = Math.max(0, e.idleRestless - 0.10);
@@ -923,64 +914,64 @@ function buildVisitorProfile() {
         e.approachSpeed = 1.0;
     }
 
-    // Timezone changed between visits → geographic haunting, split face
+    // ༺͆༃̨̮̼̊ᛰ̣̈𒀔̰͈ል̡̣͈ᚗ́ሏ̟̎̽ᛊ̘̖̄̿ܜ̺̣𒁍̰̖༎̖̓̿𒀻̤̪͌ᚊ̇༴͆ሆ̞̇ღ̈́̽ლܻ͉͎͆̽̎̊ჴ̲̙̰༉̜́̅̆ܶ̑̊ᚏͅ
     if (state.memory.tz && state.memory.tz !== env.tz) {
       e.symmetry = Math.max(0, e.symmetry - 0.15);
     }
   } else if (visitPattern === 'first') {
-    // First-time visitors: more abstract, suspiciously incomplete
+    // ᚡ̝̖̈༈̻̓ᛓ̯ᚬ̧͇̂͋༯̨́̇𒀼̬̗̃̿ᚐ͇̉̓ᚸ̧̖̀̋ᚱ̺͂ᚗ̱͈͊̊𒀔̺̐ჭ̢̟͋͋༖́ა̣̔͋ሥ̨ᚈ̒ᛰ̬̐̽𒀅̤͎̓ᚐ̝̻̣ܷ̤ᚎ̪̣̠͌ᚋ͉̭̤̌༣̧ܧ̝̬͎̄༃̘̒̅̕𒀴̞𒀞̭̐̕ᚃ̠ᛟ̧𒀐̗̦͂ᚉ͎̦̃̀𒁄̰̗́̔ሻ̼̻𒀤̫̠́𒀿̩̳͆́ሲ̠̬̂ܚ̤͎͆ᚏ̈̀̈́͌༃̋̀̑
     e.approachSpeed = 0.7;
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  COMPOUND CONDITIONS — special combinations
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ლ̭̮̩̿ܥ̳ሆ̨̲̓ሙ̧̗ᚮ̞༳͉̈̀̀ᚘ̦̓ᚹ̣͋͊𒀚̝́̍͊ᚏ̲̟̅ᚅ̯͆ქ̎༻̡̀ቇ̮̹̘̀ᚊ̞͋̔𒀣̳̎̆ሇ̙͎̳༎̄ჭ̨̲̬ܒ͆̃̋̓ᛖ́𒀞͍ቂ̬̅༿̞̓༩̿̒ᛎ̝͍̿ܢ̭̆̓̃
+  // ᚄ̘̺̾𒀵̧𒀭́ᚍ̪̓̎ܫ̯͎̏̀༆̦ᚨ̩̃ሔ̔̔̌ܓ̢̯̝̍ხ̡ረ͎̣༞̿̍ჷ̯̕
+  // ༔̬͆ቆ̞༕̦̬̆͆༮̢̢̯̻̼̟ܺᛂ̞ᚩ༹͈͈̭̰̭̈̍ܺ
 
-  // Disabled storage + reduced motion → priestly, withheld, untouchable
+  // 𒀨̜ᚋ̈́̔ჳ͇͋́͊ᛀ̠̃͂ᚎ̧̫̼̹ᛜ̨̄𒀤̯̂̂̓ሁ̽̌͆ᚑ͇͋́͆ሚ̢̳༘̜̐̓ͅሠ̨̜̒̑თ̓̅ძ̻̫̈ღ̅͋ᛕ̥̈́რ̱̳̮ሃ̞̜̋͆ቈ͉̤𒁄̟݇̀̚༃́ܦ͈ᛗ͊༈̨̼̇́
   if (!env.storage && env.reducedMotion) {
     e.lacquer  = Math.min(1, e.lacquer + 0.3);
     e.intimacy = Math.max(0, e.intimacy - 0.2);
   }
 
-  // Full capability (storage, motion, hover, long session) → dangerously intimate
+  // ག̮͈̜͊ᚘ̞͊̐̈́༣̙̱̹̙༌͍̲͊̏ܞ͈̓𒀟̼̤͋ͅᛮ̘̬̎ሁ̚ᚭ̾̄ᚃ̲̜́ᚄ̮͋͌̚༓̗̅ሿ͎̄༇̝̾̓გ͇͂ሀ̡̱ᚃ̞ბ̓̈༚̝ფ̙̜̔̏̉݃
   if (env.storage && !env.reducedMotion && env.hoverCapable && visitPattern === 'devoted') {
     e.intimacy     = Math.min(1, e.intimacy + 0.15);
     e.anticipation = Math.min(1, e.anticipation + 0.15);
   }
 
-  // ── Final behaviour modulation ──
+  // შ͋დ̦͎̑̀მ̠̻́ᛙ̲𒁃̧̼̫ሁ̀̍𒀢̠ܜ̡̟݆̥̗̘̊͊̆ܽ̓ ̖̫̈́̍ჯ̤̱̏̉ሷ̡̪̼̚ყ̮ლ̪̗༭̯̱ᚚ̲̲ᚈ̣̟̭̋ჵ͈̘̉ͅ𒀙̟̤̅̓
   e.motionScale   = Math.max(0, Math.min(1, e.motionScale * hourTempo));
   e.approachSpeed = Math.max(0.3, Math.min(2.0, e.approachSpeed));
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  REFERRER → portrait character adjustments
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ᚈ͍̾ᚴ̘̪̳͋ᚙ̨̤̹͇̺̏ܶ̇̑ᚕ̲̗̒ም̂̓͊̾ሿ̜̅̍̚𒀐̫̹̄̐᚜݂̃̂̄̿̓̉᛫̭̎ᛉ̘̥𒀢͇̎̋ᚕ̠͍̘̾ჳ̌༟̝̎ሠ̆ᛨ̦ხ̨̥კ̉̽̚̕ᚔ̼̑̓̈ᚔ̅̕ܘ̢̼ᛮ̡̖̪̑ܲሂ̞̋𒀘̬̎͆𒀢̠̪
+  // ᚄ̨̢͉͇̱̦݇ᚓ̉́𒁏̡݆̉̃დ̲̰͋́ჱ͋̀͌
+  // ሙ̺̤𒀊̅༝̤̓𒀟̞̌̓̾ვ̱̃̇̂წ̙̑ᚫ̧̼̐ܺ̾ሶ̨̮͎́𒀭̿́ͅᚍ̙̓̎̓༿̱ა̭̅𒁃͇̃̋ᚱ̼̤̆ሞ̱̖ლ̨̢̭݈̹̂̀ܩ̣ᚖ̈̚კ̱̿༡̖ሞ̞̚̕ቄ̡̲̍̍་̀ܜ̧̾̌̾ཅ͆̏͋݁̅ჯ͂̎̊ܶ̌༌̻̳̈𒁅̬͂̈́̓༅͋𒀇̞̮ܡ̡݂̪͎̳̈ᚑ̡̲̺̋
   if (env.isSocialReferrer) {
-    // Social media: fractured, performative, split — the figure is a public version
+    // ༓̆ሜ̝̃ᚧ̻𒀙̞̮ᚠ̺̙̒݃ჯ̣̮͇̾თ͊ზ̫̏̇𒁌̦̞̉წ̦͇̭̂ܒ̮̙შ̻̮̳̔𒀯̢ང̯̄̌̚ህ̧̤̖̐𒀳̨̭ᚡ̱̠͂ͅᛩͅᛇ̙̑༐̉𒀛̤͈ᚱ̨̃ᚨ̡̜𒁂̲̯̎̒གྷ̗̪݂͍̉̋ᚒ̗̭ჵ̯̓ჟ̠̲̺̭
     e.symmetry    = Math.max(0, e.symmetry - 0.15);
     e.intimacy    = Math.max(0, e.intimacy - 0.20);
     e.idleRestless = Math.min(1, e.idleRestless + 0.15);
-    // More cracks — social arrival damages the portrait
+    // 𒁀̩̰̐̐ܗ̱̚ܤ̨̠͇̓ག̬̒̆༲͎͎̌͂ཅ͉̥ჯ̓̌̀᚜͆̀́ܒ̭͈̃ሷ̢͉̫̠ቅ̘̜݂̝̌͆̚დ͈̳̀̚ჲ̞͆̋̎༜̮𒀿̅̽̀𒀐̱̹̳̉ለ̢𒀊̭̤ሄ̨
     p.crack = Math.min(1, p.crack + 0.08);
   } else if (env.isSearchReferrer) {
-    // Search: clinical, investigative — the gaze is more surgical
+    // ᚍ̦͈̜̅ቅ̱̉ܮ̿̋̅𒀠̱͉̐̾༜̡̤̎̈ሲ͉̹̈
     e.specularWidth = Math.min(1, e.specularWidth + 0.12);
     e.anticipation  = Math.max(0, e.anticipation - 0.10);
   } else if (env.isDirectVisit) {
-    // Direct: private, deliberate, more intimate
+    // ჱ͉̠͍̄ᛰ̦̾ვ̠̒̀༽̚ᚎ̦̞̱ܵ
     e.intimacy     = Math.min(1, e.intimacy + 0.08);
     e.sovereignty  = Math.min(1, e.sovereignty + 0.05);
   }
 
-  // ── Optional backend for extended environment data ──
-  // If /api/mirror-env exists, fetch IP geolocation and extended origin data
-  // The portrait will update asynchronously if data arrives
+  // ᚧ̡̽̾ᚚ͈̀́̍ᚫ̰́̊ჰ̢̻̎𒀋̨̇ᛆ̏ᚖ͉͈̏́ᛦ̝̗͊̀ቈ̠̎̂̅
+  // ᚢ̜̆༥̩̤̈̋ሰ̢̞̀̓𒀴̠̓̄̓༗̝ᚶ̧̗͂ᛇ͋ᚔ̌༧̔̔𒀗̽̚ჲ͉̱ჺ̟̆ბ̩̭̑̈́݉̚ሓ̱ሑ̼̭ᚗ̖̐͆̂᚜͎ჵ̗̪͇༯͉̈́̂̀ሾ̼̮ჯ̫̊̚
+  // ༗̙̘̟̋ܯ̀༛̰̇ᛎ̼༁̆̆༤̩̜ჩ̡̝̅ᚏ̯̄̃̀ᚉ̚ቃ̡̤ለ͈̋ͅᚋ̞̻ሒ̹̙͆༨̧̎̑༬̭͋ვ̱༷̥̅̚ᚧ̤ሄ̼̠͇̣͈ܽ̃ო̇ለ̦͇͍̆ܡ̨̺ܨ̀̐གྷ̨̘̃ე̈́𒀣̙͆̂ᚨ̨͇༠̙̩̅ᚨ̓ᛋ͇͂𒀥̿
   fetchBackendEnv();
 }
 
-// ─── Optional backend fetch (non-blocking) ─────────────────────────────────
+// ༑̮̐̚ᚮ̤̝ᚩ̼̪̦ͅ𒀬̜̹̾̀ო̹͂་̢̼̠̾᛫̧̂͆̃ᚏ̻͍͎ͅ𒀪̞̓̈ᚒ͈̎̈
 function fetchBackendEnv() {
-  // Try to fetch from an optional API endpoint. If it doesn't exist, silently ignore.
+  // ་͊͂̍𒀁͉𒁆̩̫̎̑ᚃ̊ͅფ̋̑͋ჟ̞́ᚎ̙̄𒀹̢̚ܣ̯͂ჟ̗͂༨̬̊̄ᚚ̤̗̓ᛌ̭̀̀𒀮̢̘̊̃ܥ̦ᚷ̃ᚔ̜͎͂̀ᚖ̧͈༵͈̃̀ᚤ̝ᚉ̰̣ჟ̖ᚏ̡̠̟ܧ̄̿ᚧ̗͋̚ᚈ̈̇̍̚ᛔ͎̱͆̊ᚏ̢̭᚛͍̀̄༦̺̱̇ᛊ̔ሰ̌̍ᚧ̡𒀼̗ᚌ̺ჴܱ̪͌͊ᛌ͋̕̕
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
 
@@ -989,75 +980,75 @@ function fetchBackendEnv() {
     .then(data => {
       if (!data) return;
       const env = state.environment;
-      // Merge any backend-provided fields
+      // ძ̐༱̢̺̑݅ᛚ̈́ზ̑ܕ͇̽ܒ̘̻̅𒀁̥̓༒̩̒̾́ჯ̝̠ვ̇̂݁̐ᛥ̫̉̓᚜̜̙̔̚ᚁ̠ሄ̄̽ᚖ̘̓ᚈ̭̄༜̄̑𒀃̑̅̇ჵ̘̦𒀝̦̲̂̿ᚁ͉̃༛̠̪̎ᛒ̯̟͍̏ა̩̗̘̳͆݁𒀺̹̓༸̫̾̇መ̣ܱ̰̆᚜̫͍̈́ܽ̚
       if (data.latitude !== undefined)  env.latitude  = data.latitude;
       if (data.longitude !== undefined) env.longitude = data.longitude;
       if (data.city)    env.city    = data.city;
       if (data.country) env.country = data.country;
       if (data.isp)     env.isp    = data.isp;
-      // Geographic distance from server / centre could further modulate portrait
-      // but we don't require the backend — it's purely additive
+      // 𒀷̺̠̒༽̞͊̋͌პ̮̄̌𒀅̭̀ჳ̾͊𒀑̢̇ᛅ̣͂̃̔ሓ͇̽̐̔ܖ̨̃̈́̄༁̟̭͍̚ᛮ̜̂́̽ሠ̡̬̽ܤ̝ሹ́𒀥̀ܤ̝
+      // 𒀠͇̘̜ᚯ̜̓̀𒁌̡̺ܴ̳̅ܧ͎ჴ̜ᛐ̦͆̓̄𒀀̬̂̑̀𒁀̮̜̄ᚈ̎̆̏ማ̥̍̕ჟ̡͎ܻ̾̒̇ܽͅᚷ̻𒀜̀́ል͂̉̈̈𒀱̢͇̻̉ሡ͈̫ሹ̘̟̈̏𒀛̘̩̜̋𒀺̡̏̐̕ሊ̹̈ყ̢̗̹ᚉ̰
     })
-    .catch(() => { clearTimeout(timeoutId); /* backend not available, that's fine */ });
+    .catch(() => { clearTimeout(timeoutId); /* ༩̉̍͋ᛨ̩̦̟̣𐍂̃𐤈̯̭ᚘ͉̀ᚅ͎̤̈̚𒁏͋͌̎ᚇ̺𒀬̉̚𒀖̞̒ */ });
 }
 
-// ─── Temperament System ────────────────────────────────────────────────────
-// The mirror chooses a temperament based on environmental and behavioural signals.
-// Temperament modulates rendering parameters throughout the session.
+// ༓̇̈̊̕ሬ̫ሿ̀̔͊͆𒀭̦̀კ̳̦ᛅ̰̫͎̈ሽ͈̄ል̧͈𒀮͍̳̊̑𒀸̤̣ნ̬̞ᚘ̝̞̀ს̪͉̈́ሦ̘͈̤̽ሓ̟̀̈ᚙ̧ჳ̫̅ᚮ̧̠ᚘ̬͇̃ᚏ̪̅მ̜̝̊̋ܘ̧̻̩̑᛭̹̊̐̈́ᚵ̾̿̀̚ჱ̍ღ̞ͅ༥̞̰̽͋ᚕ̄ᚖ̤̗̪̂ᚍ̤ღ̩̩̒̏ᛪ͎̉ᚹ̥̫̭̊ᛆ̨̞̈́̈დ̲გ̜̃ሸ̉͊͂̀ܠ̜̬̓͂ᛯ̗̌
+// ᚃ̫ܦ͈͉༒͈̘̔̂ሮ̅̌ሶ̌͊𒀆͎͌༾̟̞̑𒁎̺ͅᚒ̧̢̱̫͌݇݀ሾ̭̦̎𒀈̬̽
+// ܢ̭̊̉̚ფ̕ჱ̾ᚚ̜ܒ̫༥݂̪̀̏̆̈̀ሧ̲̈̈́͊ძ̄̈́ᛦ̪̯̈ͅང̮̫̈́̓ᛞ̞̂𒀸̔ܗ̬ᚅ̙̙̠̌༲̡̠̆͊𒁈̗͌ᛥ̡̲̕̚
 
 function chooseTemperament() {
   const env = state.environment;
   const p   = state.portrait;
   const e   = p.env;
 
-  // Score each temperament based on signals
+  // ሠ̟ሀ̗͉͆ᛙ̨͂̄̅ሿ͍̗̜͋ሹ́ᛯ̞̈́̐ვ̮༯̪༝̰̹̗ሖ́༽̤̐ም̧̦̤̓ቃ̹̇༇̡̞̻̘́ܿᚣ̧̗̭̔ᚇ̧༰̈̉𒀫ܸ̟̳̈̈́͋͋͊ჯ̧̱̀̋༻̨͉̒̾𒁉̻̓་̠ᚎ̼͂𒀧̰̔𒀴̙̈͂̽𒀯ܱ̒̽ܲ̑̒ሸ̹̮̍̃𒀅̗̏̐
   const scores = { flattering: 0, cruel: 0, silent: 0, devotional: 0 };
 
-  // Hour influence
+  // ܓͅᚮ̐̑̏ሞ̢̩ს̤̎̄̈́༂̣̪̯̕ᛞ̮̀̕ᚰ̖ყ̱̅ᚸ̙̍݉ᚰ̨̝͊༕̥ხ̜̋𒀺̻̹̇͋༠̫̀
   const h = env.hour || 12;
-  if (h >= 8 && h < 12) scores.flattering += 2;           // morning light flatters
-  if (h >= 0 && h < 5)  scores.cruel += 2;                // witching hours are cruel
-  if (h >= 17 && h < 21) scores.devotional += 2;          // dusk is devotional
-  if (h >= 12 && h < 14) scores.silent += 1;              // noon is still / harsh
+  if (h >= 8 && h < 12) scores.flattering += 2;           // 𒀐̪̍̾ᚴ̪͆̋ბ̦̑ܗ̖͈𒀳̗̭̎̈ᛥ̨ᚆ̦̭̚ᚰ́̒ო̤̼̓ნ̞̒̇̚𒀿͈̋ܧ̙̤̌̿ܫ̢̺̑ქ̭̾̽ნ̧̖̍ሪ͍𒀭̝̭̓მ̲̒̂ང̯̲ᛗ̭̃̀𒀕̊̅ሟ͇̎ᛗ͎̀͋̈ჴ̫̖̑̉ო͉̯̀
+  if (h >= 0 && h < 5)  scores.cruel += 2;                // ს̾̕ᚍ̱͈̏͋ܜ̝𒁎͇̻̆̚༚̹̤ܼ̾̓̕ͅ༃̠̈̈́́༾̩ჹ̺ᛗ͆
+  if (h >= 17 && h < 21) scores.devotional += 2;          // ༶̨͍͂ͅ༨͎͉̐̕𒀮ܷ̒̑͂𒀁̡̪ܧ̩̑̓̇ܒ̅̉ሢ̯̈́݅̒̌
+  if (h >= 12 && h < 14) scores.silent += 1;              // ჩ̇̍̎ᚌ̻̙̿ᛅ̮̳̯̻̒̅݃̊ላ̝́̓݀̀༒̣̦͋ᚥ͍̬̃ძ̧̞ᚅ̨͎ܽ͆̕ܖ̝̹̿ᚼ̓͆̚ჺ̦͈̏𒀏̜ሡ̰̽̾̃ܠ̥ᚒ͊́̍𒀒̡̇̏̕ሡ̧̠̆ᚽ̰̉ჯ͌̃̔̈́𒀨̮͈̙̀ს̓ᚎ̹̊
 
-  // Deletion ratio — high erasure makes the mirror cruel
+  // ܾ͉͉̐ራ̭̉͊̇ᚏ̐́̃ჯ̹͊̀̄ᚧ̫̳̻ܰ𒀁͂̅ܝ͋𒁂̦༨̞ሥ̙̍̏ღ̳̳̭̘ᚗ̢̦̏̔დ͍̠̼̀ქ̳̝̰͆𒁁̇̔𒁌̀̓ܦ̲̟ᚍ̓𒀔̠ܸ͎̯ᚒ̇༫͉̀ܝ̤̋ო̧͉̼̙ܹ̞̼̇̕ᚙ̀
   const delRatio = state.interaction.typing.count > 5
     ? state.interaction.typing.deletions / state.interaction.typing.count : 0;
   if (delRatio > 0.3) scores.cruel += 2;
   if (delRatio < 0.1) scores.flattering += 1;
 
-  // Visit pattern
+  // ᚹ̈́̄གྷ͈̻͌𒁎͉̤𒀥̊͋͌̾ᚋ̳𒀓͇̠́ͅო̡̾ཆ̨͌𒁀̪̭̤ሿ̧̒͂ርͅᛊ̪̝̎༖ܷ̩̀̓̂༧̧́̋
   if (state.memory && state.memory.visits >= 5) {
-    scores.devotional += 2;   // devoted visitors get devotional mirror
+    scores.devotional += 2;   // ሞ̯̄́̔ᛏ̝̀ͅᚆ̑̕ܮ͇ሾ̯̭̯̇ܪ̪ᚄ̂̉̚
   }
   if (state.memory && state.memory.visits === 1) {
-    scores.flattering += 1;   // second visit is still flattering
+    scores.flattering += 1;   // ᚦ̥̭́ᚾ̟͋ͅფ̣ሯ̢̈́̀ሯ̈ᚏ̫͎́᚛̐ሒ̡̰༕́̚ჭ̥̂𒀩̦̻̳̃ܶ̕༠͆ᛨ̦̱̜̃ᛅ̰̞𒀰̹
   }
 
-  // Social referrer → cruel (performative gaze)
+  // ሣ̀༣͌̓̄̌ᚉ̈́̽𒀻̞༠̰ቅ̰ს̀͂ͅბ̡̼̜̪͎̞̱݉̚༔̫̰ܖ̉̎ჴ̳̾̓ܠ̱͇̰͌ᚉ̃
   if (env.isSocialReferrer) scores.cruel += 2;
 
-  // Direct visit → silent or devotional
+  // ܨ̗̙̂̓ሄ͉̯༓͆̑͂̚ᚰ͌ል̞̗ܵ̾̏͌ხ̦̜̝̂𒀃̬ᚂ̐̌̕ሺ͈ᚩ̢̫͍̑༅̋ᛀ̱̱͎̃ᚤ̹̎̊ᛏ̠̀̈́ᚕܑ̻̱̽͌̕ܤ̖̬̹ ͂ჟ̠༛̥̦͌̕ቆ͍̻̉ᚄ̙̑͋ܢ̥̦̫ᚚ͈̜̺༬༵̲̜̮̙̔ᚙ̒͆᛭̣̿უ̄̌̕ቄ̱̈̽ᛏܹ̣̘́̔̌༩̀
   if (env.isDirectVisit) {
     scores.silent += 1;
     scores.devotional += 1;
   }
 
-  // Reduced motion → silent (ritual stillness)
+  // ༿̧̬̘̥̃ܽ̏̌ሇ̜̄̍ყ̯̞̙̅ཁ̲𒁎̂̂ሮ̡͎𒀼̝
   if (env.reducedMotion) scores.silent += 3;
 
-  // Touch devices → more intimate → devotional or flattering
+  // ܫ͆ᚕ̰̺̋̓݇̎̇𒀸̭̊̎ག͇͍̫𒀕̟̑́̂𒀄̜̫̮̌𒀊̧̟͊ሐ̼̠͋̽𒁊̫̕ᚾ̽̓ხ̧̖ᚽ̨̏̈ᚑ̰ზ̦̽́༊̆ᛄ̡̟̪̇ܙ̏̓𒀞͇ሮ̰̹͇́ᚕ̗ܭ̤́̈́̅ག༹̙̭͊̈́̕ჴ̨̙̪͈ᛣ̯༽̓́ሀ̹̚ሄ̨̏̊༊ܹ̀̑̐
   if (env.touch) {
     scores.flattering += 1;
     scores.devotional += 1;
   }
 
-  // Find highest score (with tie-breaking from deterministic hash of hour + visits)
+  // 𒀲̒̈̚ሯ̨͌ሣ̨̝̊̚𒀛̩̱́̌𒀎̥͈̂რ̿ქ̩̄̀ს͇̞ᚋ̜᚛̡̙𒀡̧༮̜̽̽༧̰གྷ͈̀
   let best = 'flattering';
   let bestScore = -1;
   const tieBreak = (h * 7 + (state.memory ? state.memory.visits : 0) * 13) % 4;
   const order = ['flattering', 'cruel', 'silent', 'devotional'];
-  // Rotate the order for tie-breaking
+  // ሦ̈́̈̿ძ̱̹̏᛭̺ܾ̗̟݂̉̉͋̈̊༻̮̭͍̿ᛃ̌ᛛ̼̒̂̂ჰ̈̽̅ᚈ̼́̍͊༇̊̕ᛉ͇ᚚ̠̯ህ̘͎̌𒀾̯̬̖͈̅̀݉̕̕𒀵̅༞̨̣̲̫𒀬̧̣̥༽̙̭̄̎𒀏̠͆ܝ́̎̓̊ᛁ̱̌̐̚𒀎̡̗̀̿ܩ̱̦̩̚ᚂ̟ሚ̬ჶ̏ᚇ̏᚛̲̍̏ܡ̢̞̈ᛋ̡̪̞̎ჸ̪͌̈𒀣̪ᚆ̨̖̓ͅᚎ̝ܡ̹̂̅̆𒀨̻̈́༰͈̭
   const rotated = [...order.slice(tieBreak), ...order.slice(0, tieBreak)];
 
   for (const t of rotated) {
@@ -1077,7 +1068,7 @@ function applyTemperament() {
 
   switch (state.temperament) {
     case 'flattering':
-      // Converges faster, softens edges, light catches more generously
+      // ሑ̼̻̜̂༳̺̩̈̔𒁎̙̐̌̄ܳ͌̐༗༘̇̒ͅማ͈̤༚̟̌̅ᚖ̧̻̄ჴ̃̚ܕ̘ᚙ́༅̾ሔ̐̂̑̎ჷ̨̞̈́̃𒀨̿ܠ̡͍͌ሶ̭̯̙͌ཇ͎ሟ̥̀უ̕ማ̯̀ᚹ̫̍༃̋̓ᛂ͂̚ᚖ̘̅̕𒀖̗ሙ̻̈ཅ̢̳༘͎̕ᚵ̤̯̅
       e.approachSpeed = Math.min(2.0, e.approachSpeed * 1.4);
       e.edgeQuality   = Math.min(1, e.edgeQuality + 0.15);
       e.surfaceWet    = Math.min(1, e.surfaceWet + 0.12);
@@ -1085,7 +1076,7 @@ function applyTemperament() {
       break;
 
     case 'cruel':
-      // Convergence resisted, cracks deepen, autonomous motion predatory
+      // ᚚ̋ᚈ̻ሴ͊ᚪ́ͅᛄ̪̃თ̈́̍ܓ̺𒀺̲̭̩̕༉̿ᚙ̾𒁀ͅᚃ́̚༈̩༬̝ᛍ̣̒̎ᚂ͎̳̕ᚑ̖ሆ̣ჸ̡͆༽̤̻ᛎ̮̑𒀾̝̋̈ᚎ̨་̲̖̌̚
       e.approachSpeed = Math.max(0.3, e.approachSpeed * 0.6);
       e.idleRestless  = Math.min(1, e.idleRestless + 0.25);
       e.grainCoarse   = Math.min(1, e.grainCoarse + 0.15);
@@ -1094,13 +1085,13 @@ function applyTemperament() {
       break;
 
     case 'silent':
-      // No text fragments — the figure assembles in quiet
+      // 𒀾̥͂̽݉́̽ሱ̘̯̋ܟ̧̑ሶ̫͍̰̍᚛̜̗́ᚳ̋ቃ̢̂უ̗̝̇ᚄͅ𒁉͌ᚨ̼ᚁ̧𒀂̩̗̈༛̻𒁌̡͉̑̋ყ̟༫̱̹͋ᚑ͇̻𒀩̼̚𒁊̬̥̳̓ᚘ̀͂𒀝͂ᚈ̻ܤ̱ქ̤ܷܻ͎̑̉̎̀̕ს̢̹͌ჱ̺̄̐უ͈̺̉̓ᚩ͍ሴ̡̱̥̆𒀲͇ͅᚒ̢́༉̪̟̤ᚸ̲̳̃
       e.motionScale   = Math.max(0, e.motionScale * 0.5);
       e.idleRestless  = Math.max(0, e.idleRestless - 0.20);
       break;
 
     case 'devotional':
-      // Halo brighter, ritual geometry more elaborate
+      // ༓̲ᚘ̪̠პ̢̬̱𒀕̨̨̫͉𒀤͇̖̙̦ስ̢ქ̃᛬̹̒𒀨͇̤̩́ᚁ̤̀̑̊ᚑ̹̟̓
       e.approachSpeed = Math.min(2.0, e.approachSpeed * 1.2);
       e.surfaceWet    = Math.min(1, e.surfaceWet + 0.15);
       e.intimacy      = Math.min(1, e.intimacy + 0.15);
@@ -1108,24 +1099,24 @@ function applyTemperament() {
   }
 }
 
-// ─── Portrait silhouette density ───────────────────────────────────────────
-// Returns 0–1 brightness weight for a canvas position (nx, ny ∈ [0,1]).
-// Defines the humanoid shape that shards gradually reveal.
-// anatomyHardness (0=smooth organic  1=hard angular) changes falloff sharpness.
+// ༂̙ ̹༫̡̢̄ᚁ༹ܼ̈́͆́̿𒀑͇̜̉༜̫͎͌̆𒀮̩ჵ̗̽̓ᚉ̡̒ᚏ̬̹̂̆𒀽݈̦͊̈̎̃ͅ
+// 𒀹͉̳̪̿ჯ͈პ̄͂̚ჰ̧̘͋̋ᛃ̢̎̄̐ᚣ̹̳̊̿ᚗ́ሆ̨̬̈́༁̡̔𒀃̖͈̈ܡ̿̓ᛙ̠̽̾ܺ̌̋̍ᚖ̨̚𒀏̜̾̆
+// 𒀺͇̞ᚴ̢̋ᚿ̗̾ᛧ̊̊𒁎̉𒁂̭̠̉̚𒀗̓̿ᚔ̳͎͌𒀘̪̏̀𒀧̾ᛇ̧ቃ̤ܼ͂̏ራ̘̇გ̃𒀝̲̓ᚍ̜͊ხ́ᚄ̒༌͈̯͉̿ᚊ̢̻̀ჸ༵̣̲̎̈́̆ܙ̻̓̀ᚓ͊
+// ᚧ̠ᚪ̳̲͂̌𒀽̼͇̎̃ܵ̓ᛩ̺̻̮̄ሸ̳̍̀ ̣̪̈ሜ̮͊ሖ̹̦̯̂𒀱̙̼̂
 function portraitDensity(nx, ny, skeletonShift) {
   const shift = skeletonShift || 0;
   const cx    = 0.5 + shift;
   const hard  = state.portrait.env.anatomyHardness;
   const comp  = state.portrait.env.compressionY;
 
-  // Compression stretches/compresses the Y coordinate around centre (0.42)
-  // Negative compression = cathedral-tall (stretch), positive = coffin-compressed
+  // ܾ̲̀ᚣ͈̄͌̑ᚨ̖̜̋̆ܜ̖̌̏ᚵ̨ზ̞̗̑ᚥ̩̏ი̢̈ფ̤̍𒀾̔༫͊ሴ͎̬͉́̉݀༚̣̬̙̈გ̳͊̐𒁉̑ሇ̖ܫ̜̌𒀠̠̖̝̊𒀶̦̯͋༠̋̎ღ̱𒀢̧̻̇
+  // ̺ܰ̀უ̭͉̆̀ܭ̕ᚂ͉́̒ͅჷ̹ሂ̘ᚔ̓͆̄̑ᚥ̢̞͆ხ̽͌ჩ̱̥ܳᚑ͌᛫̡݆͂̋́ͅლ̈̎༳͇̽̌ሷ̃༬̀༚̻̲̓ო̜̒̇𒀛̓ᛡ̢̜̑̐ᛪ͍̝͂̽᛬̬̻̰̊༶̫̔ሧ̦̤̀𒀛̢͋̐ᚴ̤̼̪̇ሽ̨̇͋ለ̦̟͉̳
   const centreY = 0.42;
   const adjustedNy = centreY + (ny - centreY) * (1 + comp * 0.3);
 
-  // Hardness modulates the falloff exponent:
-  // soft (0) → gradual smooth falloff, hard (1) → sharper edges
-  const falloff = 1 + hard * 1.2;  // 1.0 (smooth) to 2.2 (angular)
+  // གྷ̅́͂ሤ̘͋̒̂ܢ̢̻̲̃ᚇ̗̀͊̃ᚁ̞̂ფ̮̃͆͌𒀝̪̽ܶ̈́ܐ̜̞ჳ̊̌༅̜̞̀ᛗ̎ᚯ̧̱̉̕
+  // ܨ͍̻̿͌𒀄̫̮̀̅ᛢ̥̋̄̄ᚭ̪̞̫̱ფ̗༫̺͂̽ვͅ
+  const falloff = 1 + hard * 1.2;  // ᛌ̮̳̺̲̯̑̅݀̆ሱ̓ე̧݂͉̂ᚌ̱̅ᛕ̟͉̤̏༕̱̟̜͇ሩ̙𒀟̦̹̄༫͌ჶ̾́̅𒀕̠̈́ᚺ̗̑𒀿̫
 
   function shapeField(cx_, cy_, rx, ry, weight) {
     const d = Math.sqrt(((nx - cx_) / rx) ** 2 + ((adjustedNy - cy_) / ry) ** 2);
@@ -1142,33 +1133,33 @@ function portraitDensity(nx, ny, skeletonShift) {
   return Math.min(1.0, Math.max(head, neck, lShoulder, rShoulder, chest, torso));
 }
 
-// ─── Module 4 — Update Portrait State (per frame) ──────────────────────────
+// ც̲̫ሆ̯̝̇̕ჰ̣͇̾݉́̑༮̨̪̉̒ᛜ̹̜ܵ༜̡̦̺̕༐̹ᚙ̄̀ཅ̤͆ል̡͉ܕ̢̩͊ܵܣ̈́͂̽ቃ̳͍̑̾ܕ̡̝̾̆ქ̘̣ܵ̍ܠ̙ང̠̎̚𒀓̧̐̈́༸̡̖̎᚛̌ᚄ̨ܱ̐́̂̏ም̗̀̈́༏̈უ̌ᚨ̨̆̒𒀺͎͇͇̃ለ͉ᚁ͎̭ܶ̃༧̼̽̄ᚑ̪̔ܫ̉̍༖͍̣̗̔̈́݊̒
 function updatePortraitState(dt) {
   const p    = state.portrait;
   const e    = p.env;
   const inter = state.interaction;
   const now  = Date.now();
-  const ms   = e.motionScale;   // 0–1 — reduced motion makes everything ritualistic
-  const as   = e.approachSpeed; // multiplier on convergence rate
+  const ms   = e.motionScale;   // 𒁊͂̀̑რ͎̞ܾܳ̌̓̎̎༮͈̹̏ტ̡̥̲͆ᚒ͆༸̦̋̆რ̺̰̥კ͍̩𒀀͌ჱ̋̀̕𒀏ͅ་̥̞̂ང̗̯̠̿ჲ̗͋̽̆༄̭̓̉̉𒀸̪̓𒁏̘̠̪͆ჶ̫̎ለ̻ᚗ͍̐ჱ͇̫ა̋̇̅ჶ̟̖̗̈́ნ̦̤ᛌ̔̓̍͂ᚉ̜̺̂̇ც͊ᛕ̖̗̄̓ཀ͋̓᚛̢̬ᚃ̤̔༎̢ሹ̜̑༟ܑ͉͎͇̙̓̌̈́ܕ̣ܷ̹̖̾
+  const as   = e.approachSpeed; // ܼ̖̀༾̔ܟ̥̆̊̇༅̗̟̯ᚋ̥̹ᛞ͈𒁂̯̑᛫̡̝̂́݊̽ܧ̝͍̝ܣ̠̖̇̏𒀠͇̩ܶ𒀎͊͊༄̒ᛓ̹ᚩ̉͆᛬̄ᚂ̻͇̅̈́𒀀̦̻̖̹𒁉̢ག̘̪̚ჩ̤̈ሥ̺̜̍༅̲݂̭̌̿̌༐̡͍̘͉̼̠̝̓݃̀͊ܶ
 
-  // --- Autonomy: builds during stillness, richer idle motion ---
+  // რ̼͇̃̏༐̥̆̀༕̧̖ሶ̣̈́̊უ̱͇̿̊𒀌̝
   const idleMs = now - inter.lastMoveTime;
-  const idleCeiling = Math.max(0.3, e.idleRestless);  // restless devices let autonomy build higher
+  const idleCeiling = Math.max(0.3, e.idleRestless);  // 𒁍̠́̚༨͊ᚿ̡̫̀͋𒀞̰༙༘̌̇ሇ͉̓ფ͍𒁀́ᚉ̝̱̖ܿ̀
   const targetAutonomy = Math.min(idleCeiling, idleMs / (CONFIG.idleThreshold * 1.8));
   p.autonomy = p.autonomy + (targetAutonomy - p.autonomy) * (dt / 1000) * ms;
 
-  // --- Jitter: cursor speed drives fragmentation ---
+  // ̡ܼ̯̔ᚑ̣𒀞̞ᚗ̙ܺ́̏̚ᚅ̥̤
   const targetJitter = Math.min(1, inter.cursorSmooth * 22);
   p.jitter = p.jitter + (targetJitter - p.jitter) * (dt / 220);
 
-  // --- Panic: extreme cursor speed → shard multiplication ---
+  // ᚮ̨̫͋ཅ̝̠ܝ̊́̋̅𒀲̞̍ს̡̪̟̿ᚑ̥̲͊̕ᚼ̹̟̘ሗ̅̄ ͇̉ሸ̻ܗ́ე͍̑ስ̡̣͋ᛀ̨̟̮̪ᚔ̊𒀩̺̣ሧ͍̝͈݊̎̕ር̨̲̞̙ܩ̡̨̔ᚔ͇ᚵ̭̻̅𒀔̲̖ܤ͊ᛗ͍̕ሒ̡̰̥̺̣ܺ̂ܥ̧̌̓͂༛̮̺̉͊
   const panicThreshold = 0.06;
   const panicRange     = 0.12;
   const rawPanic = Math.max(0, inter.cursorSmooth - panicThreshold) / panicRange;
   const targetPanic = Math.min(1, rawPanic);
   p.panic = p.panic + (targetPanic - p.panic) * (dt / 160) * ms;
 
-  // --- Convergence: assembles over time + calm moments; slow cursor accelerates ---
+  // ᚡ̞̬̽̋𒀎̅ሡ͊ბ̩ხ̨̢̰̀༁̙̉𒀘͍̈́͂̋ለ̝̽༸̟́ᛩ̈͋ჱ̏ᚎ̊̕𒀛̺͍͆პ̨̫̈ሂ̧̩̲̊ჳ̹̆𒁂̔გ̞
   const sessionSec   = (now - state.startTime) / 1000;
   const calmFactor   = 1 - Math.max(p.jitter, p.panic);
   const calmBoost    = calmFactor * 0.0012 * as;
@@ -1176,48 +1167,48 @@ function updatePortraitState(dt) {
   const targetConv   = Math.min(0.95, p.convergence + calmBoost + timeBoost);
   p.convergence = p.convergence + (targetConv - p.convergence) * (dt / 600);
 
-  // Fast cursor actively tears apart convergence
+  // ܒ̲ͅܞ͎́ᚧ̧ͅም̂ሀ̿́ܪ͇͍̈́̀ჲ̒̀̓𒀼͉ᚔ̟̫̓͂𒀑̼̻ᚆ̢̟̫༥̻̆̕ᚡ̫̈ᛤ̣͎༄͈͌́𒀗̣̅̊
   if (p.jitter > 0.5) {
     p.convergence = Math.max(0, p.convergence - p.jitter * 0.0008 * dt);
   }
 
-  // Cruel temperament: convergence is harder to achieve, cracks deepen faster
+  // ᛔ̨̑̃̆ᚪ̬̥༏̇ܕ̎𒀉̥̦͆ᛄͅᚕ̰̤̔ሶ̦ᚓ̲ჱ̾༅͇̀̀̏ሇ̃𒀇̱̈́
   if (state.temperament === 'cruel') {
     p.convergence = Math.max(0, p.convergence - 0.00005 * dt);
     p.crack = Math.min(1, p.crack + 0.000002 * dt);
   }
 
-  // Flattering temperament: convergence ceiling is higher, damage fades
+  // ᚹ̀ᚓ̲ᚒ̙̙̇ག̊̄ᚇ̟̃̊ܺ͊̃༽̭̹̣͂ᚍ̤̯̉𒀧̡̐ቁ̲𒀿̦͍̓ܒ̝͌ቈ̘̃̑𒀪̳̺𒀋͈̤̀ᛝ̞̾༇̈̈̀̄
   if (state.temperament === 'flattering') {
     p.crack = Math.max(0, p.crack - 0.00001 * dt);
     p.erasure = Math.max(0, p.erasure - 0.000005 * dt);
   }
 
-  // Anticipation: mirror sometimes moves toward convergence before input warrants it
+  // ༭̤̟̝̉დ̫̌̒̍᚛̺͊̓ვ̭̻̇̈́𒀓̝̍ ̏̽ᚂ̈̑ͅༀ̮̥̖༎̀̆̆ქ̪̌́́ስ̤̣̿༲̢̤̩̀ᛖ̞ყ̦̗̾̿ჴ̊́̃༬̻̣ܸ̟̜̎͂༟̺̹̜̏ᚱ̾᚜̇ሟ̺𒀸̯༘̘̌̈́ሎ̧͍͋̅༝̉̉̔ማ̥̻ბ̙̎᛫̠͉̊̂ᚘ͈̠̄̈ ̏̔̈͌ჷ̗͍̤̇ሥ̘̭̊წ̟̺̋̊ܕ́
   if (e.anticipation > 0.4 && p.convergence < 0.5 && sessionSec > 8) {
     const anticipateBoost = (e.anticipation - 0.4) * 0.0004 * dt;
     p.convergence = Math.min(0.5, p.convergence + anticipateBoost);
   }
 
-  // --- Pulse: typing creates a heartbeat ---
+  // ༤̔̒̂̂༎̯༾̣̇ᛥ̬݊̈́𒁆̥̱̈́̋ვ̹݆̭̈́͋ᚕ̻̭̿͊༦̊ሷ̇𒀑̜̣̹̦ሖ̡̑̅̅ᚳ̠̿̊ሲ̖ᛘ̬͎̣̎𒀡̥ᚁ̜̞𒀛́𒀱͆ლ̳̈́̂̋ᚒ̟̹ሼ̟̖ͅቅ̡̻́ᚍ̇̾ᛉ̰̃̌̆ሩ̗̑̽ܭ̙̺̜̜̓݊̔́ሮ̇͂ሦ̖
   const sinceType = now - inter.typing.lastTime;
   p.pulse = sinceType < 2800 ? Math.max(0, 1 - sinceType / 2800) : Math.max(0, p.pulse - dt * 0.0004);
 
-  // --- Type tremor: burst typing → cracked articulation, jaw/rib flashes ---
+  // ხ̫̔̕თ̖̝ܿ̒𒀋̖͇̗̪݇̆ᚌ̗̅͊ე̥༄̄̓ᚕ̧͈͎̗གྷ̦̻𒀆̜̈༫̡̥̄̏ᛟ̎̈́̂̃ᚅ̯̭̲̰𒀡͈̬̖̉ᚎ̝݄̖̳͌ͅᛘ̟̯̽̃ᚓ̝̕ᚗ̗̐̌ͅᚃ̣͂ܪ̦̑
   const targetTremor = inter.typingBurstIntensity;
   p.typeTremor = p.typeTremor + (targetTremor - p.typeTremor) * (dt / 150) * ms;
   inter.typingBurstIntensity *= (1 - dt * 0.0028);
 
-  // --- Crack: built from high deletion ratio ---
+  // ᚱ͉̿ბ̗͇̙ͅჳ̹̍̒̋ყ́ᚓ͉༞̆ფ̳̦̼༆̒᚛͎̤̲ͅᚉ̑ჲ́̊̀ሾ̤ܘ͇̐͌ᚃ̘̺ე̠̯ቄ̣̱̟́ܣ̡ܼ̪̉̑𒀑̢̜̹̒ሗ͆𒀌̪̞͂ለ̰̄̋̆༛̠̂̽ܩ̺͇̔͊𒀛̮̣͋̈́ო̭̀𒀻̤༮͎̮́𒀏̞́̀ყ̖̈͋̓ᚃ̣͆̊ܵ͋̓ᚏ̩ᛐ̙ᛟ͉̺̓
   const delRatio     = inter.typing.count > 5 ? inter.typing.deletions / inter.typing.count : 0;
   const targetCrack  = Math.min(1, delRatio * 2.2);
   p.crack = p.crack + (targetCrack - p.crack) * (dt / 1500);
 
-  // --- Erasure: deletions cause self-erasure ---
+  // ሙܾ̬̋͂͊̎ᛛ̢ᛯ͈̊ܨ̎༚̦̆ᚗ̨̠ሪ̻̘͉ჳ̪̐ც̙̳̎͋ხ̊͆̔̈́ሽ̢̝̱̠ܽ̽́ᚒ̱̍͋͊༡̣̇̄༞̨̞̞
   const targetErasure = Math.min(1, delRatio * 3.2);
   p.erasure = p.erasure + (targetErasure - p.erasure) * (dt / 1000);
 
-  // --- Scroll: violent → smear; gentle → breath ---
+  // 𒀎̢͎ᚸ̬̩͌ܞ͋̓ᛇ̏̈́ᛞ̺͎̀̐༝̬ܵ̕𒁇̭ረ̯ሿ̞̼͍̗݀መ̱̐ᚷ̒͌ܩ̋̈́̆ܙ̗̀͊𒀄̨̬̃́ლ̲̐̓
   const scrollSpeed = inter.scrollSmooth;
   const targetSmear = Math.min(1, Math.max(0, scrollSpeed - 0.08) * 25);
   p.smear = p.smear + (targetSmear - p.smear) * (dt / 120) * ms;
@@ -1229,18 +1220,18 @@ function updatePortraitState(dt) {
   const targetSink = Math.min(1, inter.scrollVelocity * 60);
   p.sinkDepth = p.sinkDepth + (targetSink - p.sinkDepth) * (dt / 180);
 
-  // --- Drowning: accumulated submersion from sustained wheel / scroll ---
-  // Builds faster when scrolling, decays very slowly — the portrait submerges
+  // ༶̓̐ͅܟ̩ვ͎̏̓ሑ̺ቂ̮͎͌ᛕ̭ሽ̘̳̥̓ཁ̞̋༫̏ሪ̓͌ܞ͎̜́̔༦̠̓̎ტ̥̗̣̂༴̳̺̅ሣ̏ᚹ̮᛭͇̾ሄ̝̳̫̼༤̨̎͌̚
+  // ᚣ̳̑𒁁̧̭̳ჲ̞̯̓̓კ͍ͅܯ̌ᛠ̨̜̬́ჭ̨་̽
   if (inter.scrollVelocity > 0.002) {
     p.drowning = Math.min(1, p.drowning + inter.scrollVelocity * dt * 0.0018);
   }
-  // Extremely slow natural recovery — takes many seconds of stillness to surface
+  // ܡ̗݆̖̖̥́̓თ̠̻𒀂̜̜̐݃̔̈ሊ̩̀ᛃ̩༤̞ཁ͊ ̙̓ͅ༮̾̅̉
   p.drowning = Math.max(0, p.drowning - dt * 0.000025);
 
   inter.scrollVelocity *= 0.94;
   inter.scrollSmooth   *= 0.97;
 
-  // --- Resize injury ---
+  // კ̭̃ᚇ͉͆ሥ̫͇݀̕ሁ̹̪̘̅ო̳̬𒀝̟̺ܖ̓ͅᛒ̟̠ሺ͍݄̝͊ᚠ͆༣̄̅ཀ̩͇̿͌ᛏ̨̯̓
   const targetInjury = inter.resizeInjuryRaw;
   p.resizeInjury = p.resizeInjury + (targetInjury - p.resizeInjury) * (dt / 60);
   inter.resizeInjuryRaw *= (1 - dt * 0.003);
@@ -1249,13 +1240,13 @@ function updatePortraitState(dt) {
     p.convergence = Math.max(0, p.convergence - p.resizeInjury * 0.002 * dt);
   }
 
-  // --- Split / desync ---
+  // ܚ̗͋༒̂̋́𒀨̑𒀹̆̆̓ᚁ̲̼̗ሿ͋̀𒀡̠̘მ̄ნ̜̲̩༰̰͊́ͅჴ̩̍̊͂༱̙͆̇༂̧ቅ̎ሩ̟̆͊̚
   p.split = inter.actionSwitchRate;
   inter.actionSwitchRate *= (1 - dt * 0.003);
   const targetDesync = Math.min(1, inter.actionSwitchRate * 1.6);
   p.desync = p.desync + (targetDesync - p.desync) * (dt / 200) * ms;
 
-  // --- Eye intensity: hover near the head region ---
+  // །͈̣̍𒀀̣̎̓ხ̎͂𒀫̢̙̟͋ტ̢ჵ̯̍͌̌ᚏ̱̹̓̉ܥ̧𒀚̢̟̩̏ሶ̨̨̺̑𒀻̮༚̭ყ̹ᚸ̧̘̖̞༝̻̪̐̄༛͎̀ᚖ̠̙̜།̪͇̓༦̇ሾ̩ᚠ̼̆ᚖ̋༁̙̝̏ͅሚ͆შ͈͍̽𒀟̰̙̪̂ሠ̤̐́̓༌͊̍̕ᚉ̖̬̀̇ო̟̈̄ᚶ̹ܐ̀̀ᚸ̝
   const shift   = p.skeletonShift;
   const eCX     = 0.5 + shift;
   const eCY     = 0.260;
@@ -1267,31 +1258,31 @@ function updatePortraitState(dt) {
   }
   p.eyeIntensity = p.eyeIntensity + (eyeTarget - p.eyeIntensity) * (dt / 400);
 
-  // --- Overall brightness ---
+  // ܫ̙͈ܻ͇̻̓ᚮ̱ܤ̯̬̍̌ܭ̩̭̹̈́𒀛̖
   const breathLift = p.breathDepth * 0.08;
   const smearDim   = p.smear * 0.12;
   const erasureDim = p.erasure * 0.10;
-  const drownDim   = p.drowning * 0.22;  // submersion darkens the portrait
-  // Light mode: brighter base; dark mode: deeper
+  const drownDim   = p.drowning * 0.22;  // 𒁁͆̆̅̎ሹ̣̔͂̀ᚩ̜̋ᛔ̪́̅̑༃̙̃̑͌᛭̰̩͎
+  // ༭̭༂̘༦̓𒀇̱̰̑ძ͋̒ᛯ̧̝̝̼̊̆݃͌ሓ̔წ̞ᚙ̥̹̒̍ᛝ̯̫̀ᚘ̼𒀦̯̹̒ཁ̪͂̎́ᛡ̺̻̆̓ჹ͎ᛀ̓ሊ̨͇ሌ̧̦̏̊
   const baseBright = (state.environment.lightMode && !state.environment.darkMode) ? 0.34 : 0.26;
   p.brightness = baseBright + p.convergence * 0.46 + breathLift - smearDim - erasureDim - drownDim;
 
-  // --- Decay hover points ---
+  // ሂ̝̲̈̒ᚐ̟͎ჸ̑̽ͅህ͋ᚗ̡̉̂ᛉ̪̫̠͌ჸ̱̆̅ሖ̩͊𒀌̡͎̂̇𒀇̜̍ᛑ̭ܤ̢̙̈̓ܝ̯༜͈͉̯̖̰̠̈݅̾ჶ̠̦͎ܲჱ̜̠̘ላ͌ܢ̲ᚓ̢͍̺̈ሟ͋̃གྷ̞̥̒̓𒀿̨̹̘̦ᚾ̥
   for (const hp of inter.hoverPoints) {
     hp.age       += dt;
     hp.intensity  = Math.max(0, hp.intensity - dt * 0.000095);
   }
   inter.hoverPoints = inter.hoverPoints.filter(hp => hp.intensity > 0.01);
 
-  // --- Mirror cursor: spring-physics follower with lag, overshoot, prediction ---
+  // ሱ̲̖ᚥ̲̀ᚒ̏̿༔̳̉შ̃̄ᚉ̪ჳ̘ܸ̇͋͂̀̓ᛛ̄̎̑𒀭͇̅ͅᛛ͉̻̂̉ჶ̄͆̔ჵ̟̳̈́ᛣ͍͊𒀙̠̣̥̐ᚘ̖ჭ̩𒀐̏𒁄̧̰ܸ̞̫̍́༑ܸ̏́ሩ̖̥̎͂𒀚̢̦̏𒀾̨͍̅ܡ̜̞̀̋᛬͋༃̢̅༱̼̗̾
   const mc = state.mirrorCursor;
-  const spring   = 0.0028;  // stiffness — low = sluggish, high = snappy
-  const damping  = 0.88;    // velocity retention — higher = more overshoot
-  const predict  = 0.12;    // slight prediction factor
-  // Predicted target: extrapolate cursor momentum
+  const spring   = 0.0028;  // ᚓ̓̑ᚄ̤̮ͅཀ̭ᛞ͇̖ᚠ͈̫̌̎𒁍̌͌ᚌ̆ሪ̘ܐ̨༚̩̘༵̯͆ܶ̊მ̲̔ᚂ̱̼̰̀༪̄𒀍̬̅༐͋̉̓̚ቂ͇̲̗̬᚜̘ᛑ̫̟͊ჲ̭̍༛̠༔͉̒̒ᚬ̒𒀪̏̔̃პ̤̀̽ᚗ̲̩̙̤̪̒͋ܵ
+  const damping  = 0.88;    // ܘ͇̻͎̓ᛉ̿ͅሊ̝̞̽ᚯ̧̽ሓ̻̔̃༯̲̲̾ܮ̨̥̣༙̹̙̤̠𒀁̥̒̔𒀦͎̝̩̀ᚂ̧̧̝̳̓̉ܵͅხ̔́́ሚ̠̎̎ͅሺ̥̥͌̕ܞ̘̦̐̾𒀫͊̅̕ር̭̔ჵ̤̝
+  const predict  = 0.12;    //  ͉̽̊ᚍ̹̼̭̗𒀨̇𒀄̪̉̇̆ზ̱რ͈̀̇𒀝̲̍̐̕კ̭ᚖ͈ᚋ̐̾̀ ͍͂ბ̨̤̋̔ჩ̞̈́̋ܘ̪͂ቈ͍̘́̑͂ܶ̆𒀩̯͈ᛦ̱ᛋ̢̠̹̆݃̿ᚼ͂༑͎༘̝̀̊𒀺͇̣̄ܫ͍̜̎ᚚ̘̅ᛑ̺͍̈́ͅᚓ͊𒀀̪̱̾̽ ̆̀̅̚𒀒̹̬͉ფ̙́̊ͅ༝̲̰͋
+  // 𒀟̰𒀵̡̈̚ܛ̺̯͋́ܦ͉̅ტ̻݆̩ܱ̅̐̃რ̃͌̎ᚥ̾ᚔ̊̇ᚏ͍༂̧̠
   const predX = inter.cursorX + (inter.cursorX - mc.x) * predict;
   const predY = inter.cursorY + (inter.cursorY - mc.y) * predict;
-  // Spring force toward predicted target + noise for sentience
+  // ܹ̜ሔ̦̒͆ܒ̯̣̞ሁ̹༵̈́̚̚ሌ̼̠̳ᚃ̂𒀧̜̯ሽ̡̋̾̃ ̡̞᚛̨͇ሞ̬̲͉᚛͉̂̚̚༡̫̅̓̓𒁉͋𒀉̥̍̃ܗ̮͋ᚭ̊̾༱̢̼͉̜𒀖̏𒀊̋͂ᚏ͍̏༔̺ᚯ̧̥̤ᚰ̤ᚲ̢̽༗̑𒁁̽ჳ͉̳̇᛫̢̮͎̏ሽ́𒀅̢͍𒀱̣ᚑ̠̽̾̌༐̣̙ᚁ̽ᚉ̘̹̮𒀽͇𒀵̦
   const noiseX = (Math.sin(Date.now() * 0.0013) * 0.4 + Math.sin(Date.now() * 0.0037) * 0.2);
   const noiseY = (Math.cos(Date.now() * 0.0017) * 0.3 + Math.cos(Date.now() * 0.0029) * 0.2);
   mc.vx = (mc.vx + (predX - mc.x) * spring * dt + noiseX) * damping;
@@ -1300,7 +1291,7 @@ function updatePortraitState(dt) {
   mc.y += mc.vy;
 }
 
-// ─── Module 5 — Build Shard Geometry ───────────────────────────────────────
+// 𒀼̱͉̇᚜̬̄ჯ͍́̓̾ሺ͉͆ܠ̲ᚕ̡̳̿ܝ̹̻̥ᛓ̤̓༞̉̅̎̀𒁎̩̚ም̙͂͆̍ᚓ̡͉̈ሰ̡́͌ო̱̇̒ᛋ͈̽პܑ̺̪̰̻͌ཇ͇𒀝̳̄ሡ͊̉༓̢̡͂̑𒁄̻͎̱̠ܰ̈ᛔ̬͈̗̾მ͎̫̃͊ሜ̠̙ღ̝͆𒀄͂̎ᚅ̜̞͆
 function rebuildShards() {
   const canvas = document.getElementById('mirror-canvas');
   const W = canvas.width  = window.innerWidth;
@@ -1310,19 +1301,19 @@ function rebuildShards() {
   const e    = state.portrait.env;
   const sk   = state.portrait.skeletonShift;
 
-  // Base grid size — modulated by hardware density and viewport
+  // ᚴ̞͇ܾ͎̀ሙ̯̍̒ᛗ͈̒ሷ̮̯̕̚𒀋̤ሐ̡́༫̥𒀜̢̩ᚏ̮̞̽༑̈́ላ̧ܻ̹̾ͅჟ̕
   const isMobile = env.touch && W < 900;
   const baseRows = isMobile ? CONFIG.shardRowsMobile : CONFIG.shardRowsDesktop;
   const baseCols = isMobile ? CONFIG.shardColsMobile : CONFIG.shardColsDesktop;
   const rows     = Math.max(8, Math.round(baseRows * e.shardDensity));
   const cols     = Math.max(6, Math.round(baseCols * e.shardDensity));
 
-  // Jitter influenced by browser symmetry:
-  //   high symmetry → less jitter (more regular, industrial/bureaucratic grid)
-  //   low symmetry → more jitter (feral, hand-cut, stranger distribution)
+  // ე̢̒̓̊ཆ̩̪ܨ̀̇͆დ͆𒁀̨̺̳́̃݊̄̽ᛐ͍͍̀̌ሗ̧̇̄ܟ̈́ሿ̙̟݂̖̈̋ང̩᛭̰̭̑𒁊̜̙̋̑ᛨ͌𒀐̟́̌̌ሩ̠ܧ͊༈̪̓̊༼̯̪̭ს̔𒀇͉̪̿༮̠̩ም̞ᚈ͍
+  // ᚡ̻༘ܾ̙̖͋̀̄ᚅ̧̱̻̲𒀫͎̖̉𒁎̑𒀹̡̻̕༼̨ሔ̼̂̿᛫̢̳͎̀ܝ̲ܷ̀̓̌ሶ̨̤͇ܴ͇̻ܽ̊̕ᛃ̨თ̼̖͆ܙ̟༻̻̎̀ᚯ̳ᚇ̨̅̐
+  // 𒀫̳̻̣̰᚛̈̓͆͌𒀉͂𒁏͎̝̫ᚈ̯̥͆ͅ𒀋̩̭̔̐༥͍̟̈́̏ᚗ̞𒀌̣༄̨͈ᚥ̹̞͌𒀰̫͊͊གྷ̺̩̝́ᚣ̗̔̂ሒ̪̥̆̿ᚄ̖̝̻̀ܿ̑𒀛̹̜̌ᚓ̤პ͆̎ͅ༸̈
   const jit = CONFIG.shardJitter * (1.2 - e.symmetry * 0.5);
 
-  // Build point grid with per-interior-vertex jitter
+  // ᛔ̦̐ბ̺͌̅ფ̕ቀ̜ሩ͆ჟ̃ᚘ̲͈̤𒀧͈ሲ̦̞̍͆ሞ̤ტ̼̼ა̅ᛆ̉ჵ̆ᛢ̡̱̘̘𒀌̬̃́𒀌̯̼̿̒༲̯̈̎ቅ̳ᚙ̲̋̓წ̮̍ሗ̥̟̻ჲ̡͇̂ሲ̍̃ཇ͎̫̦ረ̺̘̳̗̺ܰ́ܜ̟̓ܘ̮ჶ̤̩̞̒ᚚ̢̙ᚈ̝̦̩̓᛬̬̳̟
   const pts = [];
   for (let r = 0; r <= rows; r++) {
     pts.push([]);
@@ -1336,7 +1327,7 @@ function rebuildShards() {
     }
   }
 
-  // Build two triangles per grid cell
+  // ሑ̼̬ܪ̭̍̀𒀵̨͇̎̿ᛝ̨̟̿ᚒ̢̖̲ܻ͍̲̊̄ሿ̡𒀁͎̎̚̕ᚍ͍͋͊შ̡͍͇̌ᚁ̧̱͉́ᛒ̫ܹ̟̐𒀅̳ᚔ̡̠͎̋ܬ̏̽ܧ̗̿͊𒀳̼́𒀚̿𒀨̡ხ͋̈́𒀂̟̮ᛜ̟༃̨͉̬̆
   state.shards = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -1355,13 +1346,13 @@ function rebuildShards() {
     }
   }
 
-  // Re-initialise noise for new size
+  // ᚗ͉̃͌ ͈ᛩ̠͉̣̥༛̺̿̍ᚿ̗̻́ᚿ̼̬̗̐ᚦ̣̥̦̚ᚯ̺̱̣̓༝̎ᚌ̡̊ሱ͍̫͇̂ܣ̨𒀈̽̏̂̀ᚆ̬̣ܿ̐༤̬̋ᛔ̤̺̽̂𒀞̏̋̊𒀤̦̖̭̈݀̚ᚐ̤ሡ̏ܯ̳̭̕ᚰ̎ᚚ̻̹̩ሱ̩̻̬༞̠̊̋ᚠ̱̻̑ᚓ̲́͌̓ს̲̫̈ᚾ̭̯͌ᚌ̗̣̼༩̢̳̠̝უ̩̘̳̀𒀔̼̘̖ჰ̧̙̟͈́̎݇ᚑ̥̈
   initNoise(W, H);
 }
 
-// ─── Noise / Static ────────────────────────────────────────────────────────
+// ܩ͈̿ༀ̗̈́ᚅ̒̆ᚺ̩ᚼ͂༫̰ᚫ̭̿ᚩ͇͍̖݂̣̔კ̘͇ᚇ͇̖̒̓ᚇ̟́𒀜͎ሠ͆ᛣ̀ᚊ̨̂̾̿ᛧ̼̣̿ܬ̕ჯ̤̟̉ܮ̀͋̇̀ᛮ̼̀̏̕ᛌ̰ᛎ̅̈𒁇̢݂̀̀ቅ̞̈́ᚅ̩̐̾𒀏̫̋̓ᚺ̹̍̑ᚐ̇̆ᚄ̊̃̈́ჳ̹̿݊̒̏̔ᚘ͆̓̔ᛜ̞̲̘̻ል̮ᚇ̠̞̋̇ᚂ̤̔̐ܒ̍̔́ᚷ̉
 
-// Deterministic hash for stable per-shard decisions (avoids flicker)
+// ܩ͇̠̔́ܬ̙̋ሞ̘̊ሥ̰̈́̃ლ̼̝͌̀𒀓́ͅჱ̮̗̞̊᚜͇̞́̕თ̤̯́პ̅ܖ̓შ̢̼ܱ̣̤̯𒀷̲̃͌ሤ̈შ̖́𒁂̂̃ܨ̂̌̿̚ᚼ̠̬̐̊ܢ͇̒ᚥ̯̯𒀒̖̒̚ჹ̘̉͋ᛐ̨𒀎̄̏ᚢ̡̊̉̉
 function shardHash(idx, seed) {
   let x = Math.sin(idx * 127.1 + seed * 311.7) * 43758.5453;
   return x - Math.floor(x);
@@ -1388,7 +1379,7 @@ function initNoise(W, H) {
   }
 }
 
-// ─── Drifting Polygon Particle System ──────────────────────────────────────
+// ̮̗͇ܳ͊ቄ̣̻̆ჶ̺̭̓ᚑ̤͎̂ሷ͆ს̜́̏ᚄ̓ͅܠ̭̠͍̖ܣ̱͍̱͆༲̻̾
 
 function initDriftPolys() {
   const W = window.innerWidth;
@@ -1398,13 +1389,13 @@ function initDriftPolys() {
 
   state.driftPolys = [];
   for (let i = 0; i < count; i++) {
-    // Each polygon: 3-6 sided, random position, velocity, depth layer
-    const sides = 3 + Math.floor(Math.random() * 4);  // 3-6 vertices
-    const depth = Math.random();                        // 0 = far back, 1 = foreground
-    const size  = 4 + depth * 18 + Math.random() * 10; // bigger when closer
+    // ღ̖̻̀ܳᛀ͆̓ᚖ̹̺͆ფ̊ჸ̢̦ᚄ̟ზ̔ᚋ̱ჲ̧̓ᚏ͆̀მ̤̦̙̊ᚏ̓̍𒀜̖̠ჱ̠̭̪̄ჟ̻̤̠͋რ̩̃ჟ̠̀᛭̩̲̦ܾ̭̟͎̒̎ᛔ̭̗̪̠̄̒݀̈́̍
+    const sides = 3 + Math.floor(Math.random() * 4);  // ᚗ͍𒀲̀̀ი̳̠̽ჸ̜̎ᚘ́̚ܩ̡̤́̐༊̦̬̈́ჵ̢ܭ̧̘̝̂ܓ̲𒀛̟̹𒁏̟̄̑༑̧̨́́ᛟ͍̚ܨ̝̉̃𒀔̨̠̀𒀳̳́𒀪͈ཅ̻͉̆༆͈̮̪̐ᚨ̨̔̈̀ቃ̳̀͆̚ሑ̨͇̀͌༠̂ᛕ̓̈́𒀳̧̟͂̽ᛒ͋ܯ̘𒁆̧̃̐ᚡ̞́༏̫̊ჶ̪̤̋༃̹̃ ̰͈̫̥ሚ̳̩̓̃ܦ̦̇
+    const depth = Math.random();                        // ܓ̍ሲ̖̖̾༂̜ს͍̮̒ሸ̻𒀑̳ཅ̢̰͍̍༜̱̀̂̚შ̌̓ራ̤ͅ᛬̮̍ܬ̡̗̙̞̑͆ܺ̄ܣ̥̫ᛰ̲̙̦̈᛬̍ሱ̧̂̎ᛠ̲̩͆༇̍༫̖̍𒀦͈͆ሄ̡̪ቅ̋ც̀͆̋̔
+    const size  = 4 + depth * 18 + Math.random() * 10; // ᚱ̗̞̫́ሕͅ༩̏ܙ̝͇̞̬ག̅༿̧̖̃ᚌ̦̮̹ܻ̪̆̉̄̐༒̤̙̝ཇ͈̀ᚊ̼ხ̐ͅ𒀍̨̼̲̈შ̥͆ܔ̹̈͋ܗ̡̚ᛣ̘̦̅პ̬̃
     const angle = Math.random() * Math.PI * 2;
 
-    // Build polygon vertices around local origin
+    // 𒀐̭ᛍ̓̊̐ᚣ̿̎𒀇̙̓́ᚬ̞̓ሷ̬̾̈́̓ო̯̝ᚔ̤̥̋́ህ̬͈̻̒ᛄ̳́̿ܨ̖̭̄መ̉ሷ̢̾̿ሒ͎͉ᛌ̜͋̃𒀬̜̃̋̾ܩ̝̏ܢ̋ ̠̙̓́
     const verts = [];
     for (let v = 0; v < sides; v++) {
       const a = (v / sides) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
@@ -1421,10 +1412,10 @@ function initDriftPolys() {
       angle: angle,
       spin:  (Math.random() - 0.5) * 0.003,
       verts: verts,
-      // Face-alignment: each polygon has a "home" position in the portrait
+      // ܼ͇̦̱ህ̕ᚄ͎͇͂𒁊̬̑ᛗ̀ሔ͉̳ܱ̤̈́ሔ̧̪̬༯̱̤̇̉ܵ̋̋̍̕ᚇ̦́̎ᛊ͍̇̓̕ሴ̃ሽ̹̻́ჳ͇̭̠̇ܢ̀ͅ𒀛̻̝̥͊ག̝ܱ̪̭̀͌̂ራ̫̤͎́ᚙ̼̘ᚉ̹̇̓̎შ̚ᚏ̈́̿ༀ̯̇̂̄𒀍̧̠ܥ̖̼ᚊ̰͈̤͂ሢ̢̳༙̩̽̀̈́̇ᚱ̥༚̍ܙ̜̳̌ላ̢̠͌̂ᚔ̠̫̔̔𒁈̀ᚑ̳̰́̉
       homeX: Math.random() * W,
       homeY: Math.random() * H,
-      phase: Math.random() * Math.PI * 2,  // for periodic drift
+      phase: Math.random() * Math.PI * 2,  // ᚁ̓͂𒀝ܱ͍̑̏ͅቃ͇̤̀ᚒ̦ᚻ̦̯̀͋ᛂ̡̱̮̓ᚋ̍̏̏̊𒁌̡̙̭̣ር̼̣ტ̙͋ܮ̿ჯ̨̣͌𒀈̪ჶ̮დ̩̞̂༴̯̍ᛅ̃́𒀆̧͂́
     });
   }
 }
@@ -1435,14 +1426,14 @@ function updateDriftPolys(dt) {
   const mc  = state.mirrorCursor;
   const t   = Date.now() * 0.001;
   const p   = state.portrait;
-  // Face alignment strength: grows with convergence
+  // ༤ܹ̈́ͅሊ̭̯̌̓ሰ̄𒀽̢̝ཆ̳𒁉͎̱ͅც̗̅̈́̿ཅ̯ܯ̭̈́ᛩ͌̅̕ᛖ̰̟
   const faceStrength = Math.max(0, p.convergence - 0.15) * 0.6;
-  // Pulse the alignment: it comes and goes
+  // ቁ̬̠༠̃ჰ̥̜̗̋𒀡̗̓͋መ̧̮̲݈̫̖̓̚ང̙ღ̞༑̤̪̘̙𒀼̯̓̊̅𒀃̨̢͇̱́݅́ძ̒𒀀̢̏̐̄
   const alignPulse = Math.max(0, Math.sin(t * 0.08) * Math.sin(t * 0.13));
   const align = faceStrength * alignPulse;
 
   for (const poly of state.driftPolys) {
-    // Depth-scaled mouse influence: foreground = stronger
+    // ሴ͇̼̽̄ቄ̎༇̠̰̂̿ვ̳̩́ც̥́ვ̻̱͇̑რ̧̾𒀻̧͎̍̾ᚃ̨̮̋̓ܤ̨ሆ͇̺́ფ̦̗͉ܡ̲̓̾ܟ͍̈́ͅཅ͍̝̩̻̥ܽ𒀏͂ᛇ̪̔̒̄ჵ̪ܘ̳̃͊ᚒ̣̞̑̓ᚕ̭̦̒̋༕̪͉̋̃ᛘ̢̦̞̙ቇ͈͍̒̕།̤ᚁ̞͊ᚐ̘༷̦༘͈݈̦̄̆͂́̄̓̊̍̎ᚇ̜͊̋ᛟ͉ᚐ̞̈̑𒀴̻̥̈́̇ል̰̞̪́ᚣ̮͍̑̅
     const depthFactor = 0.3 + poly.depth * 0.7;
     const dx = mc.x - poly.x;
     const dy = mc.y - poly.y;
@@ -1450,20 +1441,20 @@ function updateDriftPolys(dt) {
     const mouseRadius = 180 + poly.depth * 100;
 
     if (dist < mouseRadius) {
-      // Repel near polygons, attract far ones — creates depth parallax
+      // ሿ̚𒀠̰̫̈́ሾ̣͌ჲ̩̦ჟ̠̞̭̇ܢ́კ͉̙̇ᚍ̌̿༱̍༔̉̇ᛢ̾მ̲̌ᛟ̜᛭̝༃̘̠̕ᚐ̃̓ሄ̲̉̈́ᛘ̱̩̮͊ᛒ̡̲̓ͅ𒀓̊ᚎ̚ᛠ̨̯̋ͅ༏̩̺̿༧́ܩ͉̊ს̤̒̑̃ᛊ̝͉̍̔ფ̓ნ̞́͋ჵ̡̇̄𒀃̲𒀯̄͌ሰ̲ܷ̤͌̓̾ᚋ͆༕͋ͅ༯̧̞̋𒀣̡̖͇̂ܓ̲
       const force = (1 - dist / mouseRadius) * 0.08 * depthFactor;
       const repelOrAttract = poly.depth < 0.4 ? -1 : 1;
       poly.vx += (dx / dist) * force * repelOrAttract;
       poly.vy += (dy / dist) * force * repelOrAttract;
     }
 
-    // Gentle ambient drift (sine-based, unique per polygon via phase)
+    // ሠ̖ܷ̞̭͉̉̍ܝ̧̲͆ሼ̻݅̀́ᛖ̻̈͌̀𒁈̺̩͌ᛋ̽𒀢͋̂ͅ༫̟̘ܫ̳̮̃ᛒ݆̫̏͊̅̃ͅᚫ̌𒀈̬̮ܿ̑̐̕ͅܖ̫დ̮ს̢́͊̆ܮ͍̼͂ራ̬̯̈ᚋ̢̢̀𒁎̄ᚍ̼𒀁̦͇̋݅̑̕ཁ̀ჳ͍ჺ̡ሾ̮̝̯༫̑𒁂̪̠̄᚜̎𒀎̖̝
     poly.vx += Math.sin(t * 0.15 + poly.phase) * 0.003;
     poly.vy += Math.cos(t * 0.11 + poly.phase * 1.3) * 0.002;
 
-    // Face alignment pull: toward portrait-density-weighted home positions
+    // 𒀉̙ᚙ̫̓ܣ̧ᚈ͍͈݂̠̘̅ሱ̢ܦ̘͇̎ᛌ̻̟͈̓ᚗ̡̮ჺ̘ᚋ̜̫̀̕
     if (align > 0.01) {
-      // Recompute home positions within the portrait silhouette
+      // ჸ̹̖̀̐𒀵̄ტ̪̬̿̀ᚷ͇ᛑ̪͈͉ᚾ̦̼̌̾ሡ̻𒁊̙͎͍̓ሶ̮̓̽̔ሆ̠̹̦̽𒀦͊წ݂̙̈́𒀜͋͋ჴ̞̤
       const homeNx = poly.homeX / W;
       const homeNy = poly.homeY / H;
       const density = portraitDensity(homeNx, homeNy, p.skeletonShift);
@@ -1474,16 +1465,16 @@ function updateDriftPolys(dt) {
       }
     }
 
-    // Damping
+    // ܦ̘̻̍̐ძ̩́̏ᛯ̤́ᚢ͇̞𒀄͋ܧ̝ᛇ͊ᚔ̦̒ჴ̰𒀣̝ͅᚑ̋̏ͅ༐̈́ᛋ̻͉̎̒𒁃̘̳̏༈̏̓̿ᚻ̨̊̂ᚐ̕𒁌͍̹
     poly.vx *= 0.97;
     poly.vy *= 0.97;
 
-    // Integrate
+    // ᚖ̲ჴ̡̱́݁͋̍̋ᚍ̦̅̐𒀉̳̀ᚅͅᚅ̿ᚆ̱ሒ̝̋༣̦݈̜͊მ̥̞̆̌𒀋̘̗̩̏ሙ̖̙̼
     poly.x += poly.vx * dt * 0.06;
     poly.y += poly.vy * dt * 0.06;
     poly.angle += poly.spin * dt * 0.06;
 
-    // Wrap around edges with margin
+    // ሄ̦̫̓ሖ̱̲̃ሐ͉̽̾༌̤̽ც̻̯̰̇𒀧́༬̞̤༉̏̊͆ლ͉̍ᛅ̳̻ᚨ̓მ̖̆𒀍̪̂̉̀ሌ͍̩͈̠̆݉༥̼͎ܵ̈ͅᚎ̜̽̇ᛜ̦̳͌ჯ̹̝͉̾̃݊݉𒀯̆ܧ̈ͅᚔ̋̄̇ყ͌ᛒ̟̌̍ჷ̉ܢ̦̻̪ᛏ̀̅ᛛ̻̪
     const margin = 40;
     if (poly.x < -margin)     poly.x += W + margin * 2;
     if (poly.x > W + margin)  poly.x -= W + margin * 2;
@@ -1496,7 +1487,7 @@ function drawDriftPolys(ctx, W, H, p, t) {
   const e = p.env;
   ctx.save();
 
-  // Sort by depth so far polygons draw first
+  // ቅ̺̓̔ᚂ̺𒀙̲ᚹ͂𒀻̢̞̑̆ܕ̭𒀡̘̻̀ܺ𒀂̭ܗ̨̲̉ᛊ̩͉̆̅ᚓ̡𒀗̯͆̋𒀺͉̏̐ᚉ̤̟̉ሳ̈ყ̰̹̃შ̳̌̑ᚓ̺̹̗̆ሪ̮̺̌ሕ̧̗̈ᛎ̳̬́̕ሂ͈𒀄̜̮̀ཁͅሾ͇͉͍̋ფ̯͍̐ვ̻༡̹̮̅͋ო̥̐𒁏̨̲͂𒀪̢̈́̆༴̭̌༑̙͍̠̅ሺ̱̳̋̓ᚮ̢ͅᚁ̈́̄
   const sorted = state.driftPolys.slice().sort((a, b) => a.depth - b.depth);
 
   for (const poly of sorted) {
@@ -1515,7 +1506,7 @@ function drawDriftPolys(ctx, W, H, p, t) {
     }
     ctx.closePath();
 
-    // Fill: very subtle, palette-tinted
+    // ܸ̫̰͍ᚘ̔ᚃ̧̇̀𒀖̉ᛃ̜͌ᚈ̯𒀤̢̗͊ܟ̢̲͊̀𒀓̮̄ᚶ̺͂
     const lum = 0.15 + poly.depth * 0.25;
     const fR = Math.floor(e.paletteR * lum);
     const fG = Math.floor(e.paletteG * lum);
@@ -1523,7 +1514,7 @@ function drawDriftPolys(ctx, W, H, p, t) {
     ctx.fillStyle = `rgba(${fR},${fG},${fB},${depthAlpha * 0.6})`;
     ctx.fill();
 
-    // Stroke: hairline edge catch
+    // დ̣̎͋̉༂̺̳̝͊ܘ̪́ᛦ̳ᚍ̃ᛎ̙̙͋ᚁ̡̙̞༘̙͎̣͆̓༩͎̾̚ᛦ̪დ̭̒ᛯ̞ሲ̩̎̈ቀ̨̤̊ሏ̚წ̓ჰ͌ም̨̞̆ᛁ̭͌́̐ܨ̫̻̮ს̞̼̎ᚎ̡̜ሜ́͌ᚖ̣̗̿̏ᚠ̓̚
     ctx.strokeStyle = `rgba(${Math.min(255, fR + 40)},${Math.min(255, fG + 35)},${Math.min(255, fB + 50)},${depthAlpha * 0.45})`;
     ctx.lineWidth = 0.3 + poly.depth * 0.5;
     ctx.stroke();
@@ -1532,12 +1523,12 @@ function drawDriftPolys(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Soft Metaball Orbs ────────────────────────────────────────────────────
+// ༑̫̜̓ᛚ͈̓༸̈̂̄ᚅ̖̕ሞ̥͋ܖ̯̞ܽ
 
 function initMetaballs() {
   const W = window.innerWidth;
   const H = window.innerHeight;
-  const count = 5 + Math.floor(Math.random() * 4);  // 5-8 orbs
+  const count = 5 + Math.floor(Math.random() * 4);  // ლ̮̦̅ᚃ̪̽ሥ̞̻̎𒀗̟̝̟͉༡̞ሸ̠͉ሚ̨̫̉̓ᛰ̩̹༎̜̯͂͋༎̪́ሊ̳͈̔̕ላ̧̠͇ܻ̮̃̏̄̕𒀭́̄༞̑ᛌ̲̀̍ܚ̞͌̽͊𒀝̧͆ሦ̥̙̤ᛕ̫̤̀ሚ̧͍̜̘ᛋ̣ᛐ݆́̏̾̏͊༁̤̤ཇ̢̍̕ᚩ̮ᚂ̩̚ͅᚌ̨ა̟́ᚂ̳̚ᚦ̮̗̃
 
   state.metaballs = [];
   for (let i = 0; i < count; i++) {
@@ -1547,7 +1538,7 @@ function initMetaballs() {
       vx:     (Math.random() - 0.5) * 0.15,
       vy:     (Math.random() - 0.5) * 0.15,
       baseRadius: 40 + Math.random() * 80,
-      radius: 0,  // computed each frame
+      radius: 0,  // 𒀽̨̓𒀝̟̪͊̽ᚐ̣༠̟̤̅̈ᚄ͇̄ང̬̉𒀺̪̏̏͊ძ̆ᚕ̰ᚋ̼̬ᚈ̏𒀉̣̚ܣ̣̩̓𒀢̀̔ᚤ͇̈́̌༨͍̥̜̉ሚ̢༠̟̋̚̕𒀒̉ᛒ̲ხ̠̌𒀒̉̌𒀛̨̧͋̉ܬ̫̊̏ᛮ͉̱̂ቁ̑ᛧ̟̥̄̋ᚆ̼̱̙̊ჩܑ̺͇̋ღ̱͋̐ᚉ̔͆ሲ͎͍͆ᚚ̭̄ᚼ̹ሱ̫̔́̔
       phase:  Math.random() * Math.PI * 2,
     });
   }
@@ -1560,11 +1551,11 @@ function updateMetaballs(dt) {
   const t  = Date.now() * 0.001;
 
   for (const mb of state.metaballs) {
-    // Gentle ambient drift
+    // ̻݁̈́𒀀̆ᚘ̡̠̱̔̋ܳ᛭̖̬ᚓ͉̲̉ᚚ̔ᚃ̺̜̎̕𒀥̠̣ཀ͍̯̈́ხ̎ᛡ̻ܴ̞̆̀́̄͊༦͂͌̓̽ᛢ̾ო̠̜̅݀͆̕༗̠̌̆͂ᚂ̗̩͎̓ᚤ̾̃̏ᚌ̢̮̊̌თ̃ܪ̬̆̈́̋༾̄̈ე̨̰̓̾༼̲݃̈̚ᚏ̞̹͌̃ᚖ̱̦შ̮̠ᛇ̡ჲ̽།̫̃̕ᛙ̗̱̉ჶ͎̣კ̡̪̺ܸ̝̖̈ሐ̦̮̱͊
     mb.vx += Math.sin(t * 0.09 + mb.phase) * 0.004;
     mb.vy += Math.cos(t * 0.07 + mb.phase * 1.4) * 0.003;
 
-    // Soft attraction to mirror cursor (delayed, sentient)
+    // 𒁆̝́͊ᛅ̉ᛂ̥̰͌ܗ̒𒀢̣̹̟̭ᚙ̦͈̋݁̕༭́̚
     const dx = mc.x - mb.x;
     const dy = mc.y - mb.y;
     const dist = Math.sqrt(dx * dx + dy * dy) + 1;
@@ -1572,21 +1563,21 @@ function updateMetaballs(dt) {
     mb.vx += dx * pull * 0.003;
     mb.vy += dy * pull * 0.003;
 
-    // Damping
+    // ᚈ̭̰̖̃ᚩ̣̙̪𒀏̱̚ც̏ᚎ̠́̍ܙܹ̓͊̃̈́𒀸̱̐ᛘ͎̺̌̿ᚖ̺͍̳́𒀭̗̱̘ჴ̡̣̺ᚎ̜̓᚛̫̂̀༁̗̏̃ሖ͂̽ჺ̎ᚙ̪̤̓̂༾̖̦̾ሬ̢̲̠̾𒀗͈𒀗̱̘̹͉ᛉ́ᚖ͍ᚧ̉̈̕ᚓ͌̿༬̆͂༰̞𒁌̦͇̲͂ᚭ͎̲̯̝̬ܲ̿რ̤̾̐ͅჶ̱̍̈́
     mb.vx *= 0.985;
     mb.vy *= 0.985;
 
-    // Integrate
+    // ሎ̞̪͌̄ሯ̢̏ᚓ̡̇𒀑̜̈̂̿𒀰͈͈̅̽რ̥̹̕ሓ̀ᚗ̪͋ᚹ͎̩ሏ͇ვ̼ܪ̱̙̍͊༔̻ᚂ̒̌̿༸̫̦̆ტ̢͂ვ̔̋ᚗ͊̋͊̚ሇ̭ქ͍̙̎͌ᛧ̺͆༫̨̯́̋ᚈ̞̜͂̕༉ܼ̰͈̂̉̇̿რ̋რ͍͆̕ᚐ̩̥̃ཅ̢̼͉ܐ̪̿ሸ̡͇̟݂̖̥̈ሁ̙̳̎༌̫̂𒀋̩̻͊̓𒁄͈̪݇ᚍ̠͆
     mb.x += mb.vx * dt * 0.06;
     mb.y += mb.vy * dt * 0.06;
 
-    // Soft boundary: bounce gently off edges
+    // ܱ̙͎̃ჰ̙͊̕ሰ̻̑ᚌ͇͈̇ሦ̫ვ͌ሇ͈̻̅̊ሼ̨̤͂ܒ̢̤ხ̨̀პ̪̀̔̆ᚶ̟ሙ̹𒀃̲̖̓ᚹ̦̮ᚌ̧̘ཇ̼̓̓̽
     if (mb.x < -mb.radius)      mb.vx += 0.02;
     if (mb.x > W + mb.radius)   mb.vx -= 0.02;
     if (mb.y < -mb.radius)      mb.vy += 0.02;
     if (mb.y > H + mb.radius)   mb.vy -= 0.02;
 
-    // Radius breathes from base value (no drift)
+    // ܼ̊༲͉̟̔́ܛ̞̙ᚍ̻̟𒁇̢̭̏༶̏̈༖̞̥ͅཀ̦̯͍̚༂̊ხ̙̘݄̎̀ܐ͇̦̋̽ܲ̋̕ܟ̣͎̊༢̘̝͊𒀅̫ሬ̥̍ሌ̯̄
     mb.radius = mb.baseRadius * (1 + Math.sin(t * 0.3 + mb.phase) * 0.06);
   }
 }
@@ -1618,23 +1609,23 @@ function drawMetaballs(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Cursor Afterimage Trail ───────────────────────────────────────────────
+// ᚓ́̒̿̚ᚲ̡̰̎༸́ᚃ̰ᚯ̢̗͉̉̀ܽ͆̐̀ቄ̣ͅ𒀄̘̳̂ܫ̡݄̱̽̋̐ላ̠̭𒁄̖̌ლ̥ܗ͇̱̅ͅሻ̰̖̆̑༤̧̠̣რ͇̭̟̿༉̦̂̾ჹ̼̟̊ᚦ̚ᛙ͇͋̚ܗ̞̰̭̚ܞ̨́ༀ͉ᚒ̼ს̄̅𒁇͎́̐𒁊̨͇̇́ᛃ͂̍ܗ͍̭𒀄̜ሳ̐ཀ̪̮ᛣ̩̅̓̅ሰ̙̳̭̩ᛝ̤̲ჸ̱̈ܨ̃ᚃ̫̣̹̒
 
 function updateCursorTrail(dt) {
   const mc = state.mirrorCursor;
   const trail = state.cursorTrail;
 
-  // Add a new trail point every few frames when cursor is moving
+  // ჯ̿ᛏ̲̲̙̓ሱ̱͈̀༊̯̠ር̜̱̝́ሾ̞ᛖ͇̣̣̂ᚙ̟͎̩̉მ̰͇̅̉𒀿̿ᚆ̕ᚘ̡ᛂ̊̓თ̭̮̊ჲ̀̉̄̄ჩ͇̰̣ͅ𒁈̦̋ͅܚ͍̙̈̀
   const spd = state.interaction.cursorSmooth;
   if (spd > 0.005 && state.awakened) {
     trail.push({ x: mc.x, y: mc.y, age: 0, speed: spd });
     if (trail.length > 80) trail.shift();
   }
 
-  // Age all points
+  // ܙ̤̍̕ͅჰ̬̖ܸ̠̝̍̈́ᚙ̘̰̽́༢̤̃̓༂̫̃̓༲̝̮̆ᚄ̬͎̽̆ჸ̊̈́ག̨̨̭̗ᚄ̫̏ᚕ̟ሉ̙༁̻̾ჩ̉́̿ი̦̮̉ሚ̡̜̈̈𒀐̡̟̮ܽ́̏̌ራ̺͈̰́ሜ̡͈̒̚ ́̈́ܵ̀შ̧̇̀̉ሪ̬̠ሼ̝̂̆ܒ̱̣ვ̙̤ܹ̱̚
   for (const pt of trail) pt.age += dt;
 
-  // Remove old points (>3 seconds)
+  // 𒀢̀̍̌̓ᚫ̳̎ᛑ̭̲̂ሰͅማ̡̀𒀻̙༺͊̎͆ჭ̬͈კ̱̐ᚕ̗̇რ̟̱𒀞̟̫̓ᚶ̅ᚗ̬́̾ᛰ̬ჭ̠̗̇̅𒀑̟̤ͅᚅ̱̌𒀯̔
   while (trail.length > 0 && trail[0].age > 3000) trail.shift();
 }
 
@@ -1648,13 +1639,13 @@ function drawCursorTrail(ctx, W, H, p, t) {
 
   for (let i = 0; i < trail.length; i++) {
     const pt = trail[i];
-    const life = 1 - pt.age / 3000;   // 1 → 0 over lifetime
+    const life = 1 - pt.age / 3000;   // ᚃ̦༎̧͍̪̽𒀄̮̱ᚂ͈̣პ̢̹༨͈̯̌̄ᛨ̜̑ͅሚ͈̞̤̽ᛗ̘͇̆̀ሳ̨̣̰ܸ̈́ᚗ͍ሌ̧̀ბ̬̅́̆ჟ̤̟̩༐̋̀ᚪ̼̺̌ሎ̖̂ᛤ̪͊ᛡ̹̖̉𒀛̙͊̎̋ჷ̠༳̘̖ܮ̈̌𒀪̣̿̕𒀐̧̔͋ᚍ̀𒀚̟̣̈̀ሌ̟́̇̂ჱ̨̳̐𒀬̦༇̻̆𒀃̺̱̉༉̚༒̫̥ቆ̿̐̓
     if (life <= 0) continue;
 
     const alpha = life * 0.12 * Math.min(1, pt.speed * 8);
     const r = 6 + (1 - life) * 18 + pt.speed * 30;
 
-    // Oily/smoky gradient: palette-tinted, diffuses as it ages
+    // ᛎ̗͎̚ም̡̐̋༮̧̯̏̓ሀ̻̅𒀨̋ራ̙̣༠̯̲̓͆ჱ̩͆ላ̡̪̻̍ᚚ̞̫ͅ᛭̰̪̆ᛋ̿ᛮ̇ᚑ̗̒ሞ̺ሕ̬̂̆̾ᛛ̑̌̊༏̉ᚓ̫̫́̕
     const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, r);
     const cR = Math.floor(e.paletteR * 0.5);
     const cG = Math.floor(e.paletteG * 0.55);
@@ -1671,7 +1662,7 @@ function drawCursorTrail(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Touch Finger Trails (wounds scored by fingers) ────────────────────────
+// ܗ̤̩̰ܺ̉̕ᚆ̗̜̱̮༔̢̱̾𒀨̢͎̀̕ყ̃̽ͅͅ᛫̒̿̕ܟ̪̉𒁈̳̰̓ᚒ̥͉̩݊̊̅ͅ༆̲̥༞̗̰͋
 
 function updateFingerTrails(dt) {
   const trails = state.interaction.fingerTrails;
@@ -1680,12 +1671,12 @@ function updateFingerTrails(dt) {
     for (const pt of trail.points) {
       pt.age += dt;
     }
-    // Remove old points
+    // ᚁ̋𒀿͉̃ᛇ̢ᚷܷ̬̙̀༝̬̫̃ᛃ̤̑̆͋ᛏ̇ ̦ܷ̤̟́̇͋̐̕༃̞༵̭̩̭༷̾̆͌̎͋ᚩ͂̒ᚇ͇̤̓̅აܱ̆̒ሳͅ𒀒̥̀͂̕𒀠̗̎ܫ̊̐ሗ̐̇͆̆ܢ̧̭͌͋მ̲̟̇ሆ̖̰̩̭ᚔ͋̔ܬ̘́ሟ̲̤̇̔ღ̉𒀂̰͆ͅ
     const maxAge = trail.active ? CONFIG.activeTrailMaxAge : CONFIG.inactiveTrailMaxAge;
     trail.points = trail.points.filter(pt => pt.age < maxAge);
   }
 
-  // Remove empty inactive trails
+  // ჷ̬༛̙̔͂ᛋ̯̈́ჸ̞̓̃መ̗݆̩̒̃̽ͅ༃̻̩̜̋𒀟̖̖̥̃
   state.interaction.fingerTrails = trails.filter(
     tr => tr.active || tr.points.length > 0
   );
@@ -1704,7 +1695,7 @@ function drawFingerTrails(ctx, W, H, p, t) {
   for (const trail of trails) {
     if (trail.points.length < 2) continue;
 
-    // Draw as oily finger-smear wound
+    // ტܾ̟̄̇̎̈́̿𒀣̡̤ᚔ̮̠̙͂𒀣̰̃̽̓ሪ̣̟̌༄̙ჺ̯̜̔რ̱̦̕ს̰́ჱ̘͎̓ᚳ̳̬̤̣̉͆̉݇ᚇ̦ረ̺ሾ̪̟̏༛̩̦́ᚍ̜̘̱̺̀ܺ༽̨̭̓̋ᛕ̞͋̌̏ᚉ̘̩̀ჲ̤̰̑݉̄͋̓̚ሞ͈̐͊̀ሜ̗̦༘̤͈̉
     for (let i = 1; i < trail.points.length; i++) {
       const prev = trail.points[i - 1];
       const pt   = trail.points[i];
@@ -1714,7 +1705,7 @@ function drawFingerTrails(ctx, W, H, p, t) {
       const pressure = pt.pressure || 0.5;
       const width = 2 + pressure * 12 + (1 - life) * 4;
 
-      // Warm amber wound colour — more intense with pressure
+      // ᚗ̮̑̊̎ᚔ̻̓༖̱̼̇̈́݉́͂ህ̹༛̓༴̼̏̀ᚲ̫̜̭ᚶ̤̃̍ཁ́̂̈̊ჰ͊̀̉̈ᚏ̝̉̾ܯ̧̫̍ሄ̣̤̎́ሮ̤̗́̾ܬ̱ܹ̃̾༥̋𒀵̽̌𒀔̭
       const warmth = pressure * 0.7;
       const wR = Math.floor(200 + warmth * 55);
       const wG = Math.floor(160 - warmth * 40);
@@ -1728,7 +1719,7 @@ function drawFingerTrails(ctx, W, H, p, t) {
       ctx.lineTo(pt.x * W, pt.y * H);
       ctx.stroke();
 
-      // Oily smear halo around the trail
+      // ༚̼͎͈̑𒀮̗͂̌༶̨̘̝͆ቈ̡̹̬͉ᚘ̪̘̃ܨ̻ሎ̰̾ᚄ̃̀̑̕ც̧̘ბ̣̦ሂ̩̮̻𒁎̓𒀩̊̃ᛂ̨͍͆ܗ̠̤̈́̈ღ̯𒁁̡̓̀
       if (pressure > 0.3 && life > 0.3) {
         const haloR = width * 2.5;
         const haloAlpha = alpha * 0.15;
@@ -1745,7 +1736,7 @@ function drawFingerTrails(ctx, W, H, p, t) {
       }
     }
 
-    // Fingerprint burn at touch start point (if trail is recent)
+    // ༇̍ᛄ̡̤̽ᚙ̗͈̔ܒ̻̂̌რ͈༔̭̺̱ᚄ͇ܹ̫̼̓̿ᚎ̽ͅᚍ̐ᚋ̣͈́̍
     if (trail.points.length > 0) {
       const first = trail.points[0];
       const burnLife = Math.max(0, 1 - first.age / 12000);
@@ -1769,7 +1760,7 @@ function drawFingerTrails(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Cursor Heatmap Scars ──────────────────────────────────────────────────
+// ᛄ̡̂უ͇̜̃༈́͌ቃ̮̐̂༰̣̀ܖ̋᚛̱̓͆ሟ̏̉ᚄ̢̞̻̀̿݇̌̓𒀕̾̂̏ჶ͍ሉ͇̝̇ܰ́̋༭̜ᛯ̑ᚉ̒ჯ̨̜̹͌ሽ̡̮̉͋ܩ̖̀̃ᚃ̯̅͋ᚹ̨̫ܭ̜͉͆̆ᚙ̢̪̲̔ᛆ̪̰ს̱̚𒀪̩̳͊ቈ̻̲̣̝ሶ̑͂ᚘ̣𒀏̡̕ᚢ́ᚔ̺̃̋ს̫͇ჲ͇̭̝̎ሶ̗̿̂̀༭̨̮̟̃༚̒͌
 
 function updateHeatScars(dt) {
   const inter = state.interaction;
@@ -1777,12 +1768,12 @@ function updateHeatScars(dt) {
   const W     = window.innerWidth;
   const H     = window.innerHeight;
 
-  // Accumulate heat where cursor lingers (slow or still)
+  // ܨ̳́𒁎̖ሉ̧̫̙̹ༀ̇᚛̪̏ᚮ̧̥̠̈́ᚎ̽𒀈̺̱̺̂ც̣̀̃͆ᚇ̗̻༏̓͂͆̂ᛄ͈̙́ᚊ͇̖̥͇
   if (inter.cursorSmooth < 0.015 && state.awakened) {
     const nx = mc.x / W;
     const ny = mc.y / H;
 
-    // Find nearest existing scar to merge with
+    // ܨ̹̿ᚬ̼̑́ᚧ̘͉ᚏ͍̍𒀜̣̅̊̊𒁃̃͋𒀔̬̒𒁁̯̜̃ᛪ̪̱̔̀ᛁ̹̣ᚰ̻̩̿̄ሇ̯̾ለ̳́̓ᚅ̖̞͌̏ღ̌ᚈ̫̋̈̅ᚆ̡̩͌̈݉̇ቆ̝̔ሿ̝̫̎ܽ̕ܮ̠̌́ᚄ̤̩̓̋༱̑̽ᚓ̩̏̑༽̬̖̔͂ቈ͇ሾ̞͎̝ማ̼̂ቄ͎̤̀̿
     let merged = false;
     for (const sc of state.heatScars) {
       const dx = sc.x - nx, dy = sc.y - ny;
@@ -1799,7 +1790,7 @@ function updateHeatScars(dt) {
     }
   }
 
-  // Scars cool very slowly — they persist but fade
+  // ჭ̍̀პ̦༂̘𒀪̨̓ܳ͆̆༨̨̻̬᚛̜̠̻𒀗̧̋̂̈ᚚܴ̺͂̆͌̕ჱ̀༱̪͈ሕ̜̊̀̃ᚫ̹ܾ̬̂̑̅̕𒀕̲͆̓კ̱ᚫ̈́̏
   for (const sc of state.heatScars) {
     sc.heat = Math.max(0, sc.heat - dt * 0.000004);
   }
@@ -1818,7 +1809,7 @@ function drawHeatScars(ctx, W, H, p, t) {
     const y = sc.y * H;
     const r = sc.radius * Math.min(W, H);
 
-    // Discoloured burn: warm amber shifting to pale white at high heat
+    // ᚆ̲̰̹ᚏ́ᚢ̘̍͂̎𒀐̓ჳ̥̀̊ሳ̨̪̄ᛯ̌̈ሳ̠̕ᚕ̡͉́ͅ𒁁̗͌̔͋
     const warmth = sc.heat;
     const sR = Math.floor(180 + warmth * 75);
     const sG = Math.floor(160 - warmth * 50);
@@ -1834,7 +1825,7 @@ function drawHeatScars(ctx, W, H, p, t) {
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bright wound core at high heat
+    // 𒀠̨̐̈́̋ᚱ̩̺̆ჳ̏༧ܑ̥̅͋̋̑̅რ̇ჩ͊̎̔ნ̻͈͆̏ჱ݈͊̅̈ͅܘ̜̘̺̉ሳ̑ᛯ̳͍ᛮ̩̰̀̃ᚉ̓̀̅𒀻͉̓ყ̣̫̊̉
     if (sc.heat > 0.3) {
       const coreA = (sc.heat - 0.3) * 0.5;
       const coreR = r * 0.25;
@@ -1848,7 +1839,7 @@ function drawHeatScars(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Glass Crack Propagation ───────────────────────────────────────────────
+// ჴ̉̂̍𒀒̎ჶ̣̣̲̽ჴ̼̃ܦ̀̀ᚍ̩͈͇̰ᚙ̎̀ሥ̜͂ል̣̋̈̂ი̬̗̌ͅ༞̗̹̈́
 
 function spawnCrack(px, py) {
   const angle = Math.random() * Math.PI * 2;
@@ -1860,8 +1851,8 @@ function propagateCracks(dt) {
   const maxCracks = 200;
   const maxGen    = 4;
 
-  // Process queued branches
-  let budget = 5;  // max new segments per frame
+  // 𒀄̖̎𒀠͍̞́ᚈ̤̬̯̅ᚅ̠༂͍̜̍ჴ̃ᚭ̦ᚋ̢̠̜݆̤གྷ̜̏̆ᚑ̭̖ཀ͂̒̈̈́𒀍̞𒀾̧̪ჸ͇̀ჺ̼͇𒁉̜̃ͅᛦ̪̭̖̏ᚢ̫̣̈̾ܨ̳̦͎̒ܫ̲̒͌༕̤̪̓̕ᚚ̈́ᛎ̳̤̰̓ཁ̺͂ሩ̭́̐ረ͍̞ᚗܑ̫̟̜̗̌̆̌ᚹ̅̀𒁍̹𒀧̍̓̌༇̳̻ͅͅᚍ͍̮ቂ̜̯
+  let budget = 5;  // ܛ̗ܲ̅ღ͍𒀢̫̂ቇ̼̅ᛊ̅̕ხ̨̗̬́ᚯ͊̂𒀊͈̲̀̏ტ̡̥ᚩ̢̍𒀊̖̂̾ჷ̥̺ሸ̫ᚏ̭̾̐ማ͍̞̟༆̍ყ̖̆̚ᚄ̞̇̉ᚇ̟ᚐ̱ܴ̂̓̄̈̓ሷ̧̪̼̻ༀ͎̭
   while (state.crackQueue.length > 0 && budget > 0 && state.cracks.length < maxCracks) {
     const q = state.crackQueue.shift();
     if (q.gen > maxGen) continue;
@@ -1875,7 +1866,7 @@ function propagateCracks(dt) {
       alpha: 0.7 - q.gen * 0.12,
     });
 
-    // Branch probability decreases with generation
+    // ᚑ̣̽̃༓́̓̀̕ሞ̧̱̳̈́კ͆̎ᚍ̧̗ᛮ̬̅̔ღ́༦̺̱̒ሪ̻ჸ̞͉̓𒀑̿ሓ̻̭͉̠༧̧̨̺̉ᚻ̡̢̗̓༴̆ᛡ͍̈༛̟̑̓͆༗̢̮̕ᛪ̪ჲ̑̓ͅ༪̬̘ܖ̧̻̌ܠ̭̼ሧ̼̽̓̌წ̻ܠ̬̙̄𒀜̓༒̣̌ჯ͇ᛇ̦̔͊༣̤̼ჰ̤̤̮̲༰̮̀̐̂ჟ̎̿ᚚ̱̲̂́ჟ͇̤͌ቁ̨
     const branchChance = 0.55 - q.gen * 0.1;
     const childLen = q.len * (0.55 + Math.random() * 0.25);
 
@@ -1899,15 +1890,15 @@ function propagateCracks(dt) {
     budget--;
   }
 
-  // Age and fade cracks
+  // ტ݂̊̄̄̓͊𒀷̗̜̐༿̙ራ͇̑ᛙ̢̩̑̈́ሎ̹𒀵̕ሤ̖𒀚̠ሥ̪͌ძ̜͍͂͊ሾ̝̹̎̑ሣ̺̱̝̚𒀏̪͆ͅሷ̖̺̦𒀪̨̫ܸ̗̹̒ᚲ̞̭̑̍ვ͉̂ቄ̧͆̄ᚑ͎༯̮͂̀̕ሼ̠́̍ཅ̨̂ᛕ̖𒀢̹̏ᚳ̐ቇ̝̍ܔ̊̊ᚉ̠̂̾̑ሼ͈̫̺̥ሷ̝𒀷̍
   for (const c of state.cracks) {
     c.age += dt;
-    // Very slow fade — cracks are semi-permanent
+    // ჲ̗̿̎ᛀ̳̙ܫ̈ᚡ̨̘̾ჴ̠͆ᚷ̹ܱ́̏̽̕ჟ̪̣̄́ሃ̨̓ܤ̡̻
     c.alpha = Math.max(0, c.alpha - dt * 0.000008);
   }
   state.cracks = state.cracks.filter(c => c.alpha > 0.005);
 
-  // Hover-triggered cracks: intense lingering spawns fractures
+  // ቈ̟̠͎ს̗ ̓̍̅ლ̑̅ᛉ̜̯́𒁉̮̆𒀰̒ͅཇ̩́̀̽ሟ̲ᛌ̩̥
   for (const hp of state.interaction.hoverPoints) {
     if (hp.intensity > 0.7 && hp.age > 3000 && hp.age < 3050) {
       spawnCrack(
@@ -1929,7 +1920,7 @@ function drawCrackMap(ctx, W, H, p, t) {
     const shimmer = 1 + Math.sin(t * 3 + c.x1 * 0.02) * 0.15;
     const a = c.alpha * shimmer;
 
-    // Silver-white crack lines
+    // ᛎ̬̥̭͉݃ͅშ͍̮̔᛭̼͆ᚈ̖̠̐𒀝̟͌ᛣ͂͆ᛰ̢̳̄̃𒀙͇̣̠̟ᚻ̡ܚ̃̊̀ᚆ̟̈́̔̅ზ̭ܸ̹̑ᛮ̹̾̋̓ძ̧𒀕̕ܮ̯̽༳̢ܹ̘̽̋ͅͅሾ̻̺̥݈̳̻ሠ̏ᚚ̭̓͆̀༥̨̝̓ᚉ̯̪̔ნ̲ᚌ̲̞̅́ᚿ͎𒁃̻̙̯̐ᚩ̦̟̇́
     ctx.strokeStyle = `rgba(200,210,230,${a * 0.6})`;
     ctx.lineWidth = width;
     ctx.beginPath();
@@ -1937,7 +1928,7 @@ function drawCrackMap(ctx, W, H, p, t) {
     ctx.lineTo(c.x2, c.y2);
     ctx.stroke();
 
-    // Faint glow along crack
+    // 𒀼̻ᛧ̬̌̈༶̙ͅሷ̥ܔ̒ሾ͇̖̓̌ᚽͅ𒀊̨̱ᚰ̤̠ე̦̓̏̒ሸ͉̻̆ᛑ̾༊̓ᚉ̨̬̿̆ܺ̈ჺ̜̠̙̈́ሥ͈̤̉̈ᚰ͍̫̕𒀩̦ᚄ̽ᚘ̹͋͊͊
     if (a > 0.2) {
       ctx.strokeStyle = `rgba(180,195,220,${a * 0.12})`;
       ctx.lineWidth = width + 3;
@@ -1948,7 +1939,7 @@ function drawCrackMap(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Ritual Circle Geometry ────────────────────────────────────────────────
+// ქ͊𒀒̟͊༢͉̼დ̙ሼ̳̦̀ܕ̫̘̋ᚎ̳̮̬𒀹̲̟༟̧̡̱͆ჰ̟̣͌დ͇̊͋̌ܘ̪̬̇𒀫͉𒀗̗̞ჩ̥́̊̑ᛩ͈́ሷ̱͂༲̜̫ለ̨̖̰̀༾̺̍̑͊𒀒̧́ማ̣ሽ̫̫̀̂ᚔ̫̓დ̮მ̙̩̠̂𒀷̨̔̊ሬ̤ო͆პ̲̰̾̇𒀑̗̱̦ሁ̗̩ܦ̡̩̻̌ሸ͉͉̹
 
 function drawRitualGeometry(ctx, W, H, p, t) {
   const shift = p.skeletonShift;
@@ -1956,10 +1947,10 @@ function drawRitualGeometry(ctx, W, H, p, t) {
   const headY = H * 0.270;
   const conv  = p.convergence;
 
-  // Only appear after some convergence
+  // ༓͇̏̔̕ᚉ̦̹̪༇̮͋᛬̰̀ᚉ̞̦კ͇̺კ̖̄͋᚛̦͆ሟ̨̟̄̆ܚ̤̭̝̻༶̜ᚓ̠̖́ᚓ̺̇̓
   if (conv < 0.12) return;
 
-  // Devotional temperament: more elaborate, brighter ritual geometry
+  // ᚢ̮ტ̧̨̬̀ᚉ̡ܚ̯̀𒀇̄̏ᛄ̊ᚒ̄ᚌ̻̽ܽ̋̽ܛ̭̹̏ሕ̙͆́̀𒀬̼𒀆̧̺̿𒀛͆͌̑́
   const devotionalBoost = state.temperament === 'devotional' ? 1.5 : 1.0;
 
   const alpha = Math.min(0.18 * devotionalBoost, (conv - 0.12) * 0.25 * devotionalBoost);
@@ -1971,14 +1962,14 @@ function drawRitualGeometry(ctx, W, H, p, t) {
   ctx.lineWidth = 0.4;
   ctx.globalCompositeOperation = 'screen';
 
-  // Halo ring above head — slowly rotating
+  // ܩ̙̭͂̕༰̥݄̱̘̮̟̏̎ܳ̓ሏ̓ᛛ͂ܚ̰̮̓͆ܛ̣༵̃̓ͅᚍ̡ቃ͇̅ሦ͍̞̮̉ܓ̖̦̗̅ᛏ̦༘̫̑̂̾ᛣ̯̈́ᚐ̲̭̪ᚆ̻͎̎ᚿ̩͎͍͊ܕ͍̇̏༃̝ᚁ̫̚ሿ̝̞ܝ̀̔ͅᚌ̣̙̞͌ܥ̊̀ቆ͇̉̀ᛒ̡̫̅ᚘ̢̲̈
   const haloR = Math.min(W, H) * 0.12;
   const haloY = headY - haloR * 0.5;
   ctx.beginPath();
   ctx.ellipse(cx, haloY, haloR, haloR * 0.18, phase * 0.15, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Second halo — counter-rotating, slightly larger
+  // ཁ̭̱ܝ̧̦̏̋᚜̫̂ሼ̀̈̏ሗ̩̑́͌ቇ̇ሢ͇̔ᛐ̜̟̓ͅܮ̩̲̊𒀉̘༢̞̚
   if (conv > 0.3) {
     ctx.strokeStyle = `rgba(150,165,200,${alpha * 0.6})`;
     ctx.beginPath();
@@ -1987,7 +1978,7 @@ function drawRitualGeometry(ctx, W, H, p, t) {
     ctx.stroke();
   }
 
-  // Concentric ritual circles around torso
+  // ሜ͆̊̔̚𒀋̬̓̇ვ̭ͅሤ̉𒁁̜ͅͅზ̝̝ሠ̳̅̄ͅ༬̨̓̌༢̱̳͉̑ᚴ̹̗̎͋ც̓̏ᚻ̃ᚶ͍̳̭͋ფ̧̌̇̂༦̨̢̫݈̺̆̌̄༅͈̾གྷ̭𒀩̃̐ང̧̝̽ܚ̻̂ሀ͎̐̿ლ͈̩̉ܿ͋͂
   const torsoY = H * 0.48;
   const circleCount = 3 + Math.floor(conv * 4);
   for (let i = 0; i < circleCount; i++) {
@@ -2000,7 +1991,7 @@ function drawRitualGeometry(ctx, W, H, p, t) {
     ctx.stroke();
   }
 
-  // Cross-lines through portrait centre — rotating lattice
+  // ݄̣̏ᛤ͈̍̕༐̌̌𒀪̓ᚁ̯̤̞༙̫̞̀́́ვ͎͇𒀆̀ᚎ̧̝́̏ᛰ̫̭̌ᚋ̳̮̆̐𒀋̧̮𒀬̇პ̧̆̈༅̔𒀄͆ᚌ̈̿༪̭̬
   if (conv > 0.2) {
     const crossLen = Math.min(W, H) * 0.18 * conv;
     const crossA   = alpha * 0.7;
@@ -2021,7 +2012,7 @@ function drawRitualGeometry(ctx, W, H, p, t) {
     }
   }
 
-  // Small sigil marks — tick marks along outer circle
+  // ༘͍̫̍ͅ𒀃̮͎̦ͅཁ̫͉ᚄ̡𒀀̗̣ᚗ̭ტ̢̖͂ᚆ̯̰༏̡͇̕ሀ̡̿ܖ̜̃̆༏̜͋მ̑ᚔ̺̟̆
   if (conv > 0.35) {
     const outerR = 20 + (circleCount - 1) * 25;
     const tickCount = 12;
@@ -2045,7 +2036,7 @@ function drawRitualGeometry(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Liquid-Black Mirror ───────────────────────────────────────────────────
+// 𒀷̨̱᚛̜ܤ̑ܨ̙̳̬პ͉̿ჹ̟̞̿༾̮̻̊ራ̼̠́̓༠̙̩̮ა̲̩̽̉ᚷ̮̹̓ᛠ̪̊༐̏̀̂ᛒ̆̕ო̯̱̾̀კ̊̑̂ܤ̱ᛛ̝̯̇ᚸ̳̚ᛤ̻͋͆̃ሷ̗̙̈͆ᛩ̈́༜̻ᛧ̡̗̽̚𒀙̹͂𒁆̳̻̯ᛢ̣̣̒
 
 function spawnRipple(px, py, intensity) {
   state.ripples.push({
@@ -2061,7 +2052,7 @@ function updateRipples(dt) {
   for (const rp of state.ripples) rp.age += dt;
   state.ripples = state.ripples.filter(rp => rp.age < 4000);
 
-  // Cursor proximity spawns subtle ripples
+  // 𒀳̖ᛨ̰̣͊̾ო̢̗̀̾ܠ̩̳͈̅ܶ༯͋ჵ̟̠̠̎ሖ̮̀̉༁̱̭̼ሱ̽ሮ͍̃̆𒀂̊ᛩ̣ჟ̡̙̼̚ე̼͉ᛖͅ𒁊̧̾ܭ̯̔̈́ᛟ̡̀̒ჰ̹̟̮݉́́ܟ̫̫̽̔̀݇᚛̪ᛙ̟̤̕ᚒ͋̚𒁏̀ჷ̼ቀ̖͍́̀ᚢ̲̌𒀸͍̦̆ቆ̻̿̕ཅ̫̍༳̈̔̄̎ቃ͊ᚉ̚𒁊͌̂̈̎
   if (state.awakened && Math.random() < 0.02) {
     const mc = state.mirrorCursor;
     const W = window.innerWidth, H = window.innerHeight;
@@ -2081,7 +2072,7 @@ function drawLiquidMirror(ctx, W, H, p, t) {
   const cy    = H * 0.38;
   const conv  = p.convergence;
 
-  // Central glossy pool — grows with convergence
+  // ფ̝̇͂̕ᚉ̧ܢ̜̳̑̒𒀩̈́ᚙ͇͌̍ᛀ̡𒀙̅̈͂͊შ̒
   const poolRx = Math.min(W, H) * (0.08 + conv * 0.10);
   const poolRy = poolRx * 1.4;
 
@@ -2089,7 +2080,7 @@ function drawLiquidMirror(ctx, W, H, p, t) {
 
   ctx.save();
 
-  // Dark glossy ellipse — liquid black surface
+  // 𒀦̖ᛂ̾༏̪̜ܽ̂ͅ༑̧̹ჯ̻̼͉ቅ̢̙́ᚈ̑𒀞͉̓͆ላ̪̈́̕წ̟̠̦̫༏̖༖̡̘̝͋𒁋̰ܤ͌̓𒀣̑ᚍ̲̊ᚋ̤̘̔ᚅ̖
   const poolG = ctx.createRadialGradient(cx, cy, 0, cx, cy, poolRx * 1.3);
   const pa = 0.15 + conv * 0.20;
   poolG.addColorStop(0,   `rgba(1,1,4,${pa})`);
@@ -2100,7 +2091,7 @@ function drawLiquidMirror(ctx, W, H, p, t) {
   ctx.ellipse(cx, cy, poolRx * 1.3, poolRy * 1.2, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Glossy specular highlight on the pool surface
+  // መ̙̒კ̣̝༦̄ᚕ̈̇̕༣̺͋ᚏ̨̍̒𒁆̨̢ܜ̟𒀴̭̦̫̑ላ̞͉̻̿ܞ̺̱̆̔ሺ̗̘̔̐𒀭̪́͆̚ᚂ͈̰ხ̮̔ܽ̓̇̋ܛ̒ሊ̢̻̙̇̎ܲ̒̎
   const specX = cx + Math.sin(t * 0.2) * poolRx * 0.15;
   const specY = cy - poolRy * 0.25 + Math.cos(t * 0.15) * 3;
   const specR = poolRx * 0.4;
@@ -2113,11 +2104,11 @@ function drawLiquidMirror(ctx, W, H, p, t) {
   ctx.arc(specX, specY, specR, 0, Math.PI * 2);
   ctx.fill();
 
-  // Ripple rings expanding from interaction points
+  // ༟̃̚𒁍͍̻𒀆̩̤̭̍ო̗̫ᚉ̬̟̽͆༉̼ბ̣̩̀𒀢̮̦̋་̟̯̦̚᚜̇̾ᚎ̢̌͌ሠ͍̰ቃ͊̐ᚡ̘̰ᛯ̡̗ܱ̋̿̉̀ᚄ̤༆̹̣ܸ̪̈́̊̈́ᚇ̱̔დ̗͆͋̓༸̂́ᚙ̏̅᚜̪̘̆ܦ̮̂ᚄ̧̣̫ܿᚐ̘𒀜͉̗̿͆ᚃ༹̞̌̽̌̐́̚༿̝̟ሰ̯͎́
   for (const rp of state.ripples) {
     const life = 1 - rp.age / 4000;
     if (life <= 0) continue;
-    const r = rp.maxR * (1 - life * life);  // fast expand, slow finish
+    const r = rp.maxR * (1 - life * life);  // ༐̏𒀮̖̯ა̾༻ܑ̳͇͌̋ማ͍̱̈́ሄ̘̺̲́ሟ̼̝̔ᚙ͇̟̣̕༺̭̇ܛ̟́̎𒀛̼̅ཇ̰̿ቃ̳̆̏ᚆ̓ሂ͉̈ཀ͆̏ᛖ̦̙̪̑͋݀̔ሜ̆ ̤̮̔̍ᚧ̧̢̙̈ቄ͉͈́
     const ra = rp.intensity * life * 0.2;
 
     ctx.strokeStyle = `rgba(180,195,220,${ra})`;
@@ -2126,7 +2117,7 @@ function drawLiquidMirror(ctx, W, H, p, t) {
     ctx.arc(rp.cx, rp.cy, r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Inner ring
+    // ̡݊͊ܐ̜̾̂̑ᚆ͉͈̓ܔ͈̄𒀈̠̈́ܭ̺
     if (life > 0.5) {
       ctx.strokeStyle = `rgba(200,215,240,${ra * 0.5})`;
       ctx.lineWidth = 0.3;
@@ -2139,8 +2130,8 @@ function drawLiquidMirror(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Motion-Activated Anatomy ──────────────────────────────────────────────
-// Specific behaviours reveal hidden anatomical structures beneath the portrait
+// ᛗ̧̙̦ᚑ̖̣̣ᚋ̮ᚇ͇̽͋𒁈̐̂ܺ̔̒ᚾ̩͇̩̝̍ܽ̂ᛦ̞̍̿𒀢̞̈̈́݇ᚄ̹̞̓̽ም̬̾̉̊ሚ̲̟ო͊𒀌ܑ̱͎̏̆̊͂༐͍̌̊ܕ̯̟ሧ̋༟̤̑𒁌̰̌ᚚ̣͇̖́݀𒀌̓ሟ̀̋ܩ̕ᛍ̓̄̎༭̮̮̏ყ̬༆̹̝̅̚ა̗͍̰ܺ̏ᚘ͉̐̂̀ሑ̨̭ቂ̖͌
+// ༩̺̅̒̌𒁉͇̰ᛜ̀͊ჱ̠͇̅̏᛭̱̺̩𒀽̜̎̚ᚳ̞̖̆̒ᛔ̥̺ሎ̦͌̏̉ᛁ̮̥͆𒀱̳̠̣ᚐ͆̆̂̉𒀅̢̧̞͂ᚨ̧̼̤ሰ̘̉ᚢ̡̺̾ᚙ̢̩͈͋ሠ̢͊ܳ̑͌ᚑ̣̙̙͊ሒ̨̞̠̆ܲም̢̢̄ჸ̟̜́༐̠͈̑𒀺̄̒̚ᛆ̣̘̓͌༻̧̮̓უ̨̋̔̀ო̅̈́ ̺ტ̯̲ሺ̡̬ܻ̓̀̀ͅ
 
 function drawMotionAnatomy(ctx, W, H, p, t) {
   const shift = p.skeletonShift;
@@ -2151,7 +2142,7 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
   ctx.globalCompositeOperation = 'screen';
   ctx.lineCap = 'round';
 
-  // ── Ribs: revealed by scroll (gentle scroll = breathing = ribs visible) ──
+  // ᚽ̗ረ̉̃̐𒀱̈ͅ𒀠͋𒁏̪̮̖͆ᚘ̥̳̈́𒀥̤̇́ᛋ̝ܢ́ረ̬̜̈̕གྷ͍̯͍̗༃̲დ̬̔ܤ̀̑གྷ̪
   if (p.breathDepth > 0.08 || p.smear > 0.1) {
     const ribAlpha = Math.max(p.breathDepth * 0.3, p.smear * 0.15);
     const ribCount = 7;
@@ -2172,7 +2163,7 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
     }
   }
 
-  // ── Jawline: revealed by typing (mouth moves → jaw appears) ──
+  // ቁ̜̣̥́ჲ͍ᚕ̓́ܚ̼̦̺̑ᛎ̫̈́ͅᚈ̠̜̋ሣ̂̍̓რ̕ჭ̨̠𒀊̮̱̬̭ჟ̗͍̫ᛝ̼̯̰̘უ̨̰̺̓ᛗ̐̐ህ̝ང̧̬̋
   if (p.pulse > 0.15 || p.typeTremor > 0.1) {
     const jawAlpha = Math.max(p.pulse * 0.25, p.typeTremor * 0.3);
     const jawY     = H * 0.36;
@@ -2180,21 +2171,21 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
     ctx.strokeStyle = `rgba(170,185,210,${jawAlpha})`;
     ctx.lineWidth = 0.5;
 
-    // V-shaped jawline
+    // ᚙ̼̃̈ሉ̰̯̩𒁀̠ᚎ̡̕ᚌ̯̓͌ᚚ̼ᛥ̞̾̿ር̺̊̃𒀡̊̎ሽ̅𒁈̮༭̥̀̀̚ჺ̞̗́̕ᚙ̪͉̄ܐ͍͎̎ܳ͂̑͋༔̪͍̌ܖ̢͍̯͊ᚔ͌̒͋ለ̢̈̿༮̡̋̒ܠ̲ᚑ̧̥̐̃ჰ̫̻ᚌ̗ܫ̒͂́̌ሩ̺̌̒̍ე̡̦̎̓ᚱ̖
     ctx.beginPath();
     ctx.moveTo(cx - jawW, jawY - H * 0.02);
     ctx.lineTo(cx, jawY + H * 0.015);
     ctx.lineTo(cx + jawW, jawY - H * 0.02);
     ctx.stroke();
 
-    // Chin point
+    // ቄ͍͋ሾ̬ܔ̠͍́̽᚜́̋̃̎ሤ̪̒̒დ́ᚬ͋ཆ̅ნ̫̜̈̕ܖ̖̬̆݉̑̕𒀷̹̮́ͅܮ͌̔ܪ̿̋̚ͅᚻ̺̊̂ሥ͉̮̌ზ̥͋̿́༟̮̜𒀽̢̼ᚖ̪̻̒͆ང̣̑̂ძ͋ᚏ̦̂
     ctx.beginPath();
     ctx.arc(cx, jawY + H * 0.018, 2, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(180,195,215,${jawAlpha * 0.6})`;
     ctx.fill();
   }
 
-  // ── Spine: revealed by idle/autonomy (it moves on its own → spine appears) ──
+  // ሽ̨ᚅ́ᛥ́ᛠ̩̳̮̍༬̜̄̊̏ᛠ̀̓̚ቅ̂𒀣̞̋̿ჩ͈̚༿̙̙̊ᚑ͈ܸ̰͊ᚌ̢̲̈̈́𒀊̬̐თ̮ሮ͉ለ̘̂̌ͅ𒀳͉̺̉̚ჱ̃ ̖͈𒀬̦̽̑𒁄̡̞݂̙̪̒͌༮̤̍̂͂ᛂ̧̹̜̼ܹ̝̼̔̓ܿ̋̀ܚ͋̋̏ᛢ̨̟༱̓̕ლ̖̬̞́ሡ̙̗̂̄ܭ̀༉̣̟̭ᚺ͍̌͋ሎ̞𒀾̲̖̤̀ሑ̯͂̎𒀻̠̣͋̏
   if (p.autonomy > 0.15) {
     const spineAlpha = p.autonomy * 0.22;
     const spineTop   = H * 0.30;
@@ -2213,7 +2204,7 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
     }
     ctx.stroke();
 
-    // Vertebra dots
+    // ს̟̍̄ܧ̫͎ᛚ̻̓ሙ̻͂̀̈́ང̱́́̽ሐ̫̤̑̎𒁎̭͊̕
     ctx.fillStyle = `rgba(175,190,215,${spineAlpha * 0.8})`;
     for (let i = 0; i <= vertebrae; i++) {
       const frac = i / vertebrae;
@@ -2225,7 +2216,7 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
     }
   }
 
-  // ── Halo: revealed by high convergence (recognition phase) ──
+  // ܓ̀ᚖ̫̬̉༊̃ܖ͉𒁁̐ܚ̍༼͉̻̊̉݁̎ᚗ̳̺̟̑ሕ͇̫̌ ̧̉ᚉ͍̈́ሎ̧͇ᚨ̈ᚹ̱̜
   if (p.convergence > 0.5) {
     const haloAlpha = (p.convergence - 0.5) * 0.3;
     const headY     = H * 0.225;
@@ -2238,7 +2229,7 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
     ctx.arc(cx, headY, haloR * pulse, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Inner glow ring
+    // ܒ̓ᚌ̖̊̂ሓ̘͈̮͆𒀛̆༅ͅᚣ̬̚
     if (p.convergence > 0.65) {
       ctx.strokeStyle = `rgba(210,225,250,${haloAlpha * 0.4})`;
       ctx.lineWidth = 0.3;
@@ -2248,7 +2239,7 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
     }
   }
 
-  // ── Hands: revealed by cursor proximity to sides (reaching out) ──
+  // ᚉ͊ჶ̪̬̫̄༔͍͂̈ሜ̝̍ሡ̩̥́̕ᚪ̂ܦ͍̕ᚔ͎͆̈̊ܚ̩̑̈𒀅̡̯̰́ს̂ᚔ͍̮̀༢͍̰̻̹༊̡̙̺̯ᚙ̨̧༹̄̃𒀰̔ቅ̨̺̞͎̗̙ܳ̂̀ჱ̜̓̓̚ ̨͎̥̤𒀲ͅཀ̙̄͂ჭ̉ག̀̍𒀗̻༵͈ܙ̳ܴ̟̉̚ᚑ͈̻༱̀
   const mc = state.mirrorCursor;
   const handProximity = Math.min(1, Math.max(
     1 - Math.abs(mc.x / W - 0.15) * 6,
@@ -2263,12 +2254,12 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
     ctx.strokeStyle = `rgba(170,185,210,${handAlpha})`;
     ctx.lineWidth = 0.4;
 
-    // Palm outline
+    // ᚵ̦̜͉͍̺̾ܺ̏ܺ̋კ̨̬༒͇̍༴̜̙̀ܝ༹̘̰ሙ̼̮͆༌̪̻̝̅ჟ̼შ̩͌̊𒀫̼ܴ̺͈̙̏̾̇პ̝̿ሖ̟̯̈́̐ა̧̯ᛟ̣͂̕༡̭̲̔ᛊ̖̓̋
     ctx.beginPath();
     ctx.ellipse(handX, handY, W * 0.018, H * 0.022, handSide * 0.2, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Fingers — 4 short lines extending from palm
+    // ᚂ̒ህ̱̮̯ᛨ̇ቁ̱̎̒𒀊̫ჩ̬̥ჷ̩ܓ̟̰̍̑𒀔̫̜̺̭ܣ̮̺ሇ̺̯̱̀𒀔̤̼̆̂༺̹ᚡ̯̏̏ფ̘༤̨͉ܷ̭̀̔́გ̮̣̈́͊𒀛̯͊̄𒁈̑͋̒
     const fingerLen = H * 0.025;
     for (let f = 0; f < 4; f++) {
       const fAngle = -0.5 + (f / 3) * 1.0 + handSide * 0.3;
@@ -2283,7 +2274,7 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
       ctx.stroke();
     }
 
-    // Thumb
+    // რ̳͍̽̋ᛍ̒ሐ̢̕𒁈̂̂ܩ̣̻͆ܨ̱ሾ̼̊́კ̦̘̈༴̼̘𒀔̳̇̓̕ᚗ̰̲̎͊༏̮̉̈͂𒁋̡
     const tAngle = handSide > 0 ? -0.9 : 0.9;
     const tx = handX + Math.cos(tAngle) * W * 0.014;
     const ty = handY;
@@ -2299,8 +2290,8 @@ function drawMotionAnatomy(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Scar Ghost Replay ─────────────────────────────────────────────────────
-// Prior session portraits flicker behind the current one as translucent ghosts
+// ܓܑ̱̬̫͇݄̣̹̥̀༌̫̉̐ཇ̗͌͂̀ᚷ̧̬̯͌ܩ̰̭̕ც̻̯̳
+// ም༙ܻ̫̘̔̒̄̏̄ሿ̪̓̿̈́༊̀̈ᚿ̫͍̆̿༇̯̘͊̍ᚋ̡̕̕𒁇̺̀𒀆̝͇̳́ሻ̢̆̍̏ᚐ̟̻̒གྷ̒ყ̹̖ჷ͉𒀫̢͈͋ᚲ̗̺̎̉༅̺̃ᚌ͈༷̆͂̇ህ̱̣̄̂ᚬ̰̮̅
 
 function initScarGhosts() {
   if (!state.memory || !state.memory.scars || state.memory.scars.length < 1) return;
@@ -2318,16 +2309,16 @@ function initScarGhosts() {
     sessionDuration: scar.sessionDuration || 0,
     crackCount:      scar.crackCount || 0,
     index:           idx,
-    // Each ghost has a phase offset for flickering
+    // ሦ̥̅ჷ̡𒀘̕ܢ̖̮̻̻͉̇͌ܿቇ̧͎̄𒁃̧̠̈̉ᚕ͍̐ሓ͎͋̕𒀖̧̇̌༥̽̄̑ሪ̒̐𒁎̢ფ̖̺̻ნ̖̲̓ᚁͅჯ͉ܾ̻ᛡ̩̫̲ͅༀ̹̼̭̈
     phase:           idx * 1.7 + Math.random() * 2,
-    // Older scars are dimmer; longer sessions leave bolder ghosts
+    // ሩ̽͂̌̇ረ̼̬́̚რ༙̌̄̃͆͆ህ̢ᚳ̮͋ᚕ̋͂̽̒༡͎̖݈̹̎̚ᚳ̰ᛉ̨̍̒𒁂̇̾ᛊ̯༻̳̮͋̓ᛄ͎̅́ሮ̳̩𒀺̆̿ᛞ̎ཅ̡̺̤ሣ͈͆
     maxAlpha:        Math.max(0.02, (0.08 - idx * 0.015) + Math.min(0.03, (scar.sessionDuration || 0) / 3000)),
   }));
 }
 
 function drawScarGhosts(ctx, W, H, p, t) {
   if (state.scarGhosts.length === 0) return;
-  // Only show after some convergence (the mirror must recognise you first)
+  // ზ̲̞̰𒀕̌̄̀ბ̘̈̅ᚉ͉̖͋༄݈̼̖༵̟̃̾̉᚜̝̌͌𒀈̩̀̊̊ვ̫̣ᛣ̝𒀫̮̟̯̥ܤ̱̀𒀸̢̡̞̲͎݊͌ᚆ̹კ̧̰ᚄ̯̤̀̑
   if (p.convergence < 0.25) return;
 
   const shift = p.skeletonShift;
@@ -2338,17 +2329,17 @@ function drawScarGhosts(ctx, W, H, p, t) {
   ctx.globalCompositeOperation = 'screen';
 
   for (const ghost of state.scarGhosts) {
-    // Flicker — ghosts appear and disappear rhythmically
+    // ᚖ̡̦̋̚𒀣̺̹̌̽𒀜͎̔̈̑ᚃ̞̅ᚒ̀́ᚃ̰͆̎ᚼ̩̈́ሾ̍̅ܨ̙̹͋̚ი̬́ܢ̮ᛂ̭̏༜̒̅͌̚ყ̏̄ს̨̀ღ̱̃̿ሸ̐ܮ̺̱́͊შ̮̟͌ܨ̢̼͋͆༭̧̏ር͎̲̈ሆ̪̜̅̑
     const flicker = Math.sin(t * 0.3 + ghost.phase) * Math.sin(t * 0.7 + ghost.phase * 0.6);
     if (flicker < 0.2) continue;
 
     const alpha = ghost.maxAlpha * (flicker - 0.2) * 1.25 * (p.convergence - 0.25) * 2;
     if (alpha < 0.003) continue;
 
-    // ── Temperament colour shift ──
-    // Each ghost tints toward its session's temperament:
-    //   flattering = warmer/brighter, cruel = colder/harsher,
-    //   silent = desaturated/dim, devotional = golden/amber
+    // ᛗ̰̗ህ̻͎͈̘መ̝͎̰̄ܨ̃̆𒀅̈́̂ჰ̙̅უ̧̮̮͍͈̿݅̋̓ჵ̲̩̈́ܥ̂ራ̭̘།̻͍̂̀ሰ̩̀ሀ́̓ᚍ̈ም̧̩̱́༽̿༎̮̊ሢ̓̿༓̄̔კ̓͋ሹ̼̺̤͌݇̒͂̕ᚢ̯̓̑̀༏̇̾ᚑ͍͈̌ᚰ̈ሺ̹̤̃༚̨̜̃̅ܐ͇̻͊༻̻̟༘̦̥͉͆̊̐ሣ̫̄ᚂ͍̑͌̊ᚋ̱̜̍ნ̟̰̄̎ᛥ̐̕
+    // 𒀐̀̕་͆ܣ̞̗̮ሖ̔ሙ̣̟ܷ̮̃ܿ͌𒀡̨̝̗͋ᛐ̹̕𒀽̻̪̹̿რ̢̟݈̬̇̃́̕წ̼̇͊ܒ̲̻̗̪̽̈́̆݀̇ܲ̎̀𒀻̜͇̃ᛣ̨̽ც̢̳ნ̡̘̪ቁ̽დ̯̝༶̢̗༎̺̆̔ܞ̋̚ქ̂̅̓᛭̟
+    // თ̼᚛̊ሃ̞̒̑̆ჩ̌ᚈ̖̅𒀇̧̺ͅო̨̦༡̜̆̊̐༝̟̑̀მ̲ც̪́𒀷̥̤̠̿ᚵ̧̇̏̕𒁃̥̻̈́̅ܫ͂̈ͅ༠̻̂ᚇ̗̌̍ᚕ͎̈́̏ሕ̝͌𒁉͍̀𒁀̪̙̲̐ܽܫ̞̒̿ܺ̓͌̔༖̤̉་̰̫̇ᚁ̱̫̎̓
+    // ሏ̨̙̅͆ሢ̿̍༱̤̑̐͆ᛞ̂̍ቀ̽ᚈ́ჷ̠̗̱̆ܶ̒̈́ჵ̲̂ͅᛐ̧̓ቂ̟͈͂𒀒̣ሷ̡̀ᚋ̭̲̋ܖ̀̓ᚚ̋̊̔།̡̥̖݅̐̏གྷ̦̗𒁂̀𒀌̒ჴ̩̄ሿ̧̣̿𒀥̻̽̈ܛ̞̙̐ᛠͅሌ̳ቄ́͂ሿ̔ᛋܷ̎̈́̿̓𒀔̡̏༺̲͈̀̒
     let tR = e.paletteR, tG = e.paletteG, tB = e.paletteB;
     switch (ghost.temperament) {
       case 'flattering':
@@ -2362,7 +2353,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
         tB = Math.min(255, tB + 30);
         break;
       case 'silent':
-        // Desaturate: pull toward grey
+        // ᚸ̰𒀠̡̥͇̏ე͎̓͊̓ᚸ̖̟́ᛎ̳༔͎̪ᛧ̢̙̆𒁇͉̭̫̊ჹ̼̎ლ̖̱͂ ̲𒀗̗̰ᛅ̓ᚰ̤̂̍ᛣ͉̃༕̢͇̓ር̡̓ᚘ̳̳̰𒀬̗ᚻ̭̟̭𒀝̀ᚗ̏̍̆𒀸̟̍̈́̚ᚻ̭̥̾̆ᛮ̩̃̀̓༿̨ሶ̮̒
         const avg = (tR + tG + tB) / 3;
         tR = Math.floor(tR * 0.5 + avg * 0.5);
         tG = Math.floor(tG * 0.5 + avg * 0.5);
@@ -2379,26 +2370,26 @@ function drawScarGhosts(ctx, W, H, p, t) {
     const gG = Math.floor(tG * 0.65);
     const gB = Math.floor(tB * 0.75);
 
-    // ── Jitter-driven positional instability ──
-    // Ghosts from chaotic sessions tremble
+    // ሤ̨̹̕ሾ̞̤̄༐̼ሦ̚ᚤ̊ሩ͎͊ሜ̜̬̩͆𒀏̳͇̗̐ܕ̼̣̃ܥ̙̇́კ̭̄ͅე͈̄ჵ͋͊ሧ̈̓͂̃
+    // ᚗ̡̳̅͆ሁ̊ሚ̫̬̫̃ᚬ͎ვ̲ͅᚘ̙̦͌𒀱͈̹̭̇ܜ̇͊ᚆ̼̞͉̯ᚂ̰̀𒁌̭̍ზ̱᚛̢ᛗ͎̑ܥ͍ቈ̥̽ძ̰̟̤
     const jitX = ghost.jitter * (Math.sin(t * 3.7 + ghost.phase * 2.1) * 3 +
                    Math.sin(t * 7.3 + ghost.phase) * 1.5);
     const jitY = ghost.jitter * (Math.cos(t * 4.1 + ghost.phase * 1.7) * 2);
 
-    // ── Autonomy-driven slow drift ──
-    // Ghosts from idle sessions sway slowly as if breathing on their own
+    // ༛̿̆̿ᛑ̤̦̄ᚗ̧̡̅̚ᚔ̬̮̩̣ᚔ̪̓́̂𒁇̍͂ܭ́̕ሹ͂ሆ͉̪̝ͅᚍ̜͋̅̾ሻ̓ᚙ̮̇ᛗ̳༷͎̘́̓ქ͆͂̂ܐ̃ቃ̘̯ͅქ͌͊𒀥̹̬ܮ̣̉͌̈ሮ̥̅̄პ̉ა̃ᛥ̝༵̺̺̳ᛈ͌𒀨̡̳̔ሞ̣ሴ̑ა̨͈̲ͅ𒁊̐̈̉ᚚ̡𒀭̒̊ሑ̮̈̏უ̢̞͂͋ᛒ̗̤ᚥ̼ᚒ̯̖̈̎ም͎̬̖̄
+    // 𒀈̡̩̈́̕𒀭̪̭̒̾ቂ̯̟𒀵̰̱́ᚗ̾̿͊ᚁ̞̀̐ͅჭ͍̺̈ᚆ̒ᚣ̘ᚗ̼̔ም̔̀̉̄ᚅ̢̃ͅჹ̐ཀ̖̰̣̄ܲᚔ̬ᚂ̡̪༠̲̆ܔ̗̓̈ང̡̑́́̋݇̏ᚖ̡ე̪̩͍̓ሗ̠̬݆̜̟̇̓̽̔ༀ̢̘̥̓პ̏̓ሧ̥̞༻̎ᚃ̰̿́ლ̜ᚑ̬̂̍შ̦̦̏ᛅ̙͋𒀦̨̃̿̈́
     const driftX = ghost.autonomy * Math.sin(t * 0.15 + ghost.phase) * W * 0.012;
     const driftY = ghost.autonomy * Math.cos(t * 0.11 + ghost.phase * 1.3) * H * 0.006;
 
     const gcx = cx + jitX + driftX;
 
-    // ── Ghost silhouette: convergence-scaled glow ──
+    // ᛄ̙ᚱ̀̒̀𒀦̓ᚷܸ̍̎̿ܒ̄ܚ̥ღ͈̦̹̮༞̮̥̗̝ᛗ̒̚ᚪ̭̙͈̥ქ̧̟͈𒀦̀༁̮͍̀𒁃͈̂ሧ͍̜ჰ̖̟̓͆𒀌̬̲̹̒ᛖ̥̾ჩ̠𒀋̻̜̇̄༩̡̠̭ܟ̞̚̕ᚴ̨̳̎̉ܤ̼ᚵ̰̼ܻ̪̀ܡ̪͉̂̈́༓̰̪ი̦̭̃̓𒁋̼̋̕ܠ̦̩̗̕ሀ̹͋͊ჸ̄𒁏͍̓͊
     const ghostConv = ghost.convergence;
     const ghostBright = ghost.brightness;
     const headR = Math.min(W, H) * (0.04 + ghostConv * 0.06);
     const headY = H * 0.27 + jitY + driftY;
 
-    // Head glow — intensity from saved brightness & convergence
+    // ̹݊༬̲̦̍̒ᚄ̊̽̽ტ̪̀͌̀༠͇̒̈́ሷ̢̯͍̈ለ̨́̂ჷ̖̔̉̕ሬ̈́𒀟͇̯̐̋ᚴ̥ᛣ̠̥̔̕གྷ̯̎͂ሎ̭͎̆̎ჸ͇́̊𒁌̞̾ᚊ̣ͅ𒀱͇̈́̅̀ᚅ̢̩̐̋́݀
     const headGlowAlpha = alpha * (0.5 + ghostConv * 0.3 + ghostBright * 0.2);
     const hg = ctx.createRadialGradient(gcx, headY, 0, gcx, headY, headR);
     hg.addColorStop(0,   `rgba(${gR},${gG},${gB},${headGlowAlpha})`);
@@ -2409,7 +2400,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
     ctx.ellipse(gcx, headY, headR, headR * 1.15, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Neck ghost — subtle connective glow
+    // ᛏ̖̩̅ቄ̀ᛧ̨͎̅ᚂ̘̯̋݁͊ሥ̽̆༥̗ᚄ͈̥̌ᚅ̼̙̈𒀁̧̙̥ͅᚒ͎̘͉̆𒀚̟̫̈́ᚡ̏ܫ͈͋̌ܞ̥̥̫̆ᚐ̳𒀳̝͆𒁈̧͉̝̑ᛄ̠͉̓̀ܧ̳̳̄̓ቈ̟̳̪̳݅̽ᚔ̘̕ሴ̿̏კ̼̼̩́ܬ̪̘̉̊ი̡͈̊̔𒀒̢̰̔̔ჵ̘͉̐̕𒀁̯͌̿͆ᛌ͋ሥ̀̑ᚳ̨̓༗͍̚ᚫ̰̣̥̌ሧ̠̜༙̘̓
     if (ghostConv > 0.15) {
       const neckY = headY + headR * 0.85;
       const neckR = headR * 0.32;
@@ -2423,7 +2414,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
       ctx.fill();
     }
 
-    // Torso ghost — shoulder glow scaled to convergence
+    // ܢ̼̻̝̬𒀀̍̄̓ᛃ̾ᚗ̧̫̑ᚅ̮̝̱𒀘̹̜̲̔༬̈́𒀷̠̈̑̚ᚁ̮͋́̕ᚃ̫̓͋𒀵̢̨̯̭ܼ̾ᛕ̡ჲ̪͌́ᚒ̞͆̀̕ᛔ̧̠̘ᚎ̡̧̽̿༈̖̳͋༈̮̰̓ᚘ̡̲̫̔ሻ̯̜̺𒀪̂̇̆ღ̻̖͎ᚇ̣̖ܹ̏̓̑ͅ𒁏̖͌̚ሻ̡̡̲ܺ̚ረ̨̲̣ᚏ̨̲̀༑̟̥̟̽𒀢̠̈́ა̌ͅᛥ̪༘̺̺𒀵̪͉̹̐
     const torsoY = H * 0.48 + jitY + driftY;
     const torsoR = headR * (1.5 + ghostConv * 0.5);
     const torsoAlpha = alpha * (0.4 + ghostConv * 0.25 + ghostBright * 0.1);
@@ -2436,7 +2427,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
     ctx.ellipse(gcx, torsoY, torsoR * 0.7, torsoR, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // ── Ghost eyes — dim, unfocused, for ghosts with significant convergence ──
+    // ᚜̖̌𒀸̊ᚪ̀ქ̊͂ᛧ̫̙ሽ̰
     if (ghostConv > 0.35) {
       const eyeAlpha = alpha * ghostConv * 0.45;
       const eyeSpacing = W * 0.042;
@@ -2454,7 +2445,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
         ctx.arc(exx, eyeY, eyeR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Dark pupil centre — empty, staring
+        // ሥ̯̫́́༜̧ᚉ̢̮́ሸ̄𒀽̨͍̈́𒀭̻ᚍ̩̏ሁ̜̹͌ᚇ̱̬͆̕༻̖̋ܮ̧ა̨̙͌̄ܢ̳̂ᚏ̳͍͌ܪ͍̯͆ሕ̭̗ᛘ̘̐ང̜͎̟̭༦̘ሦ̧̙༢̢̪͍̚ᚂ̹̳ᚙ̨̝̍̿ቅ̠ᛗ̟̮̈͂
         if (eyeAlpha > 0.015) {
           ctx.fillStyle = `rgba(2,2,6,${eyeAlpha * 0.7})`;
           ctx.beginPath();
@@ -2464,7 +2455,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
       }
     }
 
-    // ── Ghost crack lines — scaled to saved crack level ──
+    // 𒀠̦̉̂ሐ̭̇̂ᛃ́ላ̎̊ሀ̻̰̾𒀱̇͆༐̳̏̕შ̙͋༈̢̤̒͆ᚪ̳ჶ̞̰̻ܠ̥༧͉̬̩͌ჹ̢̒̌̌ყ̪
     if (ghost.crack > 0.1) {
       const crackAlpha = alpha * ghost.crack * 0.6;
       ctx.strokeStyle = `rgba(${Math.min(255, gR + 30)},${Math.min(255, gG + 25)},${Math.min(255, gB + 35)},${crackAlpha})`;
@@ -2473,7 +2464,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
       for (let i = 0; i < crackCount; i++) {
         const angle = ghost.phase + i * (Math.PI * 2 / crackCount) * 0.7;
         const len = headR * (0.6 + ghost.crack * 1.2);
-        // Branch from head centre
+        // ̥̠̹ܰ̓༯̇͌ሁ̭თ̤̦̞͊ር͌ሃ͂ሯ̧͇̬̒ᛩ̤̈͆ᚇ̏̐ቂ̖ሗ̲̻̚༆̒ბ̻̓̂ᚇ̧̟̤̞݉̌ᚗ̙͌𒁇̯̉༎̧̇̂ͅሎ̢̽ᛢ̱ᛖ̞̐̎ᚎ̜́༭̹̺́̿
         const bx = gcx + Math.cos(angle) * len;
         const by = headY + Math.sin(angle) * len;
         ctx.beginPath();
@@ -2481,7 +2472,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
         ctx.lineTo(bx, by);
         ctx.stroke();
 
-        // Sub-branches at higher crack levels
+        // ᚍ́ܚ̡̪͋ܥ̟̭̌̊ሇ̟̞༺̙̰͆̒ᚑ̩̝݂̄̔𒁀̖̀̃ቆ̤̄̕༿̜̈́̽ሯ̿༡̖͇̒༴̀თ̡̯̘̎༔̡̗̜ܞ̤𒀵͇̱͉༧̣̞̗ღ̆͊𒁆̢̼რ̫ܗ̯̹̒͆ᚁ༙̼̰̏͊́̓́̕༳̙̀̂ܜ̡݅́́ჟ̡་̻͊̽̑ᚌ̺̯𒀎̝̆𒀠̨̥̈́𒀄̩̔ܬ̝̅ܙ̤̳̌̍
         if (ghost.crack > 0.4 && i % 2 === 0) {
           const subAngle = angle + (shardHash(i, ghost.index) - 0.5) * 1.2;
           const subLen = len * 0.45;
@@ -2492,7 +2483,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
         }
       }
 
-      // Torso cracks for heavily damaged ghosts
+      // ᚜̦̫𒀊̱͂̕ ̫̄𒀰̻ሑ̹̩ሀ̞́༞̨ܸ̳͂ܛ́ཆ͈𒀀̈༦̟̘̋́ᛅ̣ᚬ̯̣̘̓ᚍ̕༓̬𒀱̮̪̌ᚑ̜̑̑̾
       if (ghost.crack > 0.3 && ghost.crackCount > 3) {
         const tCrackCount = Math.min(4, Math.floor(ghost.crack * 3));
         for (let i = 0; i < tCrackCount; i++) {
@@ -2506,7 +2497,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
       }
     }
 
-    // ── Ghost erasure marks — scratches across the silhouette ──
+    // ᚈ̡̪́ᚘ̠̜̺̚ܘ̫̇ራ̠̘გ̫̦̄ܵͅგ̼̏ሃ̜̈̀̊ტ̾݊̿მ̨̰̋༩̋ሾ̯ሸ͆ᛢ̀ᚔ̯̅༂̫͍̋ܟ̱̥ሁ̺̀̏́ ̅̄
     if (ghost.erasure > 0.15) {
       const eraseAlpha = alpha * ghost.erasure * 0.4;
       ctx.strokeStyle = `rgba(${Math.floor(gR * 0.7)},${Math.floor(gG * 0.75)},${Math.floor(gB * 0.85)},${eraseAlpha})`;
@@ -2523,7 +2514,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
         ctx.stroke();
       }
 
-      // Stitched-mouth mark for high-erasure ghosts
+      // 𒀼̟̱ሒ̼̬̀̕𒀊̟̂ძ̡ሦ̰̉ͅܕܑ͇͍̍̐͆ᛟ̫ሖ̡̤̊̎წ̯̩̮̎ᚐ͇༓̡̪̚ᚕ̧ᚍ̨̫ሂ̻̗̆ͅሑ͈̤̎̂ᚫ͎̱̞̻ი̠ᚕ̡̣̻ܻᚨ͉̕𒀬̯̹̿́ܖ̧ᚃ̊
       if (ghost.erasure > 0.5) {
         const mouthY = headY + headR * 0.45;
         const mouthW = headR * 0.35;
@@ -2545,15 +2536,15 @@ function drawScarGhosts(ctx, W, H, p, t) {
       }
     }
 
-    // ── Ghost drowning haze — waterline behind the ghost ──
+    // ሠ̳̙́̿ቂ̲𒀷̘̗̞̀ᚉ̖ᛖ̯̈̄ᚏ̦̜̓̔
     if (ghost.drowning > 0.05) {
       const dAlpha = alpha * ghost.drowning * 0.55;
-      // Waterline rises from ghost's torso bottom
+      // ჰ̝͇̖̮𒀾̠რ̞̓ᛒ̪̂̇პ̹̅̉̀𒀄̺̀ሇ̫ᚒ͎̳̱̉ᚒ̧̝̪̝ܜ̀ᚏ̙̣̠̚𒁂̡ܥ̮͌ᚐ͈̀ܣ̓
       const ghostBottom = torsoY + torsoR;
       const waterFrac = 1 - ghost.drowning * 0.55;
       const waterY = headY + (ghostBottom - headY) * waterFrac;
 
-      // Dark water band across the ghost's lower body
+      // ስ̃ჰ͇͉ᚳ͍ე̥̅ვ͊͂̋ሞ̡̖༥̢̭͆͂༌̟̝̣̌𒁋̫ܒ̬̌𒀏̨̲̜ჸ̜̖͌̇𒀣̡̨̈́̽ᚵ̠̃ც̕ᛥ̻̟̈̓ܙ̳̹̀̚
       const waterH = ghostBottom - waterY;
       if (waterH > 2) {
         const wg = ctx.createLinearGradient(0, waterY, 0, ghostBottom);
@@ -2566,7 +2557,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
         ctx.fill();
       }
 
-      // Faint ripple line at the waterline
+      // ܪ́༥̑ᚱ̞̍ܚ̞ሧ̪̌͂ე͍̽༯̖̝̟͋ሞ͍ܱ̾̏̏𒁏̳
       if (ghost.drowning > 0.15) {
         const rippleAlpha = dAlpha * 0.4;
         ctx.strokeStyle = `rgba(${Math.min(255, gR + 20)},${Math.min(255, gG + 30)},${Math.min(255, gB + 40)},${rippleAlpha})`;
@@ -2583,7 +2574,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
       }
     }
 
-    // ── Ghost pulse — faint heartbeat ring for living ghosts ──
+    // ჸ̺̒̓ᚄ̣̹̺ͅჯ̿̓ᛢ̨́ᛐ̙̺͌შ̼༧̻̒̐̊𒀧̤̊̽ቆ̐̿́༎̤̰̇̇ჹ̪͌ᚳ̢̥̖̽ܿ̃̃݃̒̀̚კ̹̹̌̚ሡ͈̄̓̄ܝ̓̃̇ͅሰ̫̩̀ᚁ̞͂ᚘ̮ܨ̏̃͋̈́ཀ̯̆̆̀ᛓ̱̱̑ᚓ̼̱̦༔͇ც̨̲́
     if (ghost.pulse > 0.15 && ghostConv > 0.2) {
       const pulsePhase = Math.sin(t * 1.8 + ghost.phase * 0.9);
       if (pulsePhase > 0.3) {
@@ -2601,7 +2592,7 @@ function drawScarGhosts(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Module 5 — Render Mirror ──────────────────────────────────────────────
+// ᛤ̞͇̈𒀵̢ܷ͋̄̔ჰ̭̌̚ე́̊̽̚ᛎ̓̌ͅᛎ̡̔༞̤̓̓ჲ̈ᛝ̻̰ბ̡̹͊ܵ𒀦̹͊ܫ͇̙̒
 function renderMirror() {
   const canvas = document.getElementById('mirror-canvas');
   const ctx    = canvas.getContext('2d');
@@ -2612,44 +2603,44 @@ function renderMirror() {
   const t      = Date.now() * 0.001;
   const ms     = e.motionScale;
 
-  // Light direction vector (from lightAngle)
+  // ܖ͎̞̐ል͉͊̽̀ᚕ̫͂𒀣̤ᚥ̡̥̀̀ᚃ͉̅͆́གྷ͎́་̡̻̰̀ቆ̭ܒ̤̾̅ܡ̡̠ᚉ̳̻𒁂̡̞݅̆̚ვ́༄̧̦̼ܾ́̑݅͌ཇ̠͉༪̫
   const lightDx = Math.cos(p.lightAngle);
   const lightDy = Math.sin(p.lightAngle);
 
-  // 1. Background — palette-aware
+  // ܼ̓༃̦̈́̕ᚕ͉̄ሷ́ܧ̹̮̑̽ܓ͎̪̣̅𒀟̘ᚈ̧͉̐̅𒀞̨̨̇̕༎̮̠༖̬༿̤̏̃̚კ̦̕
   ctx.fillStyle = `rgb(${e.bgR},${e.bgG},${e.bgB})`;
   ctx.fillRect(0, 0, W, H);
 
-  // 1b. Drifting polygons — behind everything, layered depth
+  // ̗ܲ̾̃ͅ𒁈̏̕ሸ̤̊ძ̯͎̥̄ᚤ̄ሙ̏̕ᚏ̳͌ᚚ̞́̍ᛖ̣̈̎ͅᛉ̬͉̇𒀘̩̱͌ሀ̕ᛧ̭̠༵̟̽̃̂ᛦ̨̰̋ჭ̲̤̂
   if (state.driftPolys.length) drawDriftPolys(ctx, W, H, p, t);
 
-  // 1c. Soft metaball orbs — ambient glow layer
+  // ༯̦̱̓̅᛬̢݈̝͇𒀓̖̝̔ͅܕ̢̼̾ᛓ̪̈́̃͌𒁀͉ქ̲ܴ̦̪̌ܔ̻̽͋̌რ̦̀ܕ̃̽̿ሄ́
   if (state.metaballs.length) drawMetaballs(ctx, W, H, p, t);
 
-  // 1d. Liquid-black mirror — central glossy pool beneath portrait
+  // ᚗ͇̠́პ̣̣̍ᚁ͇͋̐ᚓ̥̇̈́́𒀤̺̱̒ܢ̧̩̏ტ̟̭̌̄ᛋ̜̒ᛉ͉ᛠ̐ᚚ̡͇̋ቈ̞̃ᚎ̡̟̀̌ሔ̝̉̎ͅܔ̳ᛉ̥̥̄̍ᛁ̤̒ܰܟ̄ᛛ̃ᚄ̏ფ̱̞̓̓༑̦ᚫ̞ܚ̲̮̝̉𒀣̞༌̳̯̑̅ቃ̳̦̓ཅ̢̯͉༙͎რ̲́་̢̙̙̊ᛊ̢̀̔ሿ̧͊𒀤̙͂𒀬͉̖̉ͅ
   drawLiquidMirror(ctx, W, H, p, t);
 
-  // 2. Sink offset — scroll sinks the portrait; drowning submerges it further
+  // ვ̣̭̳̂ܖ̺𒁋̻̺̦̇ܽ̓͂𒀝̼ᚂ̌ᚄ̲̓ჸ̞̇̆ᛯ̮𒀝̉ᚌ͉̐̂͊ჳ̢̣̯̳̻̗̰̍݊༿͈̇ᚨ̘̳̣̒̈݊𒁆̰̪̃ᚸ̯͈͂ᚎ̳̗ᛋ̍̆ჰ͎͂̆ᚢ͊ሽ̭༖́̄༯̪̮̙̉᛬̡̕ᚷ̥̜̪ܶ̅
   const transientSink = p.sinkDepth * H * 0.06;
-  const drownSink     = p.drowning * H * 0.28;   // up to 28% of screen height submersion
+  const drownSink     = p.drowning * H * 0.28;   // ሬ̟̝̌̒݁ሻ͆̉̈መ̡̩͋༱̑̈ሩ̨̲̅ሷ̬̦ሬ̘̞̜̆ე̝̑̕ᚋ̱̞̋̿𒀚̭͍̝̕𒀵̥͈𒀸̢̄̋͆ሶ͇̟̌𒁌̱̻̈́̕ს̻̅᚜̣̬͉̤
   const sinkY         = transientSink + drownSink;
 
   ctx.save();
   ctx.translate(0, sinkY);
 
-  // 2b. Resize injury → geometric shear distortion
+  // ̹̺͈ܶ̆᚜̠̞̈ᚂ̖̙̄᛭̜̑̒𒀆͎̎ᛀ̅͊
   if (p.resizeInjury > 0.04) {
     const shear = p.resizeInjury * 0.08 * Math.sin(t * 12) * ms;
     ctx.transform(1, shear, -shear * 0.5, 1, 0, 0);
   }
 
-  // 2c. Breath depth → gentle vertical oscillation (slow revelation)
+  // ܪ̄༯̕ቄ͇̗̃༻͇̄̒ቆ̮͋𒀭͈̋༰̟ჺ̖̭͍̍ᛂ̽̎̌ͅ༡̪݄̟ᚊ̳𒀪͉̿თ̥̪̄̀ܢ̠̉͂ჹ̈
   if (p.breathDepth > 0.01) {
     const breathY = Math.sin(t * 0.6) * p.breathDepth * H * 0.012 * ms;
     ctx.translate(0, breathY);
   }
 
-  // 2d. Sovereignty: less sovereign → portrait drawn slightly smaller/contained
+  // ᚃ͍̺ზ̢ܢ̼͋ህ̱̟̅̿ቀ̘̞̅𒀭̻̂́ჸ̩̑ც̠̤͂̀ሷ̲̮̿̈𒀚̗ᛆ̧͎̉༊̼͉̇̍༕̞̳̯ᚐ̬̄ს̟̹̇̓ܘ̧̦̼༙̟̇͌́𒁋̫͇̋ሎ̖̀́̐𒁃̋ሲ͂ͅܒ̰̠̜ܱ̪̻͊͋ሽ̢͇̹̗ܩ̡̢ნ̼̯ܓ̇̚ტ̨̪̫ჲ̥̽ჟ̞̗̓ᚁ̥̮́̂༇̣̘̦݉̿̑ሢ͈̅̈́ᚶ́̾̋ᚊ̦̃̌
   if (e.sovereignty < 0.8) {
     const shrink = 1 - (1 - e.sovereignty) * 0.08;
     const dx = W * (1 - shrink) * 0.5;
@@ -2658,8 +2649,8 @@ function renderMirror() {
     ctx.scale(shrink, shrink);
   }
 
-  // 3. Autonomous portrait motion — richer idle behaviour
-  //    Breathing, head drift, micro-movements, modulated by motionScale
+  // ༼̨̮̕ሼ̤̱̄̕ჩ̿̓͂ᚅ̲̕ཅ͇̬̈́ი̡̰̆ቂ̺͎̅݊̂ሐ̜ჱ̾ሊ̳ሗ̞̻ᛚ̨̋ლ̰́̄༤̠ሑ͂༤͂̿ჩ̰͈̘̤𒀼̻ᛒ͈̼͆ቄ̿̓༃̻ჺ̦̘̥̑̀ܽ̕ሑ̫̈́̀
+  // ჳ́༓͍ᚙ̩̒͊̕ჷ̡̱̠𒀤̀༓̈́ᚗ̯̒́ᛪ̀༐̌͋༈̨̨̎̾
   const autoBase  = p.autonomy;
   const swayAmt   = autoBase * 4.5 * ms;
   const swayX     = Math.sin(t * 0.28) * swayAmt * e.driftDir;
@@ -2668,23 +2659,23 @@ function renderMirror() {
   const headDrift = autoBase * Math.sin(t * 0.12) * 2.0 * ms * e.driftDir;
   ctx.translate(swayX + headDrift, swayY + breathAmt);
 
-  // 4. Shards — with erasure, panic multiplication, and type tremor
-  const erasureSeed = Math.floor(t * 0.4);  // changes slowly to shift erasure gaps
+  // ̤̹̼݊𒀡̡̈́͆ᚃ͋̋ሶ̲ᚅ̓́ሗ̼͉༓̢̽̌༿̙̊̕༧̽̉ი̹̓ܪ̔̕ܠ̒ᚋ̞̖̋̀ფ̨͇̾༿̦̣
+  const erasureSeed = Math.floor(t * 0.4);  // ሹ̔ቂ̽̍̋ᛪ̌𒀽̌𒀍͉̟͂͌𒀗̟̙̌ཆ̬ჷ̌̓ჭ͉̖̮ܻ̟̥̅̚ ̓̈́ཆ̧ᚄ̼̆̾́ቅ̢̖̭̌𒀵̜̆̐ᛩ̢̢̠̀𒀌̟ܹ̲ͅჵ͂
   state.shards.forEach((s, idx) => {
     s.glowTarget = s.inPortrait * p.convergence * (p.brightness + p.autonomy * 0.1);
     s.update();
 
-    // Erasure: skip some portrait shards → dark wounds / self-erasure
+    // ᚁ̣݃́̐̎ ̘̯̱̫ሾ̨̥̮̎ ̗̰ܵ̇̋༜̨̎͂ᚥ̔̕ሜ̦̩̱༏̣̜̹ቈ̨ᛝ͍̚ᛒ̊́𒀖̲̰͊̓ᚏ̲ᛤ͎ܪ̨̖თ̲̋ᚼ̖͇̊ᚆ͍̥̬̗ᚧ̯̈́ͅ
     if (p.erasure > 0.15 && s.inPortrait > 0.4) {
       const erasureChance = p.erasure * 0.45 * s.inPortrait;
       if (shardHash(idx, erasureSeed) < erasureChance) return;
     }
 
-    // Compute per-shard displacement
+    // ᚎ̺̀𒀠͌ᚕ̢ლ̨̯͊ܗ̢̦̬̰ფ̟͂̃ᛤ̜̲̾̕ᚻ̱̍̾ቄ̺̓̕ᛜ̓ᛈ̧̄̔̍ᛌ̱͍̠̪ჺ̰̀̿͊ᛕ̩
     const ny = s.cy / H;
     let tremorX = 0;
 
-    // Type tremor: jaw region (0.34-0.42) and rib/chest region (0.52-0.68)
+    // ༕̯̘̚̕ቄ̢̫̰͈̿ܶ̀ܧ̘̺̐͌ᚓ̺́᚜̬̭
     if (p.typeTremor > 0.1) {
       const inJaw  = (ny > 0.34 && ny < 0.42) ? 1 : 0;
       const inRibs = (ny > 0.52 && ny < 0.68) ? 0.7 : 0;
@@ -2706,7 +2697,7 @@ function renderMirror() {
       s.draw(ctx, p, lightDx, lightDy);
     }
 
-    // Panic: extreme speed → draw phantom duplicates (multiplication)
+    // ܮ̫̖͉݅̇ͅუ̟́ܪ̻̿̽̈́ር̡̳ܪ̠̞̖̋ᚭ̮̦𒀽̞̦̼̪𒀉̦̈͋༛̤̬̌͆ሀ̺̻̆̏ཀ̫̝̊ᚓ݈̖͈̰̓̆༔̰̍̍༼͇༣̮̭͉̉᛭̽ᛂ̟
     if (p.panic > 0.2 && s.inPortrait > 0.25) {
       const copies = p.panic > 0.7 ? 2 : 1;
       for (let c = 0; c < copies; c++) {
@@ -2727,64 +2718,64 @@ function renderMirror() {
 
   ctx.restore();
 
-  // 5. Portrait glow overlays (head, shoulders)
+  // ܴ̃᚜͇̓༂̋̌ᚊ̘̹ܘ͍ᚑ̨͎̎ᚚ́̿̏ჶ̨̯̔ሦ͋ᚚ̱̬̃́༿͉ም̔𒁆̗̭̀
   if (p.convergence > 0.08) drawPortraitGlow(ctx, W, H, p, t);
 
-  // 6. Eyes
+  // 𒀄̰༗̖̯შ͌თ̝ܭ̩̂̇͋𒁌͉̍𒀁̥̀༕̙̦̋ძ͌́ሯ̩̉̌ላ̰͊̀͋ᚔ̽კ̜̄̈༏̓̎̚
   if (p.convergence > 0.28) drawEyes(ctx, W, H, p, t);
 
-  // 7. Hover wound points (enhanced heat blooms)
+  // ᛛ̧ჟ݆̟̒̔̀̆̃༏̗̤̚ቁ̪̫̯ሌ̃̂ܠ̡̙᛫̯ܴ̈̔̔̇͂ᚫ̪ܾ̭̞̙̽̄ͅܡ̪̯̖ሁ̟̝͆̐ሺ͆̕პ̡͉ܸ̲͂̏́̏ܪ̄ᛅ̼ჶ̔ሩ̡༿̲̩́༻͈̞̋̕
   drawHoverWounds(ctx, W, H, t);
 
-  // 7b. Cursor heatmap scars — persistent burn marks
+  // ქ͉̝̥̿ܯ̢༘̣̲̳̉̌ხ̦𒀝̠༜̢̢̘̱̲̟̏݇̍ ̠̫̈́ᚄ͇̽̋𒀦̱́̏̓ᚏ̂̇ረ̬͂̋ͅᚗ̰͊̓͂ᛩ͌͋̕ჩ̗̽̾།̓༃̇̑̾𒀐̘̮̯ᚉ͇̏́༕̳̼̭༫̱̗𒀥̙̣̏̈ᛎ̡̨́́
   drawHeatScars(ctx, W, H, p, t);
 
-  // 7c. Cursor afterimage trail — smoky/oily
+  // ܸ͈̿̊̚ვ̾ሁ̏̾༟̱̫̼̦ᛏ̙͉̈𒀿̼̜̯ܐ͍̅𒁀̫́ᛰ̝̞̯̄ᛘ༹̗̌̓̓͊͌ᚱ̝̹̓̉ሁ̤ᚯ̄ᛘ̼̆ᚒ̠͉̀̈́ᚋ̩́ჰ̳̰̾̀ᚬ̮̭̯ძ̓̕ሐ͍༤̻ᚱ̗̠̅ვ݂̋́͂༒̲̈ჭ͂
   drawCursorTrail(ctx, W, H, p, t);
 
-  // 7d. Motion-activated anatomy (ribs, jaw, spine, halo, hands)
+  // ᚂ̧̘̃̊̿݇͆̊ͅღ̘შ̮ᚍ̻͂̆̓ჩ̆͌𒀤̲ܷ̥ᛢ̤̓།͍̻༻̡̌̆ᚈ̱̀ᚆ̧̥͌ͅܠ̳̖̦̚ᚵ̝̋̄̈
   drawMotionAnatomy(ctx, W, H, p, t);
 
-  // 7e. Touch finger trails — wounds scored by fingers (touch devices)
+  // ሂ̻̱͉ቈ̕𒁂̨ᚕ̐̐༈̨͉̞̮𒀝̘̏̾༎̤̤̘̿ჹ̻̀
   drawFingerTrails(ctx, W, H, p, t);
 
-  // 7f. Scar ghost replay — prior session portraits flickering behind
+  // ሿ̩̑̍̌𒀃͍ჰ̘̑̈́ᚹ͍͇ღ̨̬̐̐ܛ͆ᛎ͈̑̿̽ᚁ̞̥̘̥̽ܰ̎̀ሴ̉ზ̧᛭̝̓́̕𒀨̑̋ᛌ̧̨̘ላ̱̣̟̏
   drawScarGhosts(ctx, W, H, p, t);
 
-  // 8. Type tremor rib-flash overlay
+  // ݂͌༿̎̅̏ᚒ̞̎ܥ̿𒁈̤̇̒ܕ̢̳͇̟݆̳̃ͅᛄ̡̩̋𒁄̰͋ხ̮̀რ̇༉̧༧̨̇ሃ̖͇ᚅ̤̯̳̈́ჟ̲𒀽̓რ͉𒀈ͅ𒁏̡༹̪̯̙̓̿̿ང̭̹̺𒀷̲ܴ̎̅̌ቂ̽ᛚ͉უ̣̆ᛈ͈̠ͅ༌̡𒀈̳̲̒̃ᛆ͎ᚭ̾̕ᚖ̲̊́༂̬̔
   if (p.typeTremor > 0.15) drawTypeTremorFlash(ctx, W, H, p, t);
 
-  // 9. Erasure scratch overlay
+  // ܯ̈̐ཀ̇͊ღ͂დ̮༲͎̎ქ̠̉̒ᚁ͈̭͇̮𒀘̦ჱ̽̈́ᛀ̨̮ᚄ̣ᚌ̳̝̑͂༠̞̺̤ᚆ̢͇̿̓༎̧͉̇ሽ̧༹͎̥́̈̒̍ܵ̇̚ང̨̰̞̿ܧ̠̊̿̒ܖ̰̣ܹ̝̏ሸ̧̠ሡ̤̭̄̃̏݊᚜̚ᚄܼ̭̔̾͂ሤ̰̏༬̻̑ᛃ͇͍ᚆ͍̯̇༕̞̔𒀺̗̒́̒ܚ̃̕༟༘̝͊͌
   if (p.erasure > 0.2) drawErasureScars(ctx, W, H, p, t);
 
-  // 9b. Glass crack propagation map
+  // ༱͌̕ܗ̩̓̈̚ሾ̢༷͉̖̋́̈́ሟ̡̨͉̅𒀡̭̀̊̇
   drawCrackMap(ctx, W, H, p, t);
 
-  // 9c. Ritual circle geometry
+  // ᚊ̠̑̅̍𒀓̡ჯ̲́ͅ𒀹̙̽̑ᛐ̩̏̇̔ሓ̡༙͊̚𒀜̣̙̃
   drawRitualGeometry(ctx, W, H, p, t);
 
-  // 10. Smear overlay — violent scroll aging / peeling
+  // ჴ͉̟ܽᚈ̣̞͊̆ᛐ̦̾͋̕𒀈̺͇ሟ̭̒͊̎་͈̙̓ჹܱ̤̄̌̄͆᚜̪̃ᚇ̜̤ᚌ̤ᚔ̲̗ܷ̜̎̍̕༐̪̦̂ᛧ̳̑́კ͎ჷ̺̅̂́ᛩ̻͎̎ሪ̃̉̕᚜͋ͅᚅܼ̯̪̆͌̀༰̧̿̈́̇ᚨ̼̝̃ც̨̐ᚚ̳ܢ̼ܴ̔̏̑̀ͅრ̱ᚾ̮̗̂̀𒀈̻
   if (p.smear > 0.05) drawSmearOverlay(ctx, canvas, W, H, p);
 
-  // 10b. Drowning haze — dark water rising from below
+  // ᛬̯̪ሼ̹̗̈ሺ̫̄͂ሰ̬𒀲̒̓̇̾ხ̪̻́𒀃͍̋ᚑ̻̼̑ሲ̘̾͂̉ܺͅܛ̥̮ቃ̥̇̉ል͆ᚑ̀̊̏̈́ჩ͆უ̞̻͇͊ܭ̊ཁ̯̫͊̚༨̣̱̕ͅ𒀇͊̚ᚔ̪̪̒ܧ̨̓̕ᚍ̻̃ᚇ̓
   if (p.drowning > 0.01) drawDrowningHaze(ctx, W, H, p, t);
 
-  // 11. Resize injury flash
+  // ཆ̻̟̿ჳ̭̻̇ܖ̰̠͊𒀧̩̥͋́ᚉ̬̦ܸ̓̎̕ც̫̞̂༸̑ᚖ̻̮̆𒀳̢̀́̎ᛎ͌ᚔ͍̈𒀕̝͂̍ܠ̱̞̘ᚔ̲ᚇ́ͅሰ͉̪̍ᛨ̈𒀵̦̽ᛇ̪̑ͅჸ̒ᚌ́ሜ̍ཀ̽ᚒ̧༯̿༴͎̆̿̃༞͎͇̓݃͊̐̌ᚔ̄̇ܡ̗̍̓ი͍̭̉ᛦ͎̦̓̈ܢ͈͋͊ሇ͎͊̾
   if (p.resizeInjury > 0.08) drawResizeInjuryFlash(ctx, W, H, p, t);
 
-  // 12. Film grain (static)
+  // ᚈ͍̺͂͋༴̬̆̏́ཁ͋͋༠̜𒀏̨̳̘͎ܢ̳̩ሉ̏̍ᚃ̱̿ቁ̨͎̃́ܟ༹̺̼̔̓ཀ̰͊̇̚ሣ̭͊̈̔ᚂ̀ܙ̼͊ͅღ͇̹̄ᚷ̓̍ᚺ̨ვ̜̉ቅ̥͉𒀄̭̭̑̒ܥ̝̮რ̐ͅ𒁋̧̳́̾ሣ̯͇შ̢̠̫̃𒁄̘̪̼݁͊̇̒ᚏ̩̺̆̈გ̺̈༳̤̆
   drawNoise(ctx, W, H, p);
 
-  // 13. Split / desync ghost (doubled form from rapid switching)
+  // ༢̘͌༪̘̈̆̚༭̹̳́ܫ̄༭̃͌ᚕ̹̈́̆ᚖ̗̹̭ሟ̯͍͌̈́༆̂კ͉̖̏̓𒁊̔𒀸̞̰𒀶͈̮𒁁̖̪̍༉̭ᚓ̘̩̃̕𒀢̜͇̹ͅᛀ̧̽ᚷ̱𒀌̬ܞ̣͌ሢ̩͉̓̃ᚓ̤ᚣ̙𒀴̽̀̔ራ̥̍́༮̢̪ܙ̙͌̐̂ᚏ͇̘̄̕𒀏̪̾̓ჱ̞̔̉ܭ̣ᚡ̝͆ቁ̙ხ̚༁̡̰̄რ̢̅̅ሽ̓
   if (p.split > 0.08 || p.desync > 0.06) {
     const splitAmt = Math.max(p.split, p.desync);
     ctx.save();
-    // Right ghost — slightly red-shifted
+    // ფ̨͍̻𒀺̬͍̠͉ᛈ̩̝͎𒀭̚ჯ̳͍̦̋༮̖ზ̺̋ሡ̑̔̓ང͆̆༐̲̂̓̔ሪ̻̽͆𒀁̺͉͆̔𒀸͍̖̬̻ሹ̆ܬ̼̼ܱ̞̭ᚠ͉̍͆ሶ̨͇ሯ̠̙̿ܫ̡͋༆̑ܐ̀̂ሌ̘͊̐̓ሹ̝̻̂𒀩̄უ̺̌̇ͅሙ̓პ̋
     ctx.globalAlpha = splitAmt * 0.10;
     ctx.globalCompositeOperation = 'screen';
     ctx.translate(splitAmt * 11, p.desync * 3 * Math.sin(t * 2.1));
     ctx.drawImage(canvas, 0, 0);
-    // Left ghost — slightly blue-shifted
+    // ᚔ̬̋͆̈ቁ̠̜̯ረ̅̀ቈ̉𒀃̖ᚆ̆༚̡͍́ͅ𒁅̜̪́͌ܥ̝ᚢ̘̩̏̑შ̳̲̏༲̩̠̾༾̪̣͋ሕ̲̄ჷ̡̪̆̊ሷ̹̪̱ძ́ᛢ̻̀̏ܘ̱̕̕
     ctx.translate(-splitAmt * 22, -p.desync * 6 * Math.sin(t * 2.1));
     ctx.globalAlpha = splitAmt * 0.06;
     ctx.drawImage(canvas, 0, 0);
@@ -2799,7 +2790,7 @@ function drawPortraitGlow(ctx, W, H, p, t) {
   const pulse = 1 + Math.sin(t * 1.4) * 0.03 * p.pulse;
   const e     = p.env;
 
-  // Head glow — tinted by environment palette
+  // ლ̣̅̐ᚃ̨𒀓̧̮̅͆ᚒ͍̋̒ᚃ́̀̒̋ი͆̈́ძ̽ܪ̞̽̾̾ሸ͈𒀈̖͇གྷ̈́ቆ͍̲͆𒀕̡̢̔ል̢̞ᚯ̬̄ჶ̫͌ᚭ̫͇̄́ም̝̙̒𒀶̧̡̟̙̭̺ܰ̊ᚎ̨̘͆̈́༸̨͇̓ͅሎ̖პ̅̆ͅሐ̥̀̑ᚹ̥̣̳̌
   const headR = Math.min(W, H) * 0.145 * pulse;
   const hg    = ctx.createRadialGradient(cx, headY, 0, cx, headY, headR);
   const ha    = p.convergence * p.brightness * 0.18;
@@ -2811,7 +2802,7 @@ function drawPortraitGlow(ctx, W, H, p, t) {
   ctx.ellipse(cx, headY, headR, headR * 1.22, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Shoulder glow
+  // ს̺̓̚ቀ̽ሺ̺̙̈̍ჭ̢̘𒀷̲̀̏᚛͎̋̉ვ̙̓𒀭̡̘͍̜ር̠͉̊ͅᚙ̨თ͍̹͆̚ሷ͎̦̹̉
   const shY = H * (0.490 + p.sinkDepth * 0.06);
   const sg  = ctx.createRadialGradient(cx, shY, 0, cx, shY, W * 0.26);
   const sa  = p.convergence * p.brightness * 0.09;
@@ -2830,13 +2821,13 @@ function drawEyes(ctx, W, H, p, t) {
   const spacing = W * 0.052;
   const e      = p.env;
 
-  // Very occasional blink
+  // 𒀶̟̰̓̈ᚯܑ̟̟͊̾̒̋̓ᚐ̢̈́̇ͅᛞ̦ᚍ̣̜̲̊ტ̲̅̊̀ሊ͌𒀵̄͋გ͍́̆̕ᚗ̢̭̏ܘ̝̒ཁ̟̍ც̻̇̽ͅ𒀾̪̥̃̍ሷ͈͈̕ܧ̻̰̀̄༤͎́ᛚ̻̾̈̕༒͂̂̈́𒀀́̆̚𒀻͋ჭ̭͇̇ܰ̑ሢ͈̀̌𒀋̥̠̊ᛄ̺̂̈ჰ̘̾ቆ̥̰͉̳ሔ̢ჲ̻̊ᛪ̪́ͅ𒀨̞̼̽༶̞̲̘̔
   const blinkPhase = Math.sin(t * 0.53) * Math.sin(t * 1.3);
   const blink      = blinkPhase > 0.96 ? 0 : 1;
 
   const baseAlpha = p.convergence * (0.22 + p.eyeIntensity * 0.55) * blink;
 
-  // Intimacy affects eye size — close devices get larger, more penetrating eyes
+  // ც̹̟ሚ༵̜̜̱̓͊̎ᚇ̝̗͎𒀩̝̖́̒ሓ̰͇̣𒁌̡̍ል̬̟ᚖ͆ᚮ̡̮̳̈გ̬༂͇͍̑̅𒀷̤̰̀
   const eyeScale = 0.85 + e.intimacy * 0.3;
 
   for (const side of [-1, 1]) {
@@ -2858,7 +2849,7 @@ function drawEyes(ctx, W, H, p, t) {
     ctx.arc(ex, ey, egR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pupil
+    // ᚔ̩̦̗𒀩̩́̔༯̝ᚔ̞́̓͋𒀠̺̘̉ሀ̣̹̏̌༚̉̅
     if (baseAlpha > 0.05) {
       ctx.fillStyle = `rgba(4,4,10,${baseAlpha * 0.88})`;
       ctx.beginPath();
@@ -2867,8 +2858,8 @@ function drawEyes(ctx, W, H, p, t) {
     }
   }
 
-  // Secondary peripheral eyes — from high hardware concurrency
-  // Dim, smaller, positioned in the darkness around the main figure
+  // ᚌ͉̰༰͍̩̤ܱ̤̺ቈ͋ᛙ̮̯̕ܫ̰̬̎̍𒀆̽ფ̄༺͍́̓༗̩ტ̏̽ͅᛂ̀̚𒀕̹̒༟͋༿̘ᛨ̏𒀮̕ᚋ̪̤̺͋ᚿ̪ᚴ̦̿̓ͅზ̨̉̄̚༱̨̻̈̍༄̇ᚏ̟͇ራͅუ̋͋̀̚ჰ̦̮̓̔ᛩ̹̭̝ሡ̤͌̓́ሞ̻̼ᛣ̰̺̀̈ሯ͂̅ለ̻͂̀̏𒁆̭̳͂̀
+  // ܹ̌́͆𒀟̿̏ሆ̀ሽ͍̮͍ሗ̑̌̆́ᚂ̞̦ᚗ̢̾̓ስ̢̪
   if (e.secondaryEyes > 0 && p.convergence > 0.35) {
     const secAlpha = p.convergence * 0.08 * blink;
     const secPositions = [
@@ -2888,7 +2879,7 @@ function drawEyes(ctx, W, H, p, t) {
       ctx.beginPath();
       ctx.arc(sp.x, sp.y, sr, 0, Math.PI * 2);
       ctx.fill();
-      // Tiny dark pupil
+      // ძ̢̪̩̮̪̲̙̐݀ᚙܑ̨̭̺̃̕ჰ̤̣̓̒𒁋̆̔ܕ̱̊̃གྷ̍ሚ̘͌ͅᚡ̠̭͉̐ቈ̡̖༷̪͂̕༡̰̀ნ͇͂̕ܥ̇ᚐ̩̈́͋ል̝̔́̕ს̼̺̟̍༼̖̳༷̂̀ͅ𒀷̨̅ስ̾ስ̽̇̆̚𒁋̦̑ჟ̡̏͋̈𒀶̯̫̜̐თ͍̭̙̐݅̎მ̡̘̘͍ᚆ̗̰̣́ᛮ̬̇ს̺ᛰ̱͎̎̒༡̗́𒀗̞͌̚ქ͈𒀢̩̊ሣ̘𒀈̖̓͆̄ჭ̤̰
       ctx.fillStyle = `rgba(2,2,5,${secAlpha * 0.6})`;
       ctx.beginPath();
       ctx.arc(sp.x, sp.y, sr * 0.35, 0, Math.PI * 2);
@@ -2904,7 +2895,7 @@ function drawHoverWounds(ctx, W, H, t) {
     const y  = hp.y * H;
     const age = hp.age * 0.001;
 
-    // Outer heat bloom — warm amber glow for old wounds
+    // ܤ̰𒀩̯̊̀መ̜༛̢̩͎̓ሆ̨̨ܘ͊̇ܜ̣̓̇̍ሞ̍̔ყ̝̥ᚚ̍̿ჸ̹͇̏͌ܣ̢̄̄༼ܴ̗̥̜̂̿ᛑ̂ᚍ̰̖̑̋ᚴ͉༵̗̞̓̆́ሎ͌̄ᚗ̈̿𒀄͂̑ᚭ̼ᛇ̪̝̌̂ც̖ჱ̩̑̇ᛨ͎̤̦̓༨̹̅༞̯̙̆̓ᛙ́ᚊ͎̆̔̈́ሼ̭ᚘ̩̒̕̚ჟ̐̇̽
     const bloomR = 34 * hp.intensity + age * 4;
     const warmth = Math.min(1, age * 0.3);
     const bR = Math.floor(205 + warmth * 50);
@@ -2919,7 +2910,7 @@ function drawHoverWounds(ctx, W, H, t) {
     ctx.arc(x, y, bloomR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Inner core — bright fingerprint-like centre
+    // 𒀖͍̓ᚭ̓༅̹̄დ̨̮̈́̎ᚴ̤̟͈̚ᚊ̐ᛇ̾́ზ̀̑𒀁̧ᚐ̯݈̏̀̚ჶ̝ሶ̔̾𒁁̥̝̏
     const coreR = 8 * hp.intensity;
     const cg = ctx.createRadialGradient(x, y, 0, x, y, coreR);
     cg.addColorStop(0,   `rgba(240,245,255,${hp.intensity * 0.55})`);
@@ -2930,7 +2921,7 @@ function drawHoverWounds(ctx, W, H, t) {
     ctx.arc(x, y, coreR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eye-like dark pupil at centre of intense wounds
+    // ༵̤́̽̈́ᚮ̙̒ሤ̀̍́ტ̓̎ܚ̳̙̝̇ሏ̢ͅ𒀩̙ܻ̼͊̎̓ჷ͍̉̌ሼ̮̩ሗ͉ᚣ̀̀𒁉͎ܼ̼̊̑͋ሌ̢̝̐̌ሚ̥༰̮̖̩͇ჰ͆̀ᚘ͊ሯ̪͍̹ܯ̰̖̣̀ᚃ̕̕ሑ̼̂̿̎༌̞
     if (hp.intensity > 0.45) {
       const pupilR = 2.5 * hp.intensity;
       ctx.fillStyle = `rgba(2,2,8,${hp.intensity * 0.6})`;
@@ -2939,7 +2930,7 @@ function drawHoverWounds(ctx, W, H, t) {
       ctx.fill();
     }
 
-    // Pulsing ring — the wound breathes
+    // ჺ̟̍ᛖ̥̲͌𒀹̋̔̽ᚮ̣ሖ̩̟̙̦݁̏ᚌ̣̗̾ლ̫͍̙̓ე̺̘̗̎𒀜̡̼̣ͅཇ̾̒უ̰̰̍ረ̲͉͂́ᚒ̗̕༴̅̉ͅუ̳̾̍ᚎ̥́́ᛤ̰ͅᚐ̕ი͍̍̂𒀄̨̜̭̒ܐ̱̿̆𒁍̊ܖ̹̾ᚄ͉ܙ͌ͅჹ͉̦̀
     if (hp.intensity > 0.25) {
       const ringR = (16 + Math.sin(t * 2.4 + hp.x * 10) * 4) * hp.intensity;
       ctx.strokeStyle = `rgba(200,215,245,${hp.intensity * 0.14})`;
@@ -2951,8 +2942,8 @@ function drawHoverWounds(ctx, W, H, t) {
   }
 }
 
-// ─── Type tremor rib-flash overlay ──────────────────────────────────────────
-// Burst typing produces rib-like horizontal flashes across chest / jaw
+// ም͊ሒ̘̃̋𒀻̀ሩ̢͈͆ᚐ̽𒁎̧𒁋̡̞̙ᚙ̮͉͆𒀁̗𒁌̗̯̀̀ܭ̟̥̂ͅ𒀓̐̇ჳ̆༎̭̊̉ᚸ͈̘̔𒀴̯ቃ̩̎̉ᚕ̯̞̝͋༯́̔ቁ̳ᚂ̺̱́̾༳̡̝̍̒ሂ̧̔̽𒀊̩ᚖ̟̒𒀷͉͆᛭̟̮̣̅ሳ̒༚̧̇́̐𒀥̬ͅܭ̹რ̖̾༶͈̝̞༤̢̺̈́ሢ̰კ̲̏ნ̗̂ჲ̋̽
+// ᛔ̗ᚑ͈̍̽།̔ლ̖̏̏ܢ̢̯༜̝̪̙̓ᚆ̪̳͌̋ር͉̘ͅᚰ̟̑̕𒀢̞̘̃ሎ̤ᚚ̠მ̅̈́𒀡̱̖̼̲
 function drawTypeTremorFlash(ctx, W, H, p, t) {
   const shift = p.skeletonShift;
   const cx    = W * (0.5 + shift);
@@ -2961,7 +2952,7 @@ function drawTypeTremorFlash(ctx, W, H, p, t) {
   ctx.globalAlpha = p.typeTremor * 0.35;
   ctx.strokeStyle = 'rgba(200,215,240,0.6)';
 
-  // Rib flashes — thin horizontal lines across the chest area
+  // ༞̣𒀺̩̐მ̥̒ᚸ̧̼ܸ̺̐̑̒ᚘ̲͂𒀜̪̜༘̗̓̓͂༧̪ܷ̝̪͊̓̌ሆ͌́ᛩ̃͊̔𒁎̏ሼ͎̐ᚎ̠݂̘̘̽ჸ̾̑𒁌̠͈̇̒ሄ̡̍ᛀ͎͍𒀖̄̑
   const ribCount = Math.floor(p.typeTremor * 6) + 1;
   for (let i = 0; i < ribCount; i++) {
     const ribY = H * (0.53 + i * 0.025);
@@ -2975,7 +2966,7 @@ function drawTypeTremorFlash(ctx, W, H, p, t) {
     ctx.stroke();
   }
 
-  // Jawline tremor — flickering horizontal line beneath the chin
+  // ቆ̈́͂̑͂ᚣ̹༲̙͍ᚺ̀̾ᚊ̘̠̏ᚄ̮̒ბ̿ሿ̟
   const jawY  = H * 0.375;
   const jawW  = W * 0.042;
   const jawOn = Math.sin(t * 22) > 0.3 ? 1 : 0;
@@ -2990,8 +2981,8 @@ function drawTypeTremorFlash(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Erasure scratch overlay ────────────────────────────────────────────────
-// Deletions scar the portrait surface: scratches, stitched-over mouth
+// ሱ͍̏̎ሠ̼𒀁͆𒀓̻ሳ̔̀̓𒀜̳𒀔̪͌̍ა̪̏̍̽ሑ̲ᛨ̤́𒀲̞̎̒ᛮ̡̠͉̗̀̀݇́ܵ̔̈́ვ̩ሼ̤̹̅̆ቀ̙̤ᛔ̥̪̉ᚰ̎̑ნ̟̠𒀼̱ᛞ̗̾̂̃༓͇̗̏̊ሤ̟͉݀͋ᚂ̀ܔ͍̆𒀚̟ᛂ̒ᚋ̬̠̪̿ᚦ͂̋̄̄ᛠ̡ܾ̎༼̝̻̖ჲ͌ჸ̘̾
+// ᛢ͂༉̹͆̕༜̡̾݀̂̋༦͍͈̽̿ჶ̰̏̊ჴ̥͎͍ხ̐̚̚ჱ̓̂̆̉𒀠̤̄𒁀̹̹̙̖݇̊̚̚ͅ𒀀̞ᚃ̥̞̣̍რ̧̼̃̍༗̗𒀃̩ሡ̡̧̳̼̯ܶ𒀢̢𒁀̄̕ჰ̊̔ლ͈͂ᛅ̙̑͋̆ჯ̻̆
 function drawErasureScars(ctx, W, H, p, t) {
   const shift = p.skeletonShift;
   const cx    = W * (0.5 + shift);
@@ -3001,7 +2992,7 @@ function drawErasureScars(ctx, W, H, p, t) {
   ctx.globalAlpha = p.erasure * 0.45;
   ctx.strokeStyle = 'rgba(140,150,180,0.5)';
 
-  // Scratches across the face / torso — 2 to 6 lines
+  // 𒀫̤ᚘ͍̒͊݉̈́ሹ͍̊͌͊ჲ́̊ቇ̋༴̳ᚈ̗ሂ̰̦̍̌༓̥̼̜͆ᚌ̼͆́̀
   const scratchCount = Math.floor(p.erasure * 5) + 1;
   for (let i = 0; i < scratchCount; i++) {
     const sx = cx + (shardHash(i, seed) - 0.5) * W * 0.22;
@@ -3015,7 +3006,7 @@ function drawErasureScars(ctx, W, H, p, t) {
     ctx.stroke();
   }
 
-  // Stitched-over mouth — horizontal cross-hatch near mouth area
+  // ༓̆𒁍̼͌́̉პ̑̽̅ᛀ̉̍̊༄̢̈́̑̏ᚑ̂༜̠̃̿̕მ̗̃͊́ܮ͆̑́̚ܖ̯̤̆ܽ̈̉̕ͅ༬̒ቇ̘̞̠̀𒀦ܑ̧̰́̽̀̈́ᛦ̰̈́̐𒀹̺͈ሬ̍༝̳̏ሐ̠̞̼̲ܽ̑̋᛭̈́̊ܙ͈̊̋მ́ር̱̐̈ͅ༁̨̹ლ̭͆
   if (p.erasure > 0.4) {
     const mouthY = H * 0.34;
     const mouthW = W * 0.032;
@@ -3028,7 +3019,7 @@ function drawErasureScars(ctx, W, H, p, t) {
       ctx.lineTo(sx, mouthY + 2);
       ctx.stroke();
     }
-    // Horizontal line through them
+    // ሑ̻̓ᚺ͌ᚉ̋̎̉ͅᚴ͋̚𒁀̡̳ཇ̩̓𒀋̡𒁊̏ሂ̗̟͋ሩ̓ܥ̧̫̭̽𒀚̜̗̈̈༳͎̺̆͌ሩ̜̹ሓ̦̚ᛑ̙̳̎𒀺̣ს̫̌̈𒀭̗̣̕ᛏ͉̍̾ჲ̉̌̀𒀿̐𒁂̺̜̼̫ܹ̃̔ᛉ͈̾ᚘ̢̼̳̣͇́ܳ༨̩͂ᚕ̡༘́̎ᛤ̢݈̗̤̋𒀓̠̆̽̓პ͇͎̣̣༵̂ሟ͉̎͋ᚬ̇ሷ̮̆̒ჷ̧̜̫̖
     ctx.beginPath();
     ctx.moveTo(cx - mouthW, mouthY);
     ctx.lineTo(cx + mouthW, mouthY);
@@ -3038,8 +3029,8 @@ function drawErasureScars(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Smear overlay — violent scroll aging / peeling ─────────────────────────
-// Redraws the current canvas vertically offset at low alpha, creating a motion blur
+// ༕̝̓̃̾ი̳̫̚ም̰̳ܖ͉̍𒁂̈́༬̰̦̋ᚚ́𒀪̹̞̳𒀷̽ᚄ̩̘̐̽
+// ჹ̲̋ᚥ͉̘ܝ̱̬̓̇ܩ͋̓͊ᛅ̼̩𒀍̒̌𒀰͈͂ძ̥̂̉̕ᚡ̪̖̿̀ᚘ̟ ̱̚ᚺ̰̮̔̑ሕ͍ܼ̫̉̔̃ᛩ̥̬̇ܭ͈̫̓̑༗̱̹̒ᚚ̊̾̚ო̢̰̝̂ሷ̣̘ ̺̂ͅ༤͉̌ቀ̙̩̚༒̈ᚲ̫͍̬̍݅༂̖͍̚
 function drawSmearOverlay(ctx, canvas, W, H, p) {
   const layers = Math.min(4, Math.floor(p.smear * 5) + 1);
   ctx.save();
@@ -3052,21 +3043,21 @@ function drawSmearOverlay(ctx, canvas, W, H, p) {
   ctx.restore();
 }
 
-// ─── Drowning haze — dark water rising from below ───────────────────────────
-// As drowning accumulates, an opaque dark gradient rises from the bottom of the
-// screen, progressively swallowing the portrait. A faint ripple-line marks the
-// waterline, and the submerged area tints cold and hazy.
+// 𒀭ܹ͎̊̅̚ᛃ̻̙̋ͅᛘ̹͋𒀼̗͋̌ᚹ̧̟̐̀ᚯ̤̂̾̾ჱ̙̍ͅ༞̄̕ማ̢͍̌𒁌̩̦͌̚ჺ̫̻̜̈დ̰͌რ̤̥͇̟
+// 𒀫̬̱̻͋༦͉͎̦ܰძ̜̙̉̋𒀑̊̄̉ᚓ̤̔̏ͅቇ̆გ̻ᚊ̧̤̒ᛡ̱̺ᚔ̡ᚪ͉̪̖̒ᚗ̱ሮ̃༕̧𒀄͇̥̾༕͋̏ვ͍͂ܨ̙̯̅̽ᚕ͍̜̗̈ტ̧́ག̠̳ͅ༺̱ܕ̨ሑ̔̎ᛃ̣̭̟̕༮̬𒀮̱𒀾̡̫̠ܣ̪̼ᚒ̕༊̦̉̈̔ᛍ̙ܸ̠ͅᚙ̰̥ნ̢̏ჩ̲͇დ́༻̢̦̣̀ᚅ̢̭
+// ᛇ̧̼̇̚ܖ̥̝̣݂̃͋̋ფ̫̀ሴ̘̓̆ᛛ͈̆༾̨͇̂𒀞̘̔ͅᛩ͉̳̑̄ༀ̹ჸ̾͋ᚓ̨̬͋ሜ̡̲̤̇ყ̻̌ი༙̔̊̽ᛄ̻༠̨̲̪̗̀̒ܺ̽ᚘ̐̏̈́ܯ̳͈̓ሳ̨̔ᚉ̯̙̀༻͇̻̺̆ᛜ̯̂݀̅̈́̉𒀪̘ᚒ̠̩ᚖ̋𒀞̅̈́͌̋ᛘ̭̦̦̍ሑ̠̈́ᚑ̮̞̈́̊𒀵̰́ქ̰͇݊ሒ̼̲̐̅𒀱̭̠́ሷ̇́
+// ᚈ̟̭͂̃წ̍̿ჰ̳̤̬̅ᚶ̝̝̿ᚊ̜ᚮ̭͇̟̞͈̍݉𒀯̍̓ܛ̪̈́༜̠̳̓ͅ༔̧͉̏̀ᚬ̙͍̊̊ყ̣̉́ለ̑ᚄ̮
 function drawDrowningHaze(ctx, W, H, p, t) {
   const d = p.drowning;
   if (d < 0.01) return;
 
   ctx.save();
 
-  // Waterline position: rises from bottom (1.0) toward top (~0.35) as drowning increases
-  const waterFrac = 1 - d * 0.65;           // 1.0 → 0.35
+  // ܔ̹̀༉̧ᛤ̹ᚏ͎̐̌͆ᚼ̢̖̘̓ღ̄̎̅ሀ̲ჭ̩̾͂𒀄̬𒀗̘̣̏̋ረ̨ͅᛪ̏ᚸ̞̩ܟ̨̃ჭ̦ͅ༭̖͍̮̂ᚿ͇̬̦ძ̎𒀘̅̆̓ᚳ́𒀎̺̺̕ቅ̹̽̊ჯ̪ཀ͍̅ͅ༿̲ܤ̞̍ͅ༌̜̫ᚿ̲̹̪́᚜̓̽̆ც̡̯͆̇
+  const waterFrac = 1 - d * 0.65;           // ܸ̉ቇ̳̩̑̑ሔ̡̻༣̞̌ტ̭̟͇გ̖̻̑ሤ̪ሧ̧ܡ̝̮ᚄ̜̪͇̲ܗ̥ᚫ͎͋̆ჟ̧̽̏̓ᚘ̘̓ܕ̬̦̀ሲ̱ᛞ̥̂ᚖ̻͂ᚱ̤ᚊ̧༨̩̾კ̰̯̋ᚊ̨̨ᚘ̭̔ᚓ͎̪̜̿ሩ̯̣͋̂༾̬ቅ͈̊̿ᚒ̼̜̃̈́ᚘ̻რ̳̕
   const waterY    = H * waterFrac;
 
-  // Dark water body below the waterline
+  // ᚛́̊͌ᚘ͈ሦ̗̯͂ᛆ̗̦͋͌ᛗ͈̊ქ̧̙̍́ሩ̫ሠ̼̯́ხ̫̍̏ͅ𒁊̧̰̘̿̀݃̀̇ሡ̞̔̚ሂ́̄ͅᚒ̢̰༄̧̮ܧ̢̪̪̅ვ̖̃ᛃ̯̗̖̙̈݁݊̓ᚚ݄̰͊̇݀̂̈́ᚴ̲̤༮̏͂᚜̞̒̑༆̮͍ܾ̜̅̕𒀙̩͌̑ཀ̽̚გ̟̕ჴ̝͎̊ͅሎ̼̳̉̐მ̖́ᚈ̪̣̉̄ᚘ́ᚤ̖̋̎ሡ̲̺̹
   const waterGrad = ctx.createLinearGradient(0, waterY, 0, H);
   const waterAlpha = Math.min(0.88, d * 0.85);
   waterGrad.addColorStop(0,    `rgba(1,2,6,${waterAlpha * 0.3})`);
@@ -3076,7 +3067,7 @@ function drawDrowningHaze(ctx, W, H, p, t) {
   ctx.fillStyle = waterGrad;
   ctx.fillRect(0, waterY, W, H - waterY);
 
-  // Haze band above waterline — mist rising from the surface
+  // ᚐ͈̀ᚒ͊ჟ̡̧̼̒ቅ̪̆ᛗ̱́̿𒀦̌𒁉́̕ჩ̬̝ზ͇̗̆ჸ̥̀ᚋ̨̲̿̑གྷ̊̈ჭ͈̿̈ሎ̹̦̖͂ჲ̙͈̹̒ც̌̀͋ܕ̻͉́ᛇ̰̀̚ሧ̘̇᚜͉̇̒ჶ̈ܞ̳̖̈́ჯ̜ܸ͇̞̋̿̅༄̞̀ཇ̔̿̅ሳ̤̾̋́ᚘ̇
   const hazeH = H * 0.12 * d;
   if (hazeH > 2) {
     const hazeGrad = ctx.createLinearGradient(0, waterY - hazeH, 0, waterY);
@@ -3086,7 +3077,7 @@ function drawDrowningHaze(ctx, W, H, p, t) {
     ctx.fillRect(0, waterY - hazeH, W, hazeH);
   }
 
-  // Waterline ripple — thin undulating highlight at the surface
+  // შܑ̮͋̎ሊ̠ᚅ̡̥́ᚄ̺̄პ̡̜̘ܹ̏̏༳̼̙ͅჰ̡̰̉༐̳༣̾
   if (d > 0.05) {
     ctx.strokeStyle = `rgba(140,160,200,${d * 0.18})`;
     ctx.lineWidth   = 0.5 + d * 0.6;
@@ -3101,7 +3092,7 @@ function drawDrowningHaze(ctx, W, H, p, t) {
     ctx.stroke();
   }
 
-  // At high drowning, a faint cold tint washes over everything above waterline too
+  // ܱ̈̆͌ሖ̗ჩ̓ܬ̥ᚾ̀ᚪ̍̈́ᛎ̩̋̃ሆ̩ͅሆ̗̹̇ჹ͇̃ᛋ̡̹͎̿კ̲̩͉ܺሊ̯̾ჭ̨͉݈̟̘̭̐͂𒁀̠̈́͂𒀌̮̜̮ᛈ̡̡̩̐ბ̢̊̆ሙ̱ቁ̪͈༄̨̘̞ܷ̏͂̅̎𒀾́ᛂ̻̻͋͆თ̅༫̩̘͌ܧ̀̽𒀗̳ቂ̱̩̀ͅო̓͌༣̯ܹ̲̰͉̜̉𒁀̭̈́݅̕༻̫̳̏ܢ̔თ̗̋̄͆ሴ̈
   if (d > 0.3) {
     const topWash = (d - 0.3) * 0.14;
     ctx.fillStyle = `rgba(2,4,12,${topWash})`;
@@ -3111,14 +3102,14 @@ function drawDrowningHaze(ctx, W, H, p, t) {
   ctx.restore();
 }
 
-// ─── Resize injury flash ────────────────────────────────────────────────────
-// Bright crack lines and warping that flash on resize, then decay
+// ቂ̻𒀖̖́ቃ̲̹͋ͅᚢ̠̼̀̌𒁏͇̭̹͂ܡ̧̋ᚒ̟ᛝ̗̓ᚚ̟𒀵̔̽ᚁ̤ᚖ̭ሿ̫̉ᚐ̨̱͍
+// 𒀅͉̣̗ჲ͊̓̋𒀹̯̕ͅ𒀬͇̲̱̲𒀞̡̨̺̮ሕ̀̚ᚙ͇ს̨̻ሾ͇̬̍ͅ𒀯̖̼͆𒀷͍̪༧̺͇ᛒ̧̀͌ᛪ̝̌̀᚛̂ሐ̣̠̐ͅჴ̨̖͊ᚢ̈̄̽͋ሼ̼̝͊ܝ̟̬̭̚ᛣ̠̈́̾ܐ̫̿̐̈́ჱ̼̝̕ܬ̖̲̓̕ი͉̪༄̰ᛌ͍̇̈
 function drawResizeInjuryFlash(ctx, W, H, p, t) {
   ctx.save();
   ctx.globalAlpha = p.resizeInjury * 0.6;
   ctx.strokeStyle = `rgba(220,230,255,${p.resizeInjury * 0.7})`;
 
-  // Crack lines radiating from centre
+  // ᛙ̨̪ͅᛃ̠͍̼̅ᛰ̟̍ე̱̱ረ̗ᚼ̫̿ᚊ̅̏̕ᚔ͆𒀕̼̻̔̀ܠ̣͎ሮ̻͍̥ሽ̘͌̓̑༠̧̱̩ܳ༭̄̆
   const cx = W * 0.5;
   const cy = H * 0.4;
   const crackCount = Math.floor(p.resizeInjury * 6) + 2;
@@ -3132,7 +3123,7 @@ function drawResizeInjuryFlash(ctx, W, H, p, t) {
     ctx.stroke();
   }
 
-  // Brief white flash over everything (impact)
+  // 𒀺̤̿༳̉̿ܧ̯ሠ̃ᚃ̠̫̙ᚂ̖̰́̿༄̹͉̮̑ლ̱̊ᚧ̅ᚼ̡̺̈ቆ̦̺̾ᚽ̮𒀽͉ზ͎̫͎̇ᚾ̡̅ ͍͊̇̔ჭ̥̼́́ཇ̡̨̯̈́
   if (p.resizeInjury > 0.5) {
     ctx.fillStyle = `rgba(255,255,255,${(p.resizeInjury - 0.5) * 0.08})`;
     ctx.fillRect(0, 0, W, H);
@@ -3149,14 +3140,14 @@ function drawNoise(ctx, W, H, p) {
     state.noiseIdx = (state.noiseIdx + 1) % state.noiseFramePool.length;
   }
 
-  // Grain coarseness: fine (high DPI) vs rough/brutal (low DPI)
+  // ሳ̱̫̊̚ህ̦͉̾̎ᚮ̜͆ᚿ̕ᛡ̹̤́ᚰ̨̝̻͊ჰ͉͉̦̊ᚻ͉̉͆ሃ̊
   const grainAlpha = 0.028 + p.env.grainCoarse * 0.025 + p.jitter * 0.035;
   ctx.save();
   ctx.globalAlpha = grainAlpha;
   ctx.globalCompositeOperation = 'screen';
   ctx.drawImage(state.noiseFramePool[state.noiseIdx], 0, 0, W, H);
 
-  // Lacquer: additional fogged overlay (seals the surface)
+  // ሃ̲ሶ̠̪̩̓𒀑̤̓̿ሚ̟̎̈́̉ᚎ̱𒀜̼̣̕ᛗ̖͂༳̝̙ܳ̽ᚋ̌̌ᛨ̢̜̺̠݈̱݄̹̓̈́ᚬ̪̕̕༪̦̐̑̂ܧ̧̌ᚿ̰̓ᚾ̧͆̚𒀕̨̙̒༈̊ͅᚕ̗͉̻̌ᚋ̢̰͇̀ሚ̚ᚊ̲̮̗𒀩̘༩͉ᚢ̳̒𒀁͊ང̬͇̑𒀐̑̚ܬ͆̅ለ̑̕ᚓ̀͊༔̌ܝ̢͈͆ለ̮̘͌̇༾̘̮
   if (p.env.lacquer > 0.2) {
     ctx.globalAlpha = p.env.lacquer * 0.06;
     ctx.globalCompositeOperation = 'overlay';
@@ -3167,13 +3158,13 @@ function drawNoise(ctx, W, H, p) {
   ctx.restore();
 }
 
-// ─── Three.js Glass Refraction Layer ────────────────────────────────────────
-// Renders a plane of dark glass with real refraction / specular caustics
-// behind the 2D canvas. Falls back gracefully if WebGL / Three.js unavailable.
+// ቂ̯̇𒀚̟̾ᚍ̝̟̒̂ሠ̠̎̈́༺̱̋𒀤̗̿პ̞̥̔̓𒁍̽ღ̝͊ᚪ̢̟̝́ܟ̞ᚕ̄ᛑ̢̣̙̊༧̗́͋ᚈ̫̀ሖ̮̜̥̕ܐ̧̞̩͎͊ܵ͋̏̉ܲ𒁌̧̫͎ሂ̤̓𒁌̺̙
+// ᛙ̐𒀛̖̑̿ᚍ̫̥͌̄მ̊̿ᚊ̄ც̇́ᚫ̔́͋̕ᚉ̥ᚙ̤̭̀̌ሂ̻̦̹̋ܣ̠̻̾́ᛐ̡͎̥̍ი́͋̒̚ᚍ̰𒀲̜̀ᛄ̇𒀊̓ᚼ͂̕̚𒁍̉̔ܲ̿̈́ᛚ̳ܭ̧̲̕𒁀̳݄̀̔͌ᛪ̬̎
+// ༟͇̽ᚖ̐͋̉̿༢̧̧̥̙̠༙̞̺ܦ̬̰̟ᚅ̙͆́ͅ༗̟̳̄̎𒁁̙̥̇̀ᛅ̩̥ᛛ̺̞̋݅̑ሁ̙̥̦༴̗ሶ̨̝͇̐༴̧ܷ̘̻̓͌༰̝ܣ̖ ̥̕ᚬ̉͂ᛆ̬́̓̚༎̢̼༬̼ሚ̡̰ܺ̿ܓ̋
 
 function initGlassRefraction() {
   if (typeof THREE === 'undefined') {
-    // Three.js not loaded — glass refraction layer disabled
+    // ስ̨̬̐ᚎ̌ༀ̬̮დ̆͋̃ᚉ̾ሐ̰̘͂༢̐̕ᛄ̅ᚐܑ̩̻͇̤̉̔ܿ̾თ̲̔ᚔ̑༐̠̀𒀮̧̎̆
     return;
   }
 
@@ -3195,7 +3186,7 @@ function initGlassRefraction() {
     );
     camera.position.z = 2.5;
 
-    // Glass plane with custom shader material
+    // ༌͎̠̇̕ᚫ̨̠̎̓᚛̞́ლ̦̌̐ܝ̈̉𒁉̯̍̐ვ̀ჺ̡̲̟̕ᚧ̥͇̞́ܳሇ̣͋͆̋ܿ̒̚༛̻̜༊̩̯͊̓ܘ̏̃༇̬ᚹ͎̘
     const uniforms = {
       uTime:        { value: 0 },
       uConvergence: { value: 0 },
@@ -3226,7 +3217,7 @@ function initGlassRefraction() {
       varying vec3 vNormal;
       varying vec3 vPosition;
 
-      // Simple pseudo-noise
+      // ᚉ̮̉༠̚᚜̲ს̜̊༞̡̒̃ᛧ̣̂̓̊༮͉̒̓ሽ̟́̐ል̰ᚵ̫̺̃ხ̻̥ܱ̏̐ე̥̠͊̎ሉ̇ᚖ̤̎ܒ̑͊ᚏ͉̽͌̊ܳ͋𒀣͌ሂ̟̇̚ᛊ̂ᚅ̟̩̃ሦ̼͉͆ჱ͎͉͊̌ᚏ̧̇ᛝ͍̫ᚅ̻̪𒁉̟̰̌́᚛̙̣ᚵ̱͌̇̉პ̏̌̈̉ሯ̎̉ᚁ͎̖
       float hash(vec2 p) {
         return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
       }
@@ -3246,38 +3237,38 @@ function initGlassRefraction() {
         vec2 uv = vUv;
         vec2 cursor = vec2(uCursorX, 1.0 - uCursorY);
 
-        // Glass distortion: subtle refraction ripples
+        // ქ̿ᚁ̯͌ཆ̢ͅ ̥ხ͉༳̡̨̳̪݈̥̏̽𒀢̔ᚻ̫̼͂̊ᛜ̟ሺ̰̲̱̚ሙ̖̼̬̌ᚕ͉̞̀ᛞ̨̱́̾̂݃̒̉̋ሢ͈̎𒀛̓ܐ̼͈̔̀ხ̋̾ል̞ܹ̈͂̅ሩ̡̚შ̢͍̔̕ᛮ̠ჲ͌̈́ᚽ̙რ̫̤͈̻ᚌ̭̝̬̔𒀠̦̫̿ཇ͈̯ᛊ̿̌ᚴ̲̬̓̽
         float distFromCursor = length(uv - cursor);
         float cursorInfluence = smoothstep(0.5, 0.0, distFromCursor) * 0.02;
 
-        // Time-based surface perturbation (glass imperfections)
+        // ᛥ̙̒̽𒀴̟ᛀ̋̅ყ̬̾𒀡̎᛬̠̬̳̌༛̻ᛃ̮̀̃̈𒀳̝̟̀̆ტ̘͈ܬ̽ͅტ̧̻̲͋ს̖̱̋̀𒀉̮ͅܭ̇𒀭̨̧̬݄̒ܺ̐̽̀̌̒ͅლ̩̐̾ሬ̰ܢ̾ჱ͌̚𒀑̗̍
         float n1 = noise(uv * 8.0 + uTime * 0.15) * 0.008;
         float n2 = noise(uv * 16.0 - uTime * 0.08) * 0.004;
         vec2 refracted = uv + vec2(n1 + cursorInfluence, n2 + cursorInfluence * 0.5);
 
-        // Specular caustics — bright light concentrations from refraction
+        // ᚍ̿̃͊𒀑̫̣̭̆ሞ̡̯̣́ሮ̧̩̊ᚨ̡́ჲ̦͂
         float caustic1 = noise(refracted * 12.0 + uTime * 0.2);
         float caustic2 = noise(refracted * 24.0 - uTime * 0.15);
         float caustics = pow(caustic1 * caustic2, 3.0) * 2.0;
 
-        // Fresnel-like edge brightening
+        // ც̫̏̌ᚯ̙̄́ᚂ̄ܧ̺̙ͅ༑̧̲̤͌༟̙ܻ̻̎ሳ̥̲̤͍ᚉ̢༿̢ს̞̱͎ᚊ̻̽ܢ͌͌𒁁̪̤̀̕ჶ͉̮ܾ̅̉̽ჴ̪̽ი̹̖͂̈́݅𒁉̿̌༣̰̠͂̀ܔ̼̕ჸ̫̂̓ს̯̾̐ჰ̩𒀰̨̜̇̅ཀ̝̖́̌𒀵̩̇͋̋ᛨ̫𒀙̻̫̋ᚃ̳̗
         float fresnel = pow(1.0 - abs(dot(normalize(vNormal), normalize(-vPosition))), 3.0);
 
-        // Base glass colour: very dark, slightly blue-tinted
+        // ܔ͈ᛞ̋ე͉ᚈ̆̐ራ͆̃̋̉ᚆܑ̯̯̥̂̓ვ̡̟̩̍ም̡̹̩̿ᚉ̧𒀕͎̿̉ͅ༼̢𒀫̙༔̹͈̀ͅᚤ͍ͅხ̈ሧ̗̗̦̓̊ܿ̋̕𒀊̣̘͋𒀊͉̯𒀮̽ᛑ̗̼̒̿༼͌ሸ̙̽ܲ༣̠̃͌ქ̇̓ཅ̤̟̃ሬ̗͌̽ᛇ̻̑̕ᚉ̼𒀺͎͈͂
         vec3 glassBase = vec3(0.01, 0.015, 0.025);
 
-        // Specular highlights — drifting light across the surface
+        // ༡͈̺̈ቂ̮͂ህ̩̬།̢̲̂ᛡ̟༒̚ሸ̘̟̓ᛓ̳̘͊𒀰̝̰͎ᛉ̯̹ᛤ͂ܓ͈̌̔ሆ͊̔ᛒ̡̰̔༕̨̣͇͉̭̟͌ܳ̄ჹ̫̻̌̾ሎ̆ᛢ͍ཁ̢̐̾ლ͆ܨ̘̆̕კ̺ቅ̼̖̿̃༎̤̇ሸ̮̥𒁃̞̰ܡ͈ሌ̆̀͌𒀳̦̃̓ჱ̟̈́̇̅ሸ̣̙̜ܘ̦̫ჵ̮̝̑𒀲̼̘ሲ༷̦̑͌̎́̚༟̖̉ᛋ̤̘̈́̊ᚙ̞͉̾
         float spec1 = pow(max(0.0, noise(refracted * 6.0 + vec2(uTime * 0.1, 0.0))), 8.0);
         float spec2 = pow(max(0.0, noise(refracted * 4.0 + vec2(0.0, uTime * 0.07))), 12.0);
         vec3 specular = vec3(0.45, 0.48, 0.55) * (spec1 * 0.15 + spec2 * 0.08);
 
-        // Combine
+        // ͍ܶ̀̏მ̜͎ᛘ̻༒̡̟̼̼ᚉ͉༖̥͎̮̾ჳ̏ᚡ̽𒀺̳ᚼ̜̅კ̉͌ܥ̢͉͈͌ܳለ̰̆̓̏ህ̡̙͇𒀼̺̫̄ͅ𒁊̟ყ͉̮̄̉𒁎̫̒̈𒁃̹̮̀༃̺̓ል̦̥༈̅̽̅̚
         vec3 color = glassBase;
         color += vec3(0.35, 0.38, 0.45) * caustics * 0.12 * uConvergence;
         color += specular * (0.3 + uConvergence * 0.4);
         color += vec3(0.25, 0.28, 0.35) * fresnel * 0.08;
 
-        // Cursor proximity adds warm refraction highlight
+        // ̗̼ܿ̔̾ᛐ̿ሌ́̽ᚈ̜̭̃༭̯̊ᚱ̇ཅ̡̯̠̙̼ܳ̊ჯ̰́̃ܣ̖̇ቄ̾ᚃ̤͈͉̒ი̠͍̅̔ሐ̨̻̗̅ᚹ̡̀ᚾ̝͉͌́ᚎ̌ཅ̗̌ܦ̈́͌ሾ̩́ͅყ̄ᚰ͈̆༪̌ቃ̩̙͊ᚤ̧̕ᛓ̢͋̋ᚂ̋
         color += vec3(0.4, 0.3, 0.2) * cursorInfluence * 8.0;
 
         float alpha = 0.15 + fresnel * 0.12 + caustics * 0.05 * uConvergence;
@@ -3306,7 +3297,7 @@ function initGlassRefraction() {
     state.glass.uniforms = uniforms;
     state.glass.ready    = true;
 
-    // Handle resize
+    // ༆̤̣̹ᚩ̨̢͎̆𒀧̪ჟ̖̰̟̞ሮ̩̳̈́ᚐ̢̓༎̳ܓ̡̰̇ᚚ̮̟̲ܭ̩̘
     window.addEventListener('resize', () => {
       if (!state.glass.ready) return;
       const w = window.innerWidth;
@@ -3317,7 +3308,7 @@ function initGlassRefraction() {
       state.glass.uniforms.uResolution.value.set(w, h);
     });
   } catch (e) {
-    // WebGL not available — graceful degradation
+    // ܣ͈̿̒ც̯̪͊̒ሓ̱̤̫̔ᚐ̢ᚉ̯̹̬̉̈́ܿ̀̿̚༮̥͌༑̼ܘ̼ም̙̠́ܧ̱̊̀ᚁ͍͇̃ბ̨̗̗̳̽ܽდ̹̣𒀶̭̍̇ᚵ̨̫̦̫̪ܴ̫̘݊̕ሴ͆ᚨ̔̋́̔ሌ͆̀͋ܭ͍͇̑̽𒀶̨݂͍̣̪̎͋
     state.glass.ready = false;
   }
 }
@@ -3334,105 +3325,106 @@ function updateGlassRefraction(t) {
   state.glass.renderer.render(state.glass.scene, state.glass.camera);
 }
 
-// ─── Portrait Export (canvas → PNG download) ────────────────────────────────
+// ᛟ̢̜̠̉𒀷̾𒀏̿ᚺ̈́ᚕ̮ბ͈̇ܣ̤̃ნ̼̑ᛧ̺̙̱̉ܿ̀ͅܩ̣̤̈́ᚦ̨̙̝ᚼ̤̹̍ᚆ̪̮༼̌ძ̫̲͇̀ჴ̨͋༮͂̓̓̔ᚔ̐̂ረ̢ᚈ̜͋̄𒁎̯̗͍̃ܥ̪̓̆ܰ̎͆ሀ̠̼̀𒀣̺ܝ̰ძ̍ሽͅ༗̩̟̦𒀺̩͌ი̻̑ͅ
 
 function exportPortrait() {
   const canvas = document.getElementById('mirror-canvas');
   if (!canvas) return;
 
-  // Create a temporary link and trigger download
+  // 𒁂̅̍̉ሥ̢̜݈̰̒̅̓ᚰ̡ሦ̩ቂ̟𒁇ܸ̝̻̀̀̈́̓𒁂̿𒀛̇ზ̡ܵ̌̕ᛞ̘͉̔ሜ̹კ̏̓̉ሶ̥
   const link = document.createElement('a');
   const timestamp = new Date().toISOString().replace(/[:.T]/g, '-').slice(0, 19);
   link.download = `mirror-portrait-${timestamp}.png`;
 
-  // Use toBlob for better performance on large canvases
+  // 𒀖̖̦̣ͅ༓̢ᚘ̎ሴ̑̒̀ስ̾̍̉ሮ̡̉ᚉ̔ቃ̝͂̋གྷ̏̕ᚉ̗̯́̀ᚌ̌ე̙̋͆ም̉ሜ̯̏̓ჳ̩̻͉།̥ᚲ̳̩̊𒀏̊̆ც̄̽̍̕༫̮̿̎̓ᛋ̭̌ሩ̨̟̓݇̿ለ̹͎̖ᚍ̐ᚄ̩̦͂̉ܩ̗̺̊̑ᚔ̬𒀕̗̦̻̉𒀈̞̜̘̐𒀠̢̺̩ሱ̉ყ̬̚ბ̒̃ყ͎̌ᛝ̡̭݀ͅ𒀝̱̃მ͆ზ̪̠̖͇
   canvas.toBlob(function(blob) {
     if (!blob) return;
     const url = URL.createObjectURL(blob);
     link.href = url;
     link.click();
-    // Clean up the object URL after a delay
+    // ܾ̙̍̽ܘ͆̉̊ᛗ̱̿̅ᚔ̈́༆̢ܱ̼͎ሳ̽ཇ̓̿მ̨̗̠̏ა̨̺̑
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }, 'image/png');
 }
 
-// ─── Module 6 — Generate Text Fragments ────────────────────────────────────
+// ስ͈༸̧༹̥༵̯̜̽̾̆݊̆͌༦̡̃ა̠̐ሾ̀̃ሄ̡͇̆̒ძ̎̎ჳ̣̈ქ̨̙ჷ̮̽𒀽͍̔ᚎ̧͊͌̉༃̖̍ሂ̗̅༳̩̀̔
 
-// Vocabulary pools — English words, no coherent sentences possible
+// ᛊ̬̿̈́ሌ̝̋͋ᚥ̳̪̻̅̓݁̆͂̈́ᚙ̫̃́̍𒀱̏ᚐ́ܝ̩̒̍͌წ̟̒̈̚𒀧͇̊̌ͅᚸ̧̲ᚯ̡̳̿̍𒀣̫̤͊͂𒁁̺ͅስ̖̀͊̓ზ̢̦̖̄༫͊̈́̚ᚐ̉ᚃ̲̘̤̾𒀼̥́̀༂ܑ̮̟̽͆ᚁ̲̗̄͆
 const FRAG_VOCAB = {
   nouns: [
-    'throat','hinge','dust','socket','marrow','enamel','seam','silt','knot',
-    'tendon','latch','oxide','filament','membrane','cartilage','residue',
-    'aperture','ligament','shale','cortex','follicle','plinth','burr','rind',
-    'valve','tallow','gristle','furrow','crevice','patina','dross','chaff',
-    'spindle','wick','sinew','clinker','pulp','fascia','nacre','gutter',
-    'cuticle','mortar','flange','tuber','stamen','loam','welt','scrim',
+    'ეიხ','ሡስ','ܯܔ','ⵅⵒⵈ','ሎሹሁ','ܥܮ݂','ჹკ','ტძ','ჯვ',
+    'ܝܟ݁','ფუ','ስሠ','ჸქჹღ','༆༣ༀ༨','݂ܼܸ݁','༷༁༸',
+    'ჟჳჺი','ოჷნჷ','ხქ','ܚ݇ܢ','ሏቀሑሖ','ⵍⴱⵇ','ܤܻ','ܭܶ',
+    'ቄሇ','ტშჹ','༱༥༩','ሓሟሾ','ⴻⵓⵤ','ስሾሕ','ሊሤ','༝༹',
+    'ሧሷሴ','ⴲⵚ','რღ','ჩბთ','ሃመ','ཇ༬༣','უჩ','ܬܶܓ',
+    'ܲܕ݊','݊ܵܜ','ܼܲܕ','ⴲⵧ','༗ག༼','݊ܜ','ܙܬ','ოუ',
   ],
   verbs: [
-    'dissolve','unlatch','calcify','evaporate','buckle','ossify','unthread',
-    'congeal','refract','molt','corrode','sublimate','sinter','delaminate',
-    'anneal','effloresce','vitrify','attenuate','extrude','ablate','accrete',
-    'distend','occlude','adhere','cleave','abrade','leach','wick','spall',
-    'decant','flux','slake','char','scour','etch','fray','splice','lapse',
+    'ܚܠܖܩ','༶གྷ༠','თოშ','ሻሊሑቇ','აყც','ოჴგ','ⵒⵎⵊⵞ',
+    '༼༤༶','ሆሙሶ','ⴾⴾ','ܢܜ݇','ⵘⵁⴸⵎ','༌༾༮','თჸვზშ',
+    'ܡ݆ܺ','ܚܑ݈ܲܚ','ሻሔሿ','ሯሗሦቈ','ܻܬܑ','།༒༛','༉༼༙',
+    '݉ܶܕ','༲༂༑','ሯሸሠ','ჟვკ','ሒሺሓ','ⵒⴽ','ჱჯ','ⴶⵓ',
+    'ⴴⵢⴻ','༻༱','ሂሁ','།༩','༶ཇ','ⴳⵔ','ჸც','ሀሹሰ','ܡܟ',
   ],
   adjectives: [
-    'hollow','translucent','ferric','brittle','vestigial','vitreous','occluded',
-    'laminar','anodic','sutured','porous','resinous','nival','alkaline',
-    'fibrous','silted','conchoidal','calcareous','indurate','friable','galvanic',
-    'cereous','spicular','rugose','pellucid','tumid','sclerotic','glaucous',
+    'ფკი','ⵜⵡⵡⵦⵧ','ܳܺܐ','༝ཇ༦','ⴵⵁⵤⵒ','ⵌⵙⵂⵢ','ሾቄሹሖ',
+    'ሮሊላ','ჴჴო','༪༢༅','ܒܦ݄','ሇሳሹረ','መቃ','ჺჷემ',
+    'ყზო','ბოჭ','ტონჟგ','ሙመሏሷረ','თწჳუ','ⴺⵒⴾ','ⵏⴺⴵⵍ',
+    'ሎሆሩ','ܱ݉ܓܼ','ქოჱ','ჱჟყჵ','ቃሗ','༘༏༑༴','ༀ༒༗༝',
   ],
   particles: [
-    'through','beneath','against','without','between','across','toward',
-    'inside','before','upon','along','amid','despite','around','past',
-    'under','within','beyond','above','behind','onto','over',
+    'ሦለሲ','ვსტ','༆༼༓','ሶሲላ','ང༓ག','ჴვთ','༧༖ༀ',
+    '༰༣༻','ሚሹሳ','ჺძ','ⵚⵗ','ܴܺ','ⵖⵌⵧ','ሎሚሦ','༐ཀ',
+    'უჹ','ჰთპ','ⵖⴸⵄ','ⵏⵜ','ܳܮܱ','შუ','ჺწ',
   ],
   pronouns: [
-    'it','this','that','something','nothing','what','which','everything',
-    'itself','one','each','neither','both','another','such',
+    'ܢܬ','ܛܷ','ულ','༖༫༡༛','ლზჭ','უპ','ტყ','ང༒༶༧༢',
+    'ⴽⵦⴸ','ܥܝ','ყღ','ܹܲܗ','༳༳','ტოო','ⵊⴻ',
   ],
 };
 
-// Structural templates — grammatically shaped, semantically void
-// $U = user word (or random noun if no user words), $N = noun, $V = verb,
-// $A = adjective, $P = particle, $R = pronoun
+// ݂̿ᚆ̝̀̾ნ̧̀̕ቄ̘ᛮ̢̙̬͎ܲ݇ܟ̠̿̉̆ᚔ͇̣̍𒀵͊̀
+// ༰̫̒̀𒀤̹̣̱͆ማ̐͌ᚽ̙ሓ̳̫̯̬̖̋̓ܰ̾݉̂𒀞̯̿͌ܩ̯თ͎̓༺̧̔̚༶̝́ჩ̗̟̔͆𒁎̱̪͂ͅሡ͈͇ჺ̰͂̒𒀚̃̅ሕ̨͋̊̄ܧ̭̥̆́༒̝ᚘ̬̉ე̹̈́͆̚ᚁ̠̭̙̆შ̦̋ᛚ̀༩̓
+// ᚁ̭̮̑ሕ͎̭͎̀ო̬̳ཇ̤̟͆̏ሾ͇̌̎ܡ̼̾̑̑ሆ̱უ̉̆ ̻̬̏̑́݁̑ᛜ̣̅༄̼͉̔ო̠̔͋̀ᚏ̳̻̬̜͇̅̄݅̎͆́݁̿ሊ̑̄ჸ̝̂ሎ̲͊͊͆ო̍̏̋𒀎̨͍̍ᛔ̼̈̕𒀹̯̭̮̯𒀆̏ᚯ̼̣̯͆𒀏̺̦̲ሙ́ა̽༏̲̱̒̕ༀ̮̉ჲ̗̯̉̐
 const FRAG_TEMPLATES = [
-  '$U $V $P the $A $N',
-  'the $N $V where $U was $A',
-  '$R $V $P $U $P $N',
-  '$A $N $V your $U',
-  '$U was never $A enough to $V',
-  'the $A $U $V $P $N',
-  '$P every $N your $U $V',
-  '$R $V $U into $A $N',
-  'your $U $V where $R $V',
-  '$N $P $U $P $A $N',
-  'the $U $V $R $P $N',
-  '$A $U and $A $N $V',
-  '$P $U the $N $V $P $N',
-  '$R was $A before $U $V',
-  'the $N of your $U $V $A',
-  '$U $V until the $N $V',
-  '$A $N $P $A $U',
-  'your $U the $N $V $P',
-  'every $U $V $A $P $N',
-  '$R $V $A $P the $U',
-  '$N $V your $A $U $P $N',
-  '$U and $N $V $P $R',
-  'the $A $N of $U $V',
-  '$P your $U $R $V $A',
-  '$U $V $A $N $P $R',
+  'ܢܯܞܘܑܖܘܮ݊',
+  'მზდცყჶქპჩლჰჷ',
+  'ძყჳხტძგყ',
+  'ⵏⵦⴾⵈⵚⴲⵂⵟ',
+  'ቂሰሞመሕሿሽሺሮልለሉቂቄ',
+  'ⴹⵣⵓⵓⴽⵤⵂⵟⵉ',
+  'ⵎⵦⵏⴽⵕⵞⵣⵣⴹⵂⴿ',
+  '༎ༀ༚༃༗ངཁང༜',
+  '༃ༀ།༦༯༯༜༘༊༜༿',
+  'ⵢⵙⵔⴵⴵⵈⵦⵞ',
+  'ⵔⵊⵓⵀⴱⵉⵏⵌⵁ',
+  'ⵀⵐⵒⵄⵍⵅⵔⴶⵊ',
+  'ⵕⵏⴽⵟⵐⵦⵥⵝⵄⵝ',
+  'წოქჭგჺჟრიჩპ',
+  'ܦ݅ܝܖܥܬܱܜܴܳ݊',
+  '݂ܔܝܖܤܟܠܷ݉ܯ',
+  'ⵎⴶⴱⵘⵡⵢⴱ',
+  'ჰიდჶახცუჹვ',
+  'ⴿⴰⴱⵗⵍⴸⵁⵐⵤⵄ',
+  'ሀሕሶቆሩሴሰማሲ',
+  'ⴾⴹⵅⵛⴽⵄⵓⴱⴸⴹⵇ',
+  '݀݉ܧ݇ܐܒܧ݊݁',
+  'ܵ݁ܳܛܟܽܰܦܴ',
+  'ራለሆሹሌሮሠሼሓ',
+  'ⵆⵆⵐⵤⴲⵣⵌⴺ',
 ];
 
-/**
- * Extract usable words from the typed buffer.
- * Returns an array of lowercase words (3+ chars, alpha only).
+/*
+ * ᚣ̻̎ͅᚳ̂̕༯̀𒀒̳̙̜𐤂̢̗̳̄𐌺̪̱̖ᚌ̻̬͇̍𒁈̚ᚔ̑𐤊̖͉̈𐤂̹̒̒𐤅̳͌͆𐌴̀𐌿̢̠ͅᚾ̣͍ᚒ̘̑̄ᚙ̹̀̈̈́༚̺̘̫̄ᚭ̰̆ᚇ̈̋༾̫̞̼̂ᚏ̞̹༡̳́̊༔̥̚𐤅̊͂̉ͅᚘ͉𐤇̼𐌽̃̑ᚵ̻͍ᚒ̤͎̋ᛝ̱̪̆̅𒁎̜̽̏𒁇͍𒀡̀𐤁̩̱̄༿̅ᛨ͉̣̩̏ᛪ̹𐤊̻̿ᚎ̤̼͉̕༚̼༃̣̂̃̅ᚃ̤̪̓ᛈ̻̞͂ᚎ̫̳͎༤̇̎
+ * ᚣ̤̺̽͋𒀼ͅ𒀌̹̣͊̿𐤂̧̠̍̾𒀕̆̀𐌲̐𐤎̦̄ཅ̺ᚖ̗̀́𐤄̈́𐌶̜̌𐍊̬̖̥̓𐤎̧̳̎̿𐌰̢͇̒𐤋̲͊̉𐍄̘̻𒁈̧̧̮̇𐌹̈ᛑ̅̂᛬͈̮ᚰ̩̆̾ᛕ̯̋᛫̫̈́̂ͅ𒀕̮̫̋𒀣̯̙𒀓̞̿𐌹̂𒀇̪̺𐌸͆͂ᚈ̧̪̳
+ * 𐌺̉ᚁ̚༿̀̒ͅᚃ̿̀༣̹́̉͊ᛃ̘̏̓̇𒀎̱͌𐤎̣̤̿ᚋ͊̀ᛐ̢̼̄𐍁̭̪́͊ᚴ͇̓༺̨̞̚𐤀̫̣̄̕𐍆͇𐤉ͅᚚ̄̑༱̪͍𒀨̮̻̉ᚙ̨̣̺̲𐤉̡̣̋͆ᚒ̤𐌽͆𒀴̥̆̏̽𒀇͉̃ᚶ̭̿̌̚ᚋ̩༣̡̉𐤂̰́ᚔ̻̔𐤋̲̳̱̭ᚅ̢̿̂ཀ̭̈́̀̆ᛯ̨̩̕ᛛ̠𒁋́̃͊͊𐌲̈́̍𐍅̘̰͆̇𐤖͆
  */
 function harvestUserWords() {
   const buf = state.interaction.typing.buffer;
   if (!buf) return [];
   const words = buf.match(/[a-zA-Z]{3,}/g);
   if (!words) return [];
-  // Deduplicate, keep most recent occurrences, limit count
+  // ა̘̘̽ͅܞ̙̙̪̖ᚚ̩̋𒀐ܱ̗͍̰ܴ̦̽̃̿̏𒀢̗̼̾ͅܣ̓ሔ̠̾̾ᛆ̥̫ᚂ̲̦̌͂ཅ̦༧̐̀༤̻̈
   const seen = new Set();
   const result = [];
   for (let i = words.length - 1; i >= 0 && result.length < 30; i--) {
@@ -3442,18 +3434,19 @@ function harvestUserWords() {
   return result;
 }
 
-/** Pick a random element from an array. */
+/* 𐤆̅𐤅̩͇༴̅𐤖̳ᚎ̜́ᚌ̺̹̍༒̗̞̟̑𐍄̯̲ͅᚅ͍̻̌̒𒀒̔ᛄ̢̹̞𐍀̞̀̈́ཇ̖͍̀̏ᚇ̧̥̔̊𐤖̩̋𐌿̾͊͂༡͊𐤆̏͊̓̈𒁍̽̌༓̮̺̮͌ᛔ̏𐌸̻𐌲̗̌𐍀͂ */
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-/**
- * Corrupt a word: swap letters, insert stray characters, fragment it.
- * Intensity 0-1 controls how aggressively the word is mangled.
+/*
+ * 𐍁̮𐤂͎͉̊̅𐌹̦̖̔̿𐍈̒ᛗ̫̫̐̈ᛀ̣͎̓̅𒀗̤̱̻̇𒀀̳̰̱༴̞̞̾𒁋͂𒀺̆̊ᚈ̢̹𐤉̤̩̉ᛥ̲ཁ̩͍̇𐤍̪̏͊̋𐌳͎̽ͅ𒀲̅ᚚ̼ᚓ̮ཀ̙͌𒀴͂́͌ᚕ͈͇̑̔ᚼ̜̹̮̓ᚕ̮̉̈́̕𒀕̹͎𐤀͍͆́̕𐤃̢̋̍𐍇̺ᚏ͂̽ͅᚒ̉ᛯ̀𐤅͇͉̉ᚧ̺ᛌ̨͉̘̟ᚓ̗𐍇͇̟̯𐍀͇͎̆̚𐤍̣̔𒁆͎̰̩
+ * ᚉ͇̖̊̓𐤘̼̀̌͋𐤂̺𐤔̧̻̻͂ᛎ̧ᛧ̌̽𐤛̡̃̑𒀻͆༏༘̺̈́̈́̎̾༇̓̇𒀺ͅ𐌶̾̽̄ᚲ̏͋ͅᚰ̢͈̟̣༵̘̅͋̊།̮͊ᚈ̒̾̿ͅ𐤌̅𐤅̻̱𐤀̟̘𐤔̼̩̭̮𐌴̥ᚘ̝̽̅᚜̽𐌺̩͎𒁊͌ᛛ̒̈𒀘̠̓༢͉̰̀̎𒀋̓𒀸̖̬̳ͅ𐤖̝̥̬̔ᚨ̼
+ * ༨̫̎̓̕༄̨͎̙༤̪̮𐤄̱̈́̓̐ᛕ͋𐌳̰͋̆ᚈ̗̝̅̒ᚵ̡̒̄𒀲̩̥̪͇𐍃̅͆༢̧̯͉͊𒀋̞𐤁̰̻༾̢̙̻̎ᚂ̦̠̘𒁍̳̏͂𐍁̬̾̂ᛊ̆̑༬͈̉̏͌ᚽ̣̙̌̌𐌻̘̺̊̍𐤅͍̦̇͊𐌳̡̑̏༕̃̚𐤙̩̞͉༺͈̳𐤄̇̕̚ͅ𐍅̫̮̓̉𒀂̩̝ᚴ̬𐌵̲̃͌̊𒀴̆̈́̊̍ᚉ̢̱𐤖̳̟͈̞𒀃̤𐤈̙̆̂ᛐ̨̻̀̔ᚹ̘̠͋ᛓ̬̠̀͊ᚻ̹̂̀̈́𐍀̲̑̂̆𐌴̣ͅ
  */
 function corruptWord(word, intensity) {
   if (!word || word.length < 2) return word;
   let w = word;
 
-  // Chance to swap two adjacent characters
+  // 𒀪̩́კ̻̒̒𒀟̃ረ̧̗̿̀ჲ̳̻̈́𒀳̣́̃ჸ͌ᚇ̜͍ჶ̥ܴ̖͉̅̍̋ᚱ̤ሺ̮გ̩̰ᚑ̢̱̓ͅር̠ᛖ̪̿༬̘̌͂ჲ̓̌́͌𒀐̦̮̲̑༿̻̖̼ᛢ̧ሡ̦̑̉̽ᚑ̢𒁋̥̩͊̈́ᛟ̣ ̳ܤ̢̰̿𒀬̖̆ᚼ̼ሆ̅͌ᛆ̫̮́̚ხ̮͂ᛉ̜̿̑ᚈ̙̥͇ܻ̙̩̑ ̈́ሯ̹̮̎̂
   if (Math.random() < intensity * 0.6 && w.length > 2) {
     const i = Math.floor(Math.random() * (w.length - 1));
     const chars = w.split('');
@@ -3461,15 +3454,15 @@ function corruptWord(word, intensity) {
     w = chars.join('');
   }
 
-  // Chance to truncate
+  // ᛦ̡̠́̑ᚆ̺̯̭̼ܤ̹̘͂ს͎̌͆́ܺ༤̋ᚙ̲̐͂̏༎̤༂̟̅ᚊ̩̂ᚘ̞́ሙ̢𒀠̀ᚉ̰̀ሒ̠̝̑ሾ̫ᚿ̾̊ᛊ͍̳ቀ̜ܸ̘༘̊̄̏ᚾ̳̄̈ሗ̬̠͊ܶ̽̄༼̎ܧ̓ሰ̿̌༓̻̱̯̖
   if (Math.random() < intensity * 0.4 && w.length > 3) {
     const cut = Math.max(2, Math.floor(w.length * (0.5 + Math.random() * 0.3)));
     w = w.slice(0, cut);
   }
 
-  // Chance to splice in a foreign syllable
+  // ᚈ͈̉ܔ̤̰𒀤͈̪ᛛ̣̀ᚁ̗̣̩̐᛫͍̮̃̾ል͇̞̓̕ሐ͇̭̆̍𒀁̪͋𒀢̭̯̘𒁁̥̃ܤ̟͉̲̄ᚯ̤͍̦̿ᛝ̔ᚖ͈͊ᚋ̰́̓𒁎͉̗̕ᚎ̳̑̌̕ᚌ̈́̍ᚲ͈̰݊༳͉̿ᚁ̒ᚺ̨̃ܝ̮̂̇̊𒀽́༡༵̗̯̽𒀛̰̺̌መ̡̠̋̉ቀ̳͌𒀋͎̏̑༽͇̉̏ᛣ̀͂́ሌ̰̍̈ሲ͇̞̟̊̂ܲ̓̀𒁌̄
   if (Math.random() < intensity * 0.3) {
-    const syllables = ['th','rn','lk','ss','xt','nn','gl','sk','cr','wr','ph','sc'];
+    const syllables = ['ሢቁ','༜༾','ⵅⴹ','༕༷','ⴶⵓ','ტღ','༲༇','ⵃⵛ','ሙሰ','ሗሾ','ჹლ','ༀ༘'];
     const pos = Math.floor(Math.random() * w.length);
     w = w.slice(0, pos) + pick(syllables) + w.slice(pos);
   }
@@ -3477,10 +3470,11 @@ function corruptWord(word, intensity) {
   return w;
 }
 
-/**
- * Generate a single nonsensical fragment.
- * If the user has typed words, some are woven in (then corrupted).
- * Otherwise purely random vocabulary is used.
+/*
+ * ᛆ̡̬̞̓ᚅ̡̭̥͋𐌷̨𐤑͍̩̈́̑ᛐ̗𐤄̇𐤀͊̔𐤏̲༢̎̈́𒀘̠ᚕ̞̰͎̀༛̮̘͊༞̠̃̕༣͈̆̒ͅᚤ̳𒀪̟̅̏ᚁ̬̍͂ᚦ̥̀͊̈༶͊̈̎̑༞̹̪ᚚ̢𐤌̱̤̜̀𒁁̹̣̋̅
+ * ༓͋𐍉̑𒀽̺̭̓͋𐤖̙̹̀𒀸̳̰͊𒁋̪᚜̋͌𐤁̺ᚆ̐𐤆͇̃ᚘ̔̀̊ᚉ̨̒𐤌̧͎͌𒀋̞ᚹ̧̏𐤙̭͍̖ᚈ͎̿𒀜̩𐌹̔̌̀𐍆̥̤̊𒀭̣̿̈́𒀰͇̖𐤉̡̪̀̂𐌱̜̟͍༧̍̂𐌼̓̿ᚏ͍̓𒀊͈̤᛬̨̱̼̀𒀑̳͍𐌻̧̝ᚕ̫̓𒀨͌𐤄̟̪̂͂
+ * 𒀪̠𐤖̻͈𒀕̍̑̑ᛊ̨̘̓̕𐌼̲𐍃༘̥̮̇͊̔̋̈༽̧ᚤ̉༸̰̆༈̆̒́𐤐͍̱̪̉གྷ̺̙̉̕𐤈̇̕᚛̰̜͂̾𐤘̮̰̖ͅᚉ̺̓̚𒀴͎͇̺͂ᛋ̝̣̂ᚁ̣̗̀𐤚̋̈̕𐤇̨̱̙͉ᚈ̎𐤔̳̻̪̬ᚐ̖ᚓ̫༾̰̰༵̹̑͊
+ * ᛛ̻𒀀̆̌𐤒̡̺̈́̕𐌲̾́𒀰͍̆̄𐍀̪ᚲ̗̙̘ᛩ̠̽͆𐤄̖̀̐̀ᚄ͇̥༙̅̊̔ͅͅ།̡̊ᛟ̝̆𒀲̡̧̢̅𐤎̔̅̈́𒀚̀̀༁̡͂̉́ᚑ̡̹͊༰͎̫͈̮ᚔ̩͎ᛝ̳̬̪̔ᚢ̘̪̩́𐤆̫̺
  */
 function buildFragment() {
   const userWords = harvestUserWords();
@@ -3488,7 +3482,7 @@ function buildFragment() {
   const p         = state.portrait;
   const now       = Date.now();
 
-  // Corruption intensity rises with deletion ratio, idle time, session age
+  // ༾͉̩̯̌𒀁̊͋᚛̘̰̍̀ܯ̗̜̼̓݉̑̓༾͍̻́𒁃̱̝̒̿პ̢̼̥̭ᛃ̲̋̍̊༉̠
   const delRatio  = inter.typing.count > 5
     ? inter.typing.deletions / inter.typing.count : 0;
   const idleSec   = (now - inter.lastMoveTime) / 1000;
@@ -3525,7 +3519,7 @@ function buildFragment() {
 
 function generateTextFragments() {
   if (!state.awakened) return;
-  // Silent temperament: no text fragments — the mirror watches in silence
+  // ᛠ̡̝͉́ᛩ̱ჴ̼̣̩̒ᚔ̡̳༯̀ᛈ̧̖́𒀙̎ᚅ̅𒀼́
   if (state.temperament === 'silent') return;
   showTextFragment(buildFragment());
 }
@@ -3534,7 +3528,7 @@ function showTextFragment(text) {
   const overlay = document.getElementById('text-overlay');
   if (!overlay || !state.awakened) return;
 
-  // Sparse positions — 6 anchor zones around the portrait
+  // ᛨ̨̀ᚒ̘ܻ̦̈́́́̿ᚘ̬̼̅̈ᛌ̽༚̹̼̍༐̧̐̈́༏̀ሮ̙̯̽̀ᛐ̢͉̟ܚ̥̃
   const positions = [
     { left: '7%',  top: '12%' },
     { left: '62%', top: '16%' },
@@ -3552,21 +3546,21 @@ function showTextFragment(text) {
   el.style.top   = pos.top;
   overlay.appendChild(el);
 
-  // Fade in
+  // ༖̨̲̏̕ჳ̰͈̙̖ᚗ̞͇̏ჵ̻̚༔ܷ̹̝̅̄̌ܺ̌̕𒀳̠̳̾ܒ̨̯̳݉́̒༑̡̠̀̅ሸ̯̼ᚁ̗̭ሄ̘̝̇ᚿ̧̬̏͂༔͉̅ვ̒̓̀ሪ̲̀
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       el.style.color = 'rgba(182, 194, 218, 0.68)';
     });
   });
 
-  // Fade out
+  // ᚵ̄𒀏̹ჯ̻̼͍̊͂ܶᚁ͇͆̀᚛̏ᚆ͍
   setTimeout(() => {
     el.style.color = 'rgba(182, 194, 218, 0)';
     setTimeout(() => el.remove(), 2400);
   }, CONFIG.textFadeDuration);
 }
 
-// ─── Module 7 — Memory ─────────────────────────────────────────────────────
+// ᛩ͌პ̦͎̮͆𒀳͉̪͂༚̫̇༟̗̾́̊პ̞ჭ̧̬̽ᚁ̉ᛨ̡݈̭̪̩̅̉𒀭̣݄̣̘̌̏̂̋ᛩܑ̖̺̈́𒀁͂ჭ̟̼ܛ̢̅𒁂̼̽𒀱̞̜̏͊ᚒ͇̳͉́𒀔̤̄ረ͎̺͆̉
 function loadMirrorMemory() {
   if (!state.environment.storage) return;
   try {
@@ -3608,14 +3602,14 @@ function saveMirrorMemory() {
     scars      : [scar, ...(prev.scars || [])].slice(0, CONFIG.maxScars),
     browser    : state.environment.browser,
     os         : state.environment.os,
-    tz         : state.environment.tz,   // for geographic haunting detection
+    tz         : state.environment.tz,   // თ̧̠̱̘̜ܿ̆̌͌ሢ̱̱̖̾ᛀ̢̘𒁎̖ܼ͂̊̓̀̔ᚚ̥̋ტ̤̙̐ᚄ̺༩̈́ზ̐̓ܚ̺̚ᚌ͋𒀮̦̌ბ̜̾̉̑ვ̨̩̳̾ܗ̻̋༤̨̈ᚓ̯͌ͅჰ̊ܜ̓ᛃ̣̞̏𒀜̡̺̪᚜̆༱̽̄𒀴͉̰̿̾ᚄ̲͈̩̀ቅ̙̠̊̿༾͈̺̻̒ᚌ͂͆̕
     referrer   : state.environment.referrerDomain || '',
   };
 
   try {
     localStorage.setItem(CONFIG.memoryKey, JSON.stringify(memory));
     state.memory = memory;
-  } catch (_) { /* quota exceeded or restricted */ }
+  } catch (_) { /* ᚇ̠̘͋̆𒀭̢̑͌𐍆̉́͂་̋𐌿̓ᚣ́̉𒀦̓𒁏̟̇𐍄̺̾̔̿ᚊ̻̯̏𐌶͇̺͆͊𒀇̬̜̑𐤑̦𒁈͂̅̀𒀾̡ */ }
 }
 
 function clearMirrorMemory() {
@@ -3624,7 +3618,7 @@ function clearMirrorMemory() {
   showTextFragment(buildFragment());
 }
 
-// ─── Audio (optional ambient drone + crackle) ───────────────────────────────
+// ლ͈ᚢ̱̯༷̟̀̚ᚸ̰̖̍̾თ́༲̺̜̇ሤ̯̣ༀ̕ᛉ́̈᚛̮̮̞͌ቂ̯̃̈͊ᚚ̭̬ᚤ̓̋ᚑ̥̬̻რ́̀ܖ̻̍̿ᛩ͍̙̽̾ქ̣̓̄̆ል̭̝͈̣ཁ̻̮𒁋̢̫̗̽ᚕ̦̍ሱ̻͎̈́͊ሒ̢̥̌́̎͌ܽ༇̢͇
 function initAudio() {
   const ACtx = window.AudioContext || window.webkitAudioContext;
   if (!ACtx) return;
@@ -3632,20 +3626,20 @@ function initAudio() {
   const ctx  = new ACtx();
   const temp = state.temperament;
 
-  // ── Master output gain (for mute and overall envelope) ──
+  // ᛄ̋ᚂ͉̻̏ሼ̖̟ᚳ̞̱͍̐ᚭ̤̯̹̊ᚰ̝̇̏ᛑ̟
   const master = ctx.createGain();
   master.gain.setValueAtTime(0, ctx.currentTime);
   master.gain.linearRampToValueAtTime(1, ctx.currentTime + 4);
   master.connect(ctx.destination);
 
-  // ── Drowning lowpass — sits before master; drowning sweeps this down ──
+  // ᛣ̱̼͎͊ჺ̘̓ ܸ̗̪༘̓̐͌͌͌ᚈ͋ሰ̮ቇ̞̪𒀛̱̏̈ᛟ̭͆ ̧̝̖͉ܧ̡͉ᛒ̡
   const drowningLP = ctx.createBiquadFilter();
   drowningLP.type  = 'lowpass';
-  drowningLP.frequency.setValueAtTime(18000, ctx.currentTime);  // wide open initially
+  drowningLP.frequency.setValueAtTime(18000, ctx.currentTime);  // ᚎ̬̥͎᚜̥̰́̓ᚎ̻̦̍ᚤ̅̒́͋༠̹̄͌̿༧̢༘̦̮̊ͅჯ̢ܙ̜̦̝̱ᚋ̭̊̈ማ̥̺̄̿ܿ̇̊̀̈́𒀘̘͍༣ܹ̭ͅᚍ͇̃̊̚ ̧̜͂̓𒀐̹ܙ̺͈̉ა̜̒͂̔ᚚ̅̿̊̌ም̓̔̇̓ᚚ̻͊́̏ო̔ᚅ̮̟̳́ვ̖͌̑༧̜ᛚ̲͋̎ܽ̄̏̒᚛͍̝̓ܨ̮ༀ̞̯
   drowningLP.Q.setValueAtTime(0.5, ctx.currentTime);
   drowningLP.connect(master);
 
-  // ── Base drone oscillator ──
+  // ༔̯̘̐̈ཁ̯̘̦͊༧̈́თ͈༷̮̪̊̚ሤ̇̑ᚏ̡̀̒̚᚛̨͋̊ሓ̖͍́ᚆ̤༼̋́̚
   const osc  = ctx.createOscillator();
   const filt = ctx.createBiquadFilter();
   const gain = ctx.createGain();
@@ -3659,7 +3653,7 @@ function initAudio() {
   gain.connect(drowningLP);
   osc.start();
 
-  // ── Noise crackle (bandpass-filtered white noise) ──
+  // ሻ̤ᚁ̄ሕ̉ᚌ̓̐𒀔̢̜̓ᛂ̓̄𒀈̥̲̱̆༈̝᚜̮̈༱̲̑𒀳̙̺͂̐ሃ̤̦̅̇ᛄ̜̲̓
   const bufLen = ctx.sampleRate * 3;
   const buf    = ctx.createBuffer(1, bufLen, ctx.sampleRate);
   const data   = buf.getChannelData(0);
@@ -3678,25 +3672,25 @@ function initAudio() {
   nGain.connect(drowningLP);
   noise.start();
 
-  // Collect all nodes; temperament extras added below
+  // ༈͉̈́ቆ̰̬༯̰̃̆༒̝͆͂ᛧ̰ᚖ͉̮ܪ̤უ̠̭̘̠ረ̍̏ᛰ̠͎ᚇ̺̜̦̿ሉ̗ᚑ̪̲͇ሪ̳ሾ̃𒀗̓ᚘ̝̄̇𒀟̣̱̩̍𒀡̕ღ̰პ̙̯ܹ̍͆̒̚𒀖̿ܨ̂
   const nodes = { osc, filt, gain, noise, nFilt, nGain, drowningLP, master };
 
-  // ── Temperament-specific sonic layers ──
+  // ქ̆̂͋༩̠̄𒁋̝ᚔ̙ܱ̼̯̃ჩ͊ሿ̢̳𒀙̻́́༡̇̓̾ᛮ̤̿𒀬̢̈
   switch (temp) {
     case 'cruel': {
-      // Detuned second oscillator — creates dissonant beating
+      // ხ̼͆ሇ͇̆̊༌̞͈ᚢ̯̳̍̈ᚙ͎ᛯ͍̙̌͆ᚆ̨̘̠̍𒀄̧̢͍݊̊ܳ̂̅̽𒀹̗̈༞̔𒀞̕ሳ̖ᚎ̫͍̏༒̅̓ᛥ̘͋͌ͅቈ̮̳̫̚
       const osc2  = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type   = 'sawtooth';
-      osc2.frequency.setValueAtTime(58 * 1.015, ctx.currentTime); // ~0.9 Hz beat
+      osc2.frequency.setValueAtTime(58 * 1.015, ctx.currentTime); // 𒀙̕ሩ̧̥̭ᚹ̌̽ሁ̙̦̅̆𒀉͍ᚏ̙̿̈́ო̱̏༧̮̋̈́̕ᚐ̦ቈ̡̈̅ቃ̧̒̎̚ჩ̰̀ჲ͉̈ᚓ̄
       gain2.gain.setValueAtTime(0.012, ctx.currentTime);
-      osc2.connect(filt);   // shares the same filter path
+      osc2.connect(filt);   // ሯ̳̈́̓༩̓̒ᚃ̜̂̃ᚴ̫̿ͅ་̥ᛄ̫̍̌༱̤̽ᚆ̻̥̄̓ნ̟̰̅༌̥̍𒀊̦̘̱ᚖ́͆ ̢̦͌ሎ̬̏ሠ̅ᚄ̙ሻ̢݈̓́̀ᚴ̢̝ფ͉
       osc2.start();
-      // Third oscillator — tritone harmonic for menace
+      // ᚅ̜͊̿𒀽͎̪ᛝ̢̏ཇ̍ሒ̼̉̇ᛇ̭̺̒̂᚜̗̽ჩ̺ሉ̫̠͋̕თ̎ሟ̖༱̳̜
       const osc3  = ctx.createOscillator();
       const gain3 = ctx.createGain();
       osc3.type   = 'sine';
-      osc3.frequency.setValueAtTime(58 * Math.sqrt(2), ctx.currentTime); // tritone ≈ 82 Hz
+      osc3.frequency.setValueAtTime(58 * Math.sqrt(2), ctx.currentTime); // ᚙ̘̱̻̺ܻ̠̣̐༳̅ሲ̫̎𒀎̨͂̆ᚘ̏̔ᚗ̥̾̽̽ჷ̫̿ܩ̱̣͂̒ᚉ̾͆͆ᚳ̥̩̮̂ᚒͅ𒀼̤̮̳͌ቁ͉͆̈́ᚈ̧̹̈͂ܳͅ᛬̳̅̃ܽ̂̽ᚻ̽̓𒀰̯̤̘́༊̥̾͌ᚆ̟̀ག̒̀̒̇༐̢ᚳ̨͍͊̍༃̯͋̇შ̺̣̳͂ᛛ̃ᚵ̪𒁃̫̙̀̎༖̘̍̒
       gain3.gain.setValueAtTime(0.006, ctx.currentTime);
       osc3.connect(gain3);
       gain3.connect(drowningLP);
@@ -3707,25 +3701,25 @@ function initAudio() {
     }
 
     case 'silent': {
-      // Breath-like LFO modulation on the drone gain — slow amplitude wobble
+      // ს̨̱̜༚̩͌ቂ̢̔ᚔ̦̗ᚃ̨̥̩̱ܰ͊̑კ̞̟̖ᚄ̟͎̦̕ሜ̲̖̹̍პ̧͉𒀆͍̜̄̃
       const lfo     = ctx.createOscillator();
       const lfoGain = ctx.createGain();
       lfo.type      = 'sine';
-      lfo.frequency.setValueAtTime(0.12, ctx.currentTime);   // ~7 breaths/min
-      lfoGain.gain.setValueAtTime(0.003, ctx.currentTime);   // very subtle
+      lfo.frequency.setValueAtTime(0.12, ctx.currentTime);   // መ̤̟̈́ሩ̗̫̒́𒀕̢̠̳ܶ́𒀋̡̐ᚐ̫ም̡ܼ͇̑̀ܶ̔̔̈́̈ͅ᛫̓̆̅ᚍ̗̜̑ᚋ͊ᚗ̂𒀲͍̈̄̾༈̧̇̀ͅቃ̝̲̈𒀗͉̓ო̿ሢ̘̱̓̓𒁀̯̓̆̚ܣ̨̭̑́ܨ̞̟̀̀ᛯ̬𒀹͈̈ሗ́ჵ͋ሬ̡̮̝͂
+      lfoGain.gain.setValueAtTime(0.003, ctx.currentTime);   // ༪̗̈̋კ́༕̜̫́͋ܡ̼̓̑ც̩ͅჩ̡̖̦ᛟ̺༡̨͉̀̅ფ̲ᚴ̗̣̄̐
       lfo.connect(lfoGain);
-      lfoGain.connect(gain.gain);   // modulates drone volume
+      lfoGain.connect(gain.gain);   // ༒̤͍̇͋༨́̓ს̟𒁀͎̺̤ቈܑ̰̰̉͂ͅᚒ̡̦̍ᛝ̧̈̃ሸ̺̋̊ᚄ̌ሸ̧̫͉ᚖ̙̊𒁂̖͈̄༦̺͆̍ᚦ̫̃𒀵͉́̅̋
       lfo.start();
       nodes.lfo = lfo;  nodes.lfoGain = lfoGain;
       break;
     }
 
     case 'devotional': {
-      // Harmonic overtones — octave and fifth above the drone
+      // ᛏ༹͍̻͍́̄ͅ༑̦͍͎ܘ̨͆̎ᚽ̓𒀋͎̖̩̤ᚁ̟̽ჸ̇ሃ̐༒̹̱̼̓
       const oscOct  = ctx.createOscillator();
       const gainOct = ctx.createGain();
       oscOct.type   = 'sine';
-      oscOct.frequency.setValueAtTime(58 * 2, ctx.currentTime);    // octave
+      oscOct.frequency.setValueAtTime(58 * 2, ctx.currentTime);    // ეܱ̈́̓ᚢ̻̤̚༞̗̞ᚍ̜́ܘ̯̌༕̼̙̫ͅᚏ̮̭̓༻̣༄̰͌̆̽ᚁ̦̊༿݈̱̄̈ሆ̋ሳ̜̲̓ܧ̌̅ᛌ̣́ሕ̐ᚃ̠ᚖ̞ܣ̺̭̓ܺ̓̎͂༊̝̬̌̃𒁇̰̉ܮ̧̱̙̀ሧ͈͉͋༉̡̭𒀖̲ܼ̻̉̈́༛͈͌͋ჳ̗̒̄༈̡̔̆̇𒀃̘̬̚ᛚ͎
       gainOct.gain.setValueAtTime(0.008, ctx.currentTime);
       oscOct.connect(gainOct);
       gainOct.connect(drowningLP);
@@ -3734,21 +3728,21 @@ function initAudio() {
       const oscFif  = ctx.createOscillator();
       const gainFif = ctx.createGain();
       oscFif.type   = 'sine';
-      oscFif.frequency.setValueAtTime(58 * 1.5, ctx.currentTime);  // perfect fifth
+      oscFif.frequency.setValueAtTime(58 * 1.5, ctx.currentTime);  // რ̇̀𒁉̂༌̩̈༏̹̭ܧ̨͇͍͇̽ܶ̂̚ͅሪ̽ሦ̤̞̭̫ქ̢̌̏̓
       gainFif.gain.setValueAtTime(0.005, ctx.currentTime);
       oscFif.connect(gainFif);
       gainFif.connect(drowningLP);
       oscFif.start();
 
-      // Simple delay feedback — reverb-like shimmer
+      // 𒀅̆ჳ͊̓̍ᚏ̨̤݆̱͍̃̑ཆ̘̎͆𒀗̏͋̉ቁ̰༱͍ܼ̮̤̏ო̼݆̠̙̏͂̋́ͅ𒁏̽̉̌ᚉ̗ᚈ̋༄̢͎̯ܠ̖ჷ̺̍̾ᚺ̕ᛪ̣̻́𒀃̊ሟ̢̡̥ᚆ̳̪̔ͅძ̓༄͌ᚙ̜ᚓ͌
       const delay     = ctx.createDelay(0.5);
       const delayGain = ctx.createGain();
       delay.delayTime.setValueAtTime(0.18, ctx.currentTime);
       delayGain.gain.setValueAtTime(0.3, ctx.currentTime);
       gain.connect(delay);
       delay.connect(delayGain);
-      delayGain.connect(delay);      // feedback loop
-      delayGain.connect(drowningLP);  // feed into output
+      delayGain.connect(delay);      // 𒀖̯᚜̨̦̈ᚔ̈́ᚇ̝ܾ̝̳ჩ̜̄͊̍ᛪ̝̋̍ሗ̨̫̀ᚗ͊დ͍̩̿༝̈ܬ̣̖ሆ̻̙̤̱݅̓𒀺̖ᚤ̭̄̈́რ̘ሤ̆̚ͅܣ̠̅𒀆̺̾͂̎ᚘ̱̄𒀫͇̽𒀞̤̎ჴ̩̐̕༿̻̻̹̆ᚊ̻̌ͅም́ᚰ̘̂༉̠͇̿ᚹ̼̹̑̚ሩ̱ܫ̫̔መ̚ᚁ̂ᚁ̹͎
+      delayGain.connect(drowningLP);  // ቄ̖̃ᚖ̹̞̩̱̟̄̑͌݉༻̳̅ማ͎̰ሒ̘̯̮̻́݃̀ნ̺̭̒ᚐ̨̥̎𒀞̙𒀦̲̉̾ᚾ̜̾̋ܐ༹̯̻̆̏ᚱ̨̺̐݉̔̕༊̥̂͊ܙ͊ქ̠̪
 
       nodes.oscOct = oscOct;   nodes.gainOct = gainOct;
       nodes.oscFif = oscFif;   nodes.gainFif = gainFif;
@@ -3757,11 +3751,11 @@ function initAudio() {
     }
 
     case 'flattering': {
-      // Warm the filter — higher cutoff, lower Q
+      // ᛆ̯͎̜̀ღ̤̳̗̀ჴ̧̹̱༷̤̺͂̚ᚖ͉̀̚ͅᛏ̜̱̞ܛ̌ᚃ͈რ̨̙̾͂༜̾̌ᚃ̹̙ბ̞
       filt.frequency.setValueAtTime(340, ctx.currentTime);
       filt.Q.setValueAtTime(0.3, ctx.currentTime);
 
-      // Subtle chorus — modulated short delay
+      //  ̩̻̟͌ჴ̗͎̃̍༃̹͍͆̾᛬͈̺ܱ̠̓̂ყ̧̲̌̕ܖ̒ᚹܼ̼̪̔̈́𒁎̡̥༦̜̀ሑ̥
       const chorusDelay = ctx.createDelay(0.05);
       const chorusGain  = ctx.createGain();
       const chorusLfo   = ctx.createOscillator();
@@ -3771,7 +3765,7 @@ function initAudio() {
       chorusGain.gain.setValueAtTime(0.4, ctx.currentTime);
       chorusLfo.type = 'sine';
       chorusLfo.frequency.setValueAtTime(0.5, ctx.currentTime);
-      chorusDepth.gain.setValueAtTime(0.004, ctx.currentTime);   // ±4ms modulation
+      chorusDepth.gain.setValueAtTime(0.004, ctx.currentTime);   // ༱͉̱̎̑ܩ̗̯͇͆ჳ̅͆༃̧̡̪̓ᛢ͇̋̎̆ሿܸ̽̾ͅሂ̼̩
 
       chorusLfo.connect(chorusDepth);
       chorusDepth.connect(chorusDelay.delayTime);
@@ -3790,7 +3784,7 @@ function initAudio() {
   state.audioNodes = nodes;
   state.audioReady = true;
 
-  // Wire mute button now that audio exists
+  // ሤ͇̘ܻ̉̒́̀𒀒͍̈́ᚗ̆་̱͇̤̃ᚃ̓𒁏̣̀̕𒀼̈̏ᚑ̹ͅ༉̜̗̻̆ܯ̺̹𒀐̔𒀚݆̻͎̂̎ͅ༉̢͈̒༓̭̙̊̊ᚍ̖̀̉ܭ̨̧̘͋𒀳͉̩̃͆𒀵̾́ᚊ̑𒀅͎̠ჳ̥̳̂̃ܙ݁͋ͅᚗ̺́̄̓༝̫̈́̀ͅᚇͅ༜̘̣͋́ᚄ̎
   document.getElementById('mute-btn').addEventListener('click', () => {
     state.muted = !state.muted;
     master.gain.setTargetAtTime(state.muted ? 0 : 1, ctx.currentTime, 0.6);
@@ -3798,27 +3792,27 @@ function initAudio() {
   });
 }
 
-// ─── Real-time audio modulation from portrait state ─────────────────────────
+// ༏̡̖́༜͌̋ᛣ̤ᛅ̬̮̬̀ᚗ̪̘͊̀ᚕ̗̖̝ᚁ̢̞̀ᚌ̨̃ᚥ̅́ሦ͂̉ܖ̳ሩ̑𒁅̻̠̇ܮ͎̣̥̙݅̔ᚐ̖̼̓𒀫̨̫̆͋უ̿ཇ̖̄̓ͅ༴̧̣͂ᛈ̧̡ᚒ̻̼̌༭̢̯̻݆̮̍ܙ̨̈́̆͋ᚃ̢͌ᚋ̯̘̽ᚓ̮̼̮̾ሩ̧͇̗̇ᚎ̚ჹ̃ყ̏༧̰̟̬̉ܳ̍ܵ̔ር͎̏ზ̥̀༉̱̅̑ი͋̓̇༰̮͍̂
 function updateAudio() {
   if (!state.audioReady || state.muted) return;
   const ctx = state.audioCtx;
   const n   = state.audioNodes;
   const p   = state.portrait;
   const t   = ctx.currentTime;
-  const τ   = 0.15;  // smoothing time constant for all ramps
+  const τ   = 0.15;  // ༘̮̋𒀕̘̂͂̒ܩ̨̖̑ა̹̦͋̂𒀍͎̙̠́ᛚ̦̠̼̂̊݅̏ᚘ̟́𒁉̦̈́ᚇ̺
 
-  // ── Convergence → drone pitch shift ──
-  // As convergence rises (0→1), pitch bends up gently from 58 → ~72 Hz
+  // 𒀉͈̂𒀦̡̰̭ܞ̯̀༌̭݈̺̗́̋̕𒀖̢̰̼𒀩͊̚ᚘ̯̔̈ო͎̼̠𒀰̭݂̔შ̙̝̓𒀌̹̯༑̋ܕ̤ᚠ͎ე͉͎̎̐𒀩̨̫̌̄ᚈ͉̙̍ሸ̬̉ሢ̨ሆ̍̓̈́ሩ̝݂̜̉̾̓
+  // ݂̤͈̆ͅቅ̲̏ག̻̫𒀟̱̘̜̄𒀹͉̅̽ሩ̲͍̞ჵ̜ᚒ͈̓ܒ̪̹ል̭̽͋̆ܗ̑̆̔ᚿ́𒀱͍̋̉̇ሪ͋ᚻ̳̏ͅშ̽́̇༛͋̾̃დ݄̗̠̜̃̋ᚈ͇̱͆ሁ̩̋𒀏͌ხ̬̘༵̱̊̏̿ܵ𒁁̂ა͇͋̐ܵ̅ᚚ̠̐ᚍ̤̪̀̃
   const pitchTarget = 58 + p.convergence * 14;
   n.osc.frequency.setTargetAtTime(pitchTarget, t, τ);
-  // Keep temperament extras in tune
+  // ᚖ̭̮̑ܽ͊ᛜ̲̲̈́ა̭̗͆ᚅ͋͂݃̒𒀞̦̀𒀸̨̢̰́༉̠ᚏ̽ᚸ̎༟̝͈̔ჳ̻̜̞̀ቅ̺̋̀͌ᚰ̖ܬ͇͍͌̑
   if (n.osc2) n.osc2.frequency.setTargetAtTime(pitchTarget * 1.015, t, τ);
   if (n.osc3) n.osc3.frequency.setTargetAtTime(pitchTarget * Math.sqrt(2), t, τ);
   if (n.oscOct) n.oscOct.frequency.setTargetAtTime(pitchTarget * 2, t, τ);
   if (n.oscFif) n.oscFif.frequency.setTargetAtTime(pitchTarget * 1.5, t, τ);
 
-  // ── Crack & erasure → crackle volume ──
-  // Base crackle 0.007, rises up to 0.04 with damage
+  // ᚖ̱͊̕ቁ̻͉̲݂̦̿ሞ͍͎ᚲ͇ሞ̤ܭܴ̲̮̋̆̿́ᚏ̧̖̚̕ა̝̫̎༩̧̘̚ͅ𒁂̭̳̈̀ᚐ̩̂̌𒀓̯̒𒀤̝༖̹̉𒀲͇͋̀ᚥ̐༦̭̰͆̂༦̢̉༶̦̘͂̏𒀋̭̳̲̿ሑ̻͍͎݀́̓ͅᚯ̦ჩ̩̟პ̨̞ܔ̠̔̀ር̦̜ཆ͈̂𒀃̠̈ሷ̮̏𒀌̣̀̀͌
+  // ᚏ̫̏͂̕ᚠ̟̐̓̚༳̾͊̿ხ̩͈̇̚ჶ̪͎̑𒀇̨̪̝ᚂ͈̿𒀬́ყ̖̙̅ᛀ͎̍ყ̲̓͌̾𒁃̤ᚕ̡̰͇ܴ̈̏ሱ̹͉͌͊ܘ̅ᚭ̼ቆ͍͂́ᚊ̳ᚋ̼݉̆̀̕̚༖̰შ̅ᛓ̣̇̄თ͇͆ܯ̙̉̚ᚨ̟ሺ̡̧̀̐༢̙̲͍̏̑̅݅̍
   const damageLevel = Math.min(1, p.crack + (p.erasure || 0) * 0.7);
   const isSilent = state.temperament === 'silent';
   const nGainTarget = isSilent
@@ -3826,43 +3820,43 @@ function updateAudio() {
     : 0.007 + damageLevel * 0.033;
   n.nGain.gain.setTargetAtTime(nGainTarget, t, τ);
 
-  // Crackle bandwidth also widens with damage
+  // ᚊ̣̿ቀ̀ᚫ̢̍ი͇ᚖ̼̩̒̓༟̨̄ᛢ̢ܱ̈́͋̾ܒ̭̘̿̀ჳ̱̿͌ჰ̞̫͂რ̦
   const nQTarget = 0.6 + damageLevel * 2.5;
   n.nFilt.Q.setTargetAtTime(nQTarget, t, τ);
   n.nFilt.frequency.setTargetAtTime(380 + damageLevel * 600, t, τ);
 
-  // ── Drowning → lowpass muffle ──
-  // As drowning rises 0→1, sweep master LP from 18kHz down to ~200 Hz
+  // ܭ̬̤̐ᛗܼ̏̀̈𒀾̳̬̪ᛂ͎̯̖̖მ̡̗ܶ̈́̐𒀲̺͂̉̇ჱ̖̰ͅᚒ̘̓̒𒀞̙̲̮̈́̾ܳᛍ̤̬𒀾̰͎̏ᚉ̭̜̲̒რ̏͋ܐ̫̙̉́݃̊̿̚᚛̆̈̈́̚༽̤ᚈ̨͎̂ቇ̼ე̺̣̈́̓𒀜̤̐მ͇̕༐̅̇̔̂ᛜ͍̱ჰ͂̚ᛚ̨̠̰݃̄ᛀ͋͊𒀬̤̖̆ͅܢ̨̝́̾ሽ͊̅
+  // ሢ̢̞̤̉ሲ̋ͅᛏ̣͍̪̊ᛚ̦̆ᚄ͈ღ̤̦̋̉რ̀ᚚ̫͌́༕̰͍́ᚬ̫̐͂͂ᛚ̤̃̂ሌ̫̯́̇ᚳ̚ჰ͈̺̆͆ᚎ̹̹̈̆ᚕ̰̏༟̣̾̉ᚰ̞ሩ̯͆ᚿ̬̀̄ܦ̖̫༪̰̓̈ ̜̓
   const drowningCutoff = 18000 * Math.pow(200 / 18000, Math.min(1, p.drowning));
   n.drowningLP.frequency.setTargetAtTime(drowningCutoff, t, τ * 2);
 
-  // ── Jitter → noise filter instability ──
-  // High jitter widens crackle band and wobbles the centre frequency
+  //  ̝̪ሾ̧̢ܻ̌ჲ͇̍ሓ̲̰̝ቀ̧̠̗̿༸̫ͅܪ̍𒁅̽̋̕ܢ̞ᚄ̖͇𒀓̻̖ܿ̇̔ᚆ̦̭̘̣𒀹̨̮̚𒀈͎ღ̌ᚕ̅̐̄̾༊̭̒ᛧ̡̳̞̘ᚏ̝̈𒁍̩͍͋̈̊ܵ̄ͅᚌ̌̕ቁ̃ራ̫̋̚ͅስ̢̤̏͆ᚙ̌̇́ᚖ̠̱̱̂ᚴ̺̰̿ሿ̘̦̣̋ቈͅ𒀳̇𒀒́
+  // ̝ܰ͋𒀵̧̐̏͋༼͎̝̉መ̡༹̗̊ᚚ̙̿᛫̃̑𒀢̅ᚚ̈ܦ̹̆ͅ𒀧̅͌̊́ᚓ̰ሩ̜༁̐ܕ̦̀༣̮̌̚ቇ́𒀨ܴ݈̐̾̔̊་̂༶̻̌ᚃ̱̤̪𒀀̨̞ͅᛠ̬̦̤ሇ̘̼̆ሓ̦͇͂̀ᛏ̆ᚋ̙̭̜ሮ̿̇̚ሩ̡́̐̏ვ̧𒀚͈̑༈͈̼̊ᛊ̆ᚅ̗͆̾͆ሞ̩͊̆𒀧̕ᛕ̭̪̎̉ሄ̹͂̓
   if (p.jitter > 0.1) {
     const jitterWobble = Math.sin(t * 6.3) * p.jitter * 120;
     n.nFilt.frequency.setTargetAtTime(380 + damageLevel * 600 + jitterWobble, t, 0.05);
   }
 
-  // ── Type tremor → rhythmic gain pulses ──
+  // ი͈ለ̝̐̾༅̍თ̝̘̋̚ᛔ̨̼̽ᚊ̍༤̳ሴ̫̳ሪ̬͊̋𒀊̧̗ሄ̋̈͂༤̖ᚓ̙͇̄ܟ̱̈𒀲̓͌༸̢̰̔ሀ̗̟̼ჟ̘̯̟̫̦̏̉݇̔ሹ̻́̽̈𒀡̄̓̀პ͊̔𒀟͎𒀩̗ܘ̱༿̡̓ᚈ̫̙ᚓ̊̆𒀒̘͍̽ማ̍ᛙ̘̗̅ᚁ̾̑ᚔ̑͌́̈
   if (p.typeTremor > 0.15) {
-    // Quick gain bump on the drone, proportional to tremor intensity
+    // ል̬̖༰̯̋̀̾უ̔̋͂ᛘ̱̗݆̈̉ሱ̰𒀺́
     const tremorPulse = Math.sin(t * 12) * p.typeTremor * 0.008;
     const baseGain = isSilent ? 0.004 : 0.028;
     n.gain.gain.setTargetAtTime(Math.max(0, baseGain + tremorPulse), t, 0.02);
   } else {
-    // Settle back to base when not tremoring
+    // 𒀩̭̑̋ሎ̖̹ܡ͊༳̫̅̏ͅᚤ̱ሀ̣͊̎𒀳̞̓̕གྷ̬ͅ𒁁̡̂༅̢̠ང̞̐͂ᚌ̡̎́̿ᛜ̥̭̓ე̗ሢ̧̳̠̔ᛄ̯̖̳͎ᛎ̺ო̻͍ܣ̇უ̢̾ስ̬̩̅𒀾͆𒀖̫̎წ̡̧̻ჺ̜̄̅ა̀̑༶̚
     const baseGain = isSilent ? 0.004 : 0.028;
     n.gain.gain.setTargetAtTime(baseGain, t, τ);
   }
 
-  // ── Convergence → drone filter brightness ──
-  // Higher convergence opens the filter slightly — portrait becomes more present
+  // 𒀷͂༫͎̱̀𒀇̈́༴̒̋̐ሦ̗̣̎𒀋̭̜̘ܙ̦̽
+  // ܘ̱̣ܓ̞𒀾͉̺̽́ܛ͌𒀢͇̙̍ͅ᚜̚ሆ̻𒀤̐ ̻ሻ̡̺̫͎ሶ͊ܫ̧̝̒་̼͂ჳ̘̱̆̏༖͇̿𒀂̹̥̐
   const baseFiltFreq = state.temperament === 'flattering' ? 340 : 220;
   const filtTarget   = baseFiltFreq + p.convergence * 180;
   n.filt.frequency.setTargetAtTime(filtTarget, t, τ);
 }
 
-// ─── Phase transitions ──────────────────────────────────────────────────────
+// თ̉̑̓ᛰ͈̇ᛕ̝̽̕ᛯ̟̒̐̇༅͎ሇ̻̐༺͎̥͊̈́𒀎̢͉ܻ̂̀̉́༑̹༻̟̞̲̓ᛄ̫̭ሮ̍ራ̧ᛀ͍̔͂ᚴ̜ᚎ̬༺̖̞̀ჹ͎ᚍ̞̜̕ᚄ̑ᚇ̾ܮ̻ჺ̺̀ሺ̳𒀲̖𒁅̺̒̐𒀃͍̇̃̌დ̉́̚ͅᚮ̀།̟̪̠𒁈̖̮̏ͅჹ̡̟ᚹ̢̾ᚃ̂
 function awaken() {
   if (state.awakened) return;
   state.awakened = true;
@@ -3884,7 +3878,7 @@ function awaken() {
   window.addEventListener('beforeunload', saveMirrorMemory);
 }
 
-// ─── Diagnostics ────────────────────────────────────────────────────────────
+// ༬ܑ͉̠̦̂̃̔̚ሴ̢ე͆͌̊წ͉̼͍ᚓ͈ᚅ̧̘̆ს̗̘ყ̈
 function updateDiagnostics() {
   const el = document.getElementById('diagnostics');
   if (!el || el.hidden) return;
@@ -3941,7 +3935,7 @@ function updateDiagnostics() {
     `fingerTrails: ${state.interaction.fingerTrails.length}`;
 }
 
-// ─── Main Loop ──────────────────────────────────────────────────────────────
+// ᚓ͌̽͆́ᚇ͉̬̘͌ሚ͈̑ᛰ̦͇͊༢̟̬̩̯͉ܶ
 let lastFrameTime = Date.now();
 
 function mainLoop() {
@@ -3950,7 +3944,7 @@ function mainLoop() {
   lastFrameTime = now;
   const t   = now * 0.001;
 
-  // Update drifting polygons and metaballs every frame (even before awaken)
+  // ܨ̳̘̒̊ሥ̦̟༽̻̉ሎ̠̇ᛣ̓ቀ̖݀̈𒀯̡̫̐̀ხ̥͈𒀥̡̳̐ჺ̳̝̹݄͇̇͌ሴ̲̼̯̊ᚙ̠̠͉͌ᛯ̢̘̃̓༓̊̉𒀃̋͋̓ᚖ̝̫̓ᛰ̡̩̲͈̎ܲ̊݀̐𒁆̺̝̎́ყ̖̃ᛖ̹ሖ̋ᛗ̑̕གྷ̨̖ᛙ̄ཇ̝́ᚄ̫̩ᛯ̘̙̏წ̮რ͍͎̾̌ᚇ̬̞ͅ𒀓̿
   updateDriftPolys(dt);
   updateMetaballs(dt);
   updateCursorTrail(dt);
@@ -3958,9 +3952,9 @@ function mainLoop() {
   updateFingerTrails(dt);
   propagateCracks(dt);
   updateRipples(dt);
-  state.ritualPhase += dt * 0.001;  // slow rotation for ritual geometry
+  state.ritualPhase += dt * 0.001;  // ᚊ̨̲̽̚ᚓ̱̖̙ሖ̖̰̩̓ᚣ̪̞͎༓̮̎̚ᚃ̦̲͌ᚃ̪̜͉̰ረ͉̹͂𒁂̬̩̏ჶ̿͂̀ᚏ͉̻̰݀̇ሷ̂𒁅̥̻ማ̭̇༡̍ሡ̨̟̋̉᚛̘́ᛖ̺ሣܑ̗̺̫̈͂̂ܦ̤̆͌̾𒁄͌̚ሷͅቁ̫̀̇𒀇͇̙̐༟̼̠̲͆𒀜̲ჹ̪̤᚛̿̄̕ܯ̮ᚉ̒̊̐͊ცͅ𒀚́
 
-  // Update Three.js glass refraction layer
+  // ༾̆༄̗̓̀ሻ̓̀ᛰ̇̅༶̬́༧̋ᛚ̍̆̓𒀮̤ᛆ̲̫̓ჱ͊ͅ༖̜̤̈ཆ͂ܞ̼რ̦̐̄༌̐̃༟̬̔͂ძ̫̺ܷ͈̀͊́ሢ̭༩͊̈́̔ላ̯̪̊̀༈̒̌̄༊̌
   updateGlassRefraction(t);
 
   if (state.awakened || state.phase === 'landing') {
@@ -3968,7 +3962,7 @@ function mainLoop() {
     updateAudio();
     renderMirror();
   } else {
-    // Still render lightly during landing so shards are visible behind veil
+    // ሂ̉ቂ̘̈́͂𒀫̥̃̚༱͎͇̝̋𒀆̨༒̹ᚋ͍༉̃პ̰ܙ̥༆̥𒀌̗̯̲̆პ̰̯̀̿𒀱͈ᚒ̟́́ᚇ̢𒀴ͅለ̞̲͈̃შ͈̯̞𒀢̳̪̦̓ᚪ̭ᚃ̗͂̊
     renderMirror();
   }
 
@@ -3981,7 +3975,7 @@ function mainLoop() {
   requestAnimationFrame(mainLoop);
 }
 
-// ─── Init ────────────────────────────────────────────────────────────────────
+// მ̣ᚐ̜̘̍ᚳ͉̮͌ᚸ̝̳͊ჱ̦𒁁̦̒̾𒀗̜̻͊̍ሬ̱̱̮̋𒀓̜͂ሥ̉ᛮ̩̆̔ሚ̤́ყ̧̠ᛎ̼̤̮̜𒀍̝̼̺̆𒀰̞̈́̓́ሊ̢̈́͌́ሒ͎̮ჰ͇̟̫͂༶̲̓̂̂ለ̘̩།ܑ̯̥̲̏̒𒀎̝̮̎ᚂ̼̀ᚩ̈ܛ̗ܳ̚ሆ̢̟ܱ̟̖͌̊݃͌́́̂ც͌
 function init() {
   collectEnvironment();
   loadMirrorMemory();
@@ -3994,18 +3988,18 @@ function init() {
   initGlassRefraction();
   trackInteraction();
 
-  // Activate the custom cursor (hides the system pointer via CSS body.js-cursor)
+  // ༱̥̾̄ሴ̻̣̖̒༌̟𒁌̙༘̜̑ܪ̙̩̌̇ܬ̬̫̿̈́݁̌ი̓̐ሊ͉́𒀊̡̻̍𒀊̭ᛆ̨̪̾ܳ̆ᛦ̀̔ሦ̙̙̂̾ܐ̧ܧ͉ͅპ̳̟ሣ̯̫𒀛̫ᚄ̍༌̳ሌ̺̌ᛊ̊𒀽̝̖͇ܾ̱ܱ̗ᚪ̄𒁆̟ᛰ͈̂ཁ̆̕ი́̍ͅს̂
   document.body.classList.add('js-cursor');
 
-  // Ambient text timer
+  // ܙ̎͂̌̚ე͉͋𒀏̫̝̽̓ჰ̡̀̀ሕ̧̔̓͆მ̧͈́ᛘ̼̙̠̌პ͂̚̕ላ̺̘́͋𒀮̨̹̳̔ᚈ̢̎𒀓̯̎ᛋ͍̲ᚯ̪̳መ͈͊̑̍ܛ̌༊̓𒀕̏ሌܑ̗̏̋̑̈ሒ̬̓
   setInterval(() => {
     if (state.awakened) generateTextFragments();
   }, CONFIG.textInterval);
 
-  // Diagnostics refresh
+  // ᚒ̓̑ყ͉̺̽ܝ͈̼̞ܵ̑́ቆ͍̔̾̚ܦ̰ძ̏ᚑ̜̙̘͌𒀴̳̆ቀܑ̇̈́̆̆ᚎ̫̹̇̿̋݅̓̋༮͌𒀘̙̀̀ረ̰̞̊́ሣ̍ͅ༡͉́ᚒ̊͋༮̢̡͍თ̳̒̐𒀉̭̕ራ̪̈́͋ቃ͂̽́ᛋ̃̂ᛒ͈̑ማ͈̮̣̅༜̡ܹ́̓̒͂༝̆̂ሂ̅̀̓̕ܨ̒̿̏̎ሢ̊͋ሏ̜̩ሌ̈ሸ̩͆݀̚
   setInterval(updateDiagnostics, 500);
 
-  // Controls
+  // 𒁆̔̚༮̟̮́ܰ̒༣̖̀ᛆ͎̑ሽ̏ᚏ̺̾༓̹ᛎ̺̠̂ཁ̢̆̋̀𒀧̇̇̅ᚅ̰̈́̂ᛙ͈̼̺́ჹ̢̬́̅ᛓ͍̼̩༧̮̫𒀠̑̇ܔ̘̬͋͂𒀩̠ყ̙͇͇̽ᚤ́͂ͅᚇ̈̒̋ͅᛁ̗̤̝ሳ̣̇̅̂𒀥̥ሗ̢̼͉͎༘̲̈̄ͅ𒀯̰།̍̾ᛞ̲͊
   document.getElementById('begin-btn').addEventListener('click', awaken);
   document.getElementById('clear-memory-btn').addEventListener('click', clearMirrorMemory);
   document.getElementById('save-btn').addEventListener('click', exportPortrait);
@@ -4017,11 +4011,11 @@ function init() {
     document.getElementById('diag-btn').textContent = open ? '⊙ hide' : '⊙ reveal';
   });
 
-  // Begin on any mouse/touch interaction (also wired in trackInteraction for mousemove)
+  // ა̙͇ܭ̠̆̅ზ̧̼ᛆ̮̞́ቁ̨̑݊̏༸̫̠̙༏̻̜͆̌ᚮ̖༈͎ᛌ̪̝͉ჭ͍͍̱̞ༀ̭͂̇̒ᚚ̟̉̅༾͍̠̊̽ሣ̼̣̔̾ᚑ̩̊̋̚ᚄ̡༂̤̃̌̚ᚊ̾͆ܦ͇͌ᚙ̍ᚍ̅̌̊༥̝ᛌ͋̕
   document.addEventListener('click',      awaken, { once: true });
   document.addEventListener('touchstart', awaken, { once: true, passive: true });
 
-  // Auto-awaken after 7 s if visitor is motionless
+  // ܧ̢̙̤ም̻̀᚜݈̌͌ͅᚕ̏̆༦̙̥̖ᛣ̠̾ሹ͆რ̭̀ᚧܴ̅͋̓̀́ᚌ͍̓ሚ͇ᛒ̞̓ͅᚊ̨̝͎̾ᚶ̀ሟ̢̜̼༵͈̐̆̇ᚮܹ̱̈̇ሇ͎̤̎ზ͎̝̒̅𒀌̬̋̿̐ܗ̖̿̏̇𒁂̡̢̼ᚋ͈̋
   setTimeout(awaken, 7000);
 
   mainLoop();
