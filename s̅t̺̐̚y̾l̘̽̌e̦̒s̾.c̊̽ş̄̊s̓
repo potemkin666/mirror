@@ -1,0 +1,758 @@
+/* ༹̠͇͌ᚎ̗̏̎̉𒀍̠𒁊̜̍̀ᛕ̡ᛩ͈𒀿͉༕̭𒀛̥̲̋̚ᚑ͍̝̜̾ᚅ͉ ͋͌́̕ᚙ̨̦̹̏༳̢̠͉͈ᚓ̤𒁊̧̗̳̓᚛̢̳̼ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --silver:      rgba(185, 198, 220, 0.65);
+  --silver-dim:  rgba(160, 172, 198, 0.30);
+  --glass-dark:  rgba(10, 12, 18, 0.92);
+  --ink:         rgb(2, 2, 5);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ༔̞̊𒀢̫͍̔༕̰ᚊ̦ᛮ̡̘༷̍̅́̿ᚵ̹̣͌̇༼̟̈̇𒁂̐ᚙ̚༧̗̹᚜̯̀͆༛͌༠̦̘̫́ᚢ͆ᛝ̧̺̭̈༬͌ᛧ̹̮͇̪༅̗͌༫̞̔̚ᚙ̡̤̐ᛖ̤̗̹̏ᚓ̞̮̱̑𒀯̻̰ᚕ̹̒ᚾ̜ཇ̻̖̉ᚗ̥̿̋ ̮̪̪̄𒀼̎̽ */
+body.js-cursor {
+  cursor: none;
+}
+
+/* ༰̙̄༸̒̚ᚠ̫ང̽ᛑ̠͍̌̂𒀢͇ᛊ̫ᚩ̢̓𒀛̏ᚐ̪𒀳̂̑ᚘ͌̂ག͉͆̆𒀝̥̠̒༯̫͎͆𒁇̀̓̔̂ᛔ̮̍́𒀁̣͆༨̑̉ */
+
+#glass-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 𒀃̰̂́ᚳ̱̏̾𒀰̳̽̉ᚋ̈́̔̾ᚲ̜̟̗̂᛬̘̓́̃ᚋ̚༗̹̦̗̃༻̠༉̧ᛍ̳ᛍ̢̬̭̊༉̑𒀟̭̤̻̚ᚒ̬̈ᚆ̧̡̭̿༨͎̓̏̀ᛤ̭̋͆ᛢ̢͉̜᚛̪̈́͋̐𒀁̟̤̯̦༱̘͍̍̆ᛟ̿༎̨̡𒀴͋ᛝ̒𒀲̞̀͊̚𒀛͇𒁃͍̅̈ཅ̪̞༸̙̋̅ᚒ̼̺̎͊་̓ͅ༑̽͂ᛤ̻̩͋̚ᛀ͂ᚓ̼̉ᛏ̊༦͇ᚚ̢͍̑̊ */
+
+#mirror-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 1;
+  /* ༉̧̲̯̆ᚒ̗̞̎𒀰̥༰̐ᚿ̬𒀟̨͉ᛁ̖̠̓̚ᚪ͎̽̋̃ᚱ̠͍𒁇̥̂̀̒༭̬͈̾́𒀞̾𒁊̹͇̋ᚍ̬̂̆༅̰̑̀།̜ */
+  mix-blend-mode: screen;
+}
+
+/* ༨̞̉̃ᛕ̓̊̌་̣̘𒁁̨́༳̒̉ᚚ̢̮̒̓𒁌̳̿ᚷ͇̋̑ᛋ̪̻́ᚰ͂̉𒀢̺͊ */
+
+#vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 68% 65% at 50% 38%,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 55%,
+    rgba(0, 0, 0, 0.80) 100%
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ཇ̫̈̌̃𒀒́𒀢̻̬̄ᛂ̘ᛯ̪͉̔ᛣ̆̐༸̽ᚅ̂༏͇̀́̆༡̓̐𒀤̨̭̗𒀟̳̉ᛊ͇͍̽̌༶̡͈̂ᛟ̺̜̈́̆ᚐ̡̡̙͇ᛟ̠̆̎ᚋ̆ */
+
+#text-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.text-fragment {
+  position: absolute;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(0.60rem, 1.1vw, 0.80rem);
+  font-style: italic;
+  color: rgba(182, 194, 218, 0.00);  /* 𒁎̭̜̅𒁂̟̳͇̐ᛅ̔͋̉༞̢𒀳̦̫̃ᚐ̪̝̣̔༏̻ᚕ̢̬̓̐༟̋ᛊ̣̮̄ᛦ̩̃ᛂ̯̌ᛝ͇̱̝͌༖̣ᚌ̯ᚗ̐̃́̿ */
+  letter-spacing: 0.10em;
+  line-height: 1.70;
+  max-width: 220px;
+  transition: color 2.2s ease;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 𒀊̫͆̅́ᛃ̒̐ᚐ̤͉̾̿ᚎ̜͈͌ᛐ̘̝͂̊𒀐̡̲̓ᚰ̠̝̈́̍ᚓ̝̐͆̚ᚦ̙̇𒀂̨̄ */
+
+#landing-veil {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  background: rgb(1, 1, 3);
+  z-index: 100;
+  transition: opacity 2.4s ease;
+}
+
+.mirror-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+  font-weight: 300;
+  letter-spacing: 0.50em;
+  color: rgba(200, 212, 232, 0.62);
+  text-transform: lowercase;
+  padding-right: 0.5em; /* ᛊ̭̘̋̏ᛗ̕ᛙ́̑̀̀༧̟̱༵͆𒀚̪̮̋𒁅̡̹̦༨̙ᛛ̾̍̂𒀯͉༽̈́ᚃ̳̽́̚ᚖ̨̜ͅ༛͆ᛮ̜̭̓̏ᚆ͉̭𒁉̩̈́𒀟̞ᚐ̨͊ᚘ̦̚ᚘ̳̆̅̈𒀑̧̼́ᚒ̡ᚐ̙̞̀̽𒁏̢̲ᚃ̩𒀞̀ᚉ̟̑ᚈ̢̱̐ༀ̤͂̒ᚅ̰̀̇̾༡͂ᚈ̒̕ག̢ͅᛣ̌̑ͅᚽ͇ᚐ̨̨̍̐ᚴ̲ཀ̃͊༻̄̍ */
+}
+
+.invitation {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(0.65rem, 1.3vw, 0.82rem);
+  letter-spacing: 0.30em;
+  color: rgba(155, 168, 196, 0.38);
+  font-style: italic;
+  animation: breathe 4.2s ease-in-out infinite;
+}
+
+.landing-hint {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 0.60rem;
+  letter-spacing: 0.25em;
+  color: rgba(120, 135, 165, 0.22);
+  font-style: italic;
+  position: absolute;
+  bottom: 2.8rem;
+  animation: breathe 5.6s ease-in-out 1.4s infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 1.00; }
+}
+
+/* ᚉ̦̫͇̈༇̙͇́͂𒀋̮̆̉ᚏ̍̄̐ᛎ̒́̂ᛏ̈́̿ᚄ̅̌𒀲̼ᛠ̻̻ᚏ̱̈́༒̝༛͇̚༕̭̭̓𒀥̦̠̄̏ᛥ̖ᚵ̞̍̀་̊͂́̈𒀂͉̰̑̂༆͇̘̤̀𒀗̡̻̼̍༾̽̍ᚻ̔̈́͋̕𒀼̼̿̓𒀣̝̂༎́̕ᛇ̻͈̻̑༕̐̒̀𒁏̮̈́ᛝ̳́͂ཀ́ᛄ̻̼̆̉༝̊ */
+
+#controls {
+  position: fixed;
+  bottom: 1.6rem;
+  right: 1.8rem;
+  z-index: 50;
+  display: none;          /* ᚜̙ᚠ̃ᛛͅ𒀧̫͉̯̈́ᚂ̒͂̄ᚘ̥̔̿𒀈̙̜ᚬ͎𒀪̻̭𒀊̖͉̔̂ᚁ̝̘͈̅𒁃̡̭͆ᚯ̽ᚸ̗̘̇̓ */
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+#controls:hover,
+#controls:focus-within {
+  opacity: 1;
+}
+
+/* ᚄ͈̩𒀒͈̠ᚐ̢𒀚̞̼𒀨̥̘̉̔ᚊ̚ᛠ̪̂᛭̩̒̇̃ᚘ̝̓ᚓ̨͈̆̾𒀭̢̘̀̚ᛆ̦ᛰ͋ᚹ̮̹́͌ང͍͍̲𒀧̡͎̞̉ᚅ̮̓༦̨͎͊̽ᚑ̌̉𒀲̝̬̀ᚱ͂̀ᚏ̥̫̋ᚈ́͌ᚪ̘̅ᚳ̢̞̍̔༥̩̆༟̗ᚔ̾͂༇̮̋̋̾ */
+#controls::after {
+  content: '·';
+  position: absolute;
+  bottom: -1rem;
+  right: 0;
+  font-size: 1.4rem;
+  color: rgba(160, 175, 205, 0.25);
+  pointer-events: none;
+  opacity: 1;
+}
+
+body.awakened #controls {
+  display: flex;
+}
+
+.ctrl-btn {
+  background: none;
+  border: none;
+  color: rgba(155, 170, 200, 0.42);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 0.68rem;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  padding: 0.18rem 0.5rem;
+  transition: color 0.4s ease;
+  outline: none;
+}
+
+.ctrl-btn:hover,
+.ctrl-btn:focus {
+  color: rgba(210, 222, 240, 0.88);
+}
+
+/* ᚍ̣̣̉́𒀠̢̀̔𒀧̔𒀓͊ᛟ̼ͅᛚ̪͊ᛓ̢̹̓𒀰̻̻̏ག̤͎𒀂̠̏ᚑ̤̀̒̾༨̖̀̅̌༭̂̀༊̡̜̯̄༊̋̎̎̕ᛒ̰̃̃𒁍̟̔ᚐ̟͍́ᚮ̀͆̏̕༳̓ ̼̠𒀇̡̢̎̑ */
+
+#diagnostics {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 1.2rem;
+  z-index: 50;
+  font-family: 'Courier New', 'Lucida Console', monospace;
+  font-size: 0.58rem;
+  line-height: 1.65;
+  color: rgba(140, 160, 188, 0.55);
+  background: rgba(0, 0, 0, 0.68);
+  padding: 0.85rem 1rem;
+  max-width: 300px;
+  border-left: 1px solid rgba(100, 120, 155, 0.18);
+  pointer-events: none;
+}
+
+#diagnostics[hidden] {
+  display: none;
+}
+
+/* 𒀬̧̭̅ᚶ̯ᚈ͈͆̓𒀼̰̞̋ᚇ̥̥̣̿ཆ̂ᛰ̥ᚐ̫༆̲̒̐༭̰̀༳́̏̈́ᚯ̧̟̎ ͎̻᚛̺̊ᚉ̃̿̓ᚕ̬̎̔༸̜ᚰ̫͈̄̚𒀸̼̑𒀮̪̗̈̄᚜́̑᚛̤̏̆͂༇̕༐̡̭̅ᚋ̯̱̘̋𒁄͍̱̘͊ᚱ͆𒀿̍༡̒͆ᚇͅ𒀉͎̆̐̚ᚳ̣̓ᚠ͈̄̏ᚢ̲͆̔ᛨ͍́̇̄᚜͉̏̿̇ */
+
+#cursor {
+  position: fixed;
+  width: 5px;
+  height: 5px;
+  background: rgba(205, 218, 238, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 200;
+  transform: translate(-50%, -50%);
+  transition: width 0.15s ease, height 0.15s ease, opacity 0.3s ease;
+  mix-blend-mode: screen;
+}
+
+#cursor.hovering {
+  width: 3px;
+  height: 3px;
+  background: rgba(230, 240, 255, 0.80);
+}
+
+/* ༠͋͆ᚑ̀ᚕ̈༽͎̞̋̋𒁄̝̲̼̝𒀒̯̩ᛋ͇͊̑𒀨̦̫༨̾̆༰̰ᚈ̢̏̎𒀤̧͇̮ᚖ̧̬̼̐༉̫̃̄̔𒀴̻ᚊ̯̯̗̃ᚮ̈́̈́̋͆ᛎ͇̬̬𒀝̣̱̋ᚹ͋ᚴ̔̐𒀄͌ᛤ̝͈̽̚ᛑ̟̿̑ᚈ̒̓ᚓ̂̔༲̙͍̬ᛙ̗͍̉̿𒀨̰̂ᚉ̮̦̈́̾ᚰ̢̣̓̓𒀐̫̀̅ᚉ̋ */
+
+@media (max-width: 768px) {
+  .text-fragment {
+    font-size: 0.68rem;
+    max-width: 175px;
+  }
+
+  #controls {
+    bottom: 1rem;
+    right: 1rem;
+  }
+
+  .mirror-title {
+    letter-spacing: 0.35em;
+  }
+}
+
+/* ᚃ͈̹̈́𒀪͉̺̎𒀡̼̾̂᚜̱ᚕ̩̌̈̚𒀘̗̩̹̖༈̢̤͂̐ᚊ̼̜̝̄ᚁ̠̣̀́ᛡ̬̚ᚖ̟̐̆̚𒀻͎̲̰̃ᛞ̇𒁍̂𒀕̥༙̟̦̊̿̍̚̚༅̠̋༟̣̫̀̅𒀓̲̌𒁆̦̗̑́༴̣༲̗͇͍̀𒀄̤͇̾͆ᚷ̡༵̭̾̔̏𒀾͇͆༻̌̔ᚹ༹̞̜̍༐͌̂ᛞ͈̩͍༽̠ᛗ̲ᛖ̭ᛔ̟̓ */
+
+@media (prefers-reduced-motion: reduce) {
+  .invitation,
+  .landing-hint {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  #landing-veil {
+    transition: none;
+  }
+}
+
+/* ᛉ̘͇̬𒀶̢̏̀༂̱̰ᛊ̈༺̡̨̤𒀮̱ᚬ̄̉ᚄ̞̓ᚕ̃𒀠̹̐𒁏̩̘̌̎ */
+/* ༃̥̮̿ཇ̄ᚅ̠̜́ᚍ̙ᚖ̝̰ᚊ̙̺̃ᚮ̌̈́͋𒁉͈̼༨͎̑̓ᚎ̗̊༎̚𒁊̼̓ᚈ̞̓༌̘̣̀་̙̝̉̕𒀱͍̺̃𒀯̅𒀌̰̎̔͊𒀿́ᚇ̲͉༘͈̓͊́̈ᛀ͂̔ͅᛙ̠̳ᚧ̱̆̔ᚓ̙𒁏̨̬̝̎᛭̀༔̣̣͋𒀎͉͇̲̥ᚁ͊̿᚜̀̿𒀂̃᛭̨̮̑̉𒀽̊̌͆𒁍͎ᚇ̲𒁂̱ᛩ̤̼̺̿༛̙͍͂́ᚑ̝̄ */
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --silver:      rgba(165, 158, 148, 0.65);
+    --silver-dim:  rgba(145, 138, 130, 0.30);
+    --glass-dark:  rgba(18, 16, 14, 0.88);
+    --ink:         rgb(12, 11, 10);
+  }
+
+  html, body {
+    background: rgb(12, 11, 10);
+  }
+
+  #vignette {
+    background: radial-gradient(
+      ellipse 68% 65% at 50% 38%,
+      transparent 0%,
+      rgba(10, 9, 8, 0.30) 55%,
+      rgba(10, 9, 8, 0.75) 100%
+    );
+  }
+
+  .text-fragment {
+    color: rgba(155, 148, 138, 0.00);
+  }
+
+  #landing-veil {
+    background: rgb(11, 10, 9);
+  }
+
+  .mirror-title {
+    color: rgba(180, 172, 162, 0.58);
+  }
+
+  .invitation {
+    color: rgba(140, 133, 125, 0.35);
+  }
+
+  .landing-hint {
+    color: rgba(110, 104, 96, 0.20);
+  }
+}
+
+
+/* ᚃ̪́ᚆ̀𐤇̩𐍁̕ ̀ᚾ̟̯̓̂𐌿̒༮̲̊ᚴ̑𒀣̗̔͋𐌴̭̀𐌶̦𐌴̇𐤛̮ᚴ̙̫̐̈𐌺̞̖̋ᚯ̪ᚃ̄͂ͅ༿͎͋̀𐤃̗̳̲̈́𐍂̹ᛙ̳̅ᚁ̳̂༠̥̇̓̕ᛩ̤̗̑̔ᚔ̀𐌵̨̲̹༇͉̳̐༼̳̣̠̍༄̀ͅ𐤛̻̏̅̎ᚓ̋̍͌ᛉ̟̃̾ᚗ̟̰̼𐤙̫̋ᚌ̡̱̅̒𐌴̩͈𐤘̀͊ᛪ̹𒁍̨̺̾ */
+
+#s̴̹̪̯̘ị̵̍̈̀̒̕ṋ̷̵̥̎̅͌̕e̛̛̮̋̑̉̑̅̕ẇ̜̐̾̔͊͂ͅ {
+  filter: blur(0.95px) saturate(0.25);
+  backdrop-filter: blur(20px);
+  touch-action: none;
+  transform: rotate(79deg) scale(0.436);
+}
+
+.p̸͎̒̃ò̥ȓ̷̻͈̹̿̏̀̕e̷̛̓̄̐ {
+  mask-image: linear-gradient(337deg, transparent, black);
+  filter: blur(0.29px) saturate(0.01);
+  pointer-events: none;
+  will-change: opacity;
+  mix-blend-mode: overlay;
+}
+
+.ẁ̴̵̮̗͈̜̥ơ̶̢̫̘͍̲̝̓̄͊̑̋̄̏́ͅu͋̓n̶̨̪͈̖̝͎̮̬̋́̔̍͊͆̚d̶̴̽̏̎̓̒̑͊̕ {
+  will-change: opacity;
+  filter: blur(0.76px) saturate(0.79);
+  perspective: 1244px;
+  touch-action: none;
+  pointer-events: none;
+}
+
+.ḩ̟a̵̅͆͌̿̒̕̕z̦̜̪͎̙͌̏̓͊ë̷̵̴̈́͆̔̒ {
+  perspective: 319px;
+  will-change: filter;
+  clip-path: inset(48% 59%);
+  mix-blend-mode: multiply;
+  contain: layout;
+}
+
+.h̵̝́̅̅͌̽̐̑̀̕á̷̹̯̬̕z̷̹͍̯̟͈̬̼͍̻̊̕é́͋̇ {
+  clip-path: inset(38% 38%);
+  pointer-events: none;
+  touch-action: none;
+  will-change: transform;
+}
+
+#v̴̴̡̹̞̘̫̂̋̇̋̉ͅè̋̀̽͌ī̴̷̢̙̣̳̇̀̏̿̚l̺̦̯͇̻̑́͌ {
+  transform: rotate(243deg) scale(0.988);
+  backdrop-filter: blur(15px);
+  opacity: 0.3002;
+  will-change: filter;
+}
+
+#ȃ̵̹̣̤͊̈́̌̐͊̈̕s̶̡̞̳̘͍̬̲͋́̀̉̀̽h̨̛̭̰̠̗̜̕ {
+  will-change: opacity;
+  isolation: isolate;
+  touch-action: none;
+}
+
+ŗ̫̓í͍̲̹̜̾̏͌f̷̛̈ẗ̵́ {
+  filter: blur(0.84px) saturate(0.09);
+  opacity: 0.1541;
+  pointer-events: none;
+  perspective: 1523px;
+}
+
+#g̼̰ŕ̸̛̲̜a̛̹̖̩̝̼i̷̘̗n̞̽̃ {
+  backdrop-filter: blur(5px);
+  touch-action: none;
+  filter: blur(0.31px) saturate(0.64);
+  isolation: isolate;
+}
+
+p̛̼̘̀̋̍̃̕ơ̡̹̲̮̩̰̳̻̝̕̕ŗ̶̸̵̨̬̓͂͊̊̅̽̾̏̕ē̷̵̾̋͊̾́̕ {
+  perspective: 1237px;
+  will-change: transform;
+}
+
+.f̞̣̞̮̗̟̝̓͊͌̓͂̔̏̚ó̴͆̿̈̑͊͆͆ǧ̵̶̵̛͉̰̼̭̩̈́̇͂͋͋̀̒ {
+  touch-action: none;
+  opacity: 0.2872;
+  clip-path: inset(75% 6%);
+  mask-image: linear-gradient(300deg, transparent, black);
+}
+
+#ṙ̛͇̥͎̠̙̓̓į̸̛̛̣̱̣̮̌̿̓̂̔f̵̛̙̫́̈̍̋ṭ̹̩̱́́͂ͅ {
+  pointer-events: none;
+  transform: rotate(-214deg) scale(0.497);
+  will-change: opacity;
+}
+
+#b̴̶̢̢̧̝̫o̸̵͎̠̮̓́̎̐̀̚ṉ̴̛̤͆̕̕ȩ̷̸̓̇̃̆̾ {
+  touch-action: none;
+  clip-path: inset(91% 20%);
+  transform: rotate(269deg) scale(0.259);
+}
+
+[data-ä̴̸̭̙̮̥̮̱̯̻̾̈́̔̎̕̕s̖̤̪͊̐̉̽̿h̶̹̮̩̜̆̽̒̕="t̡̨̟̖̿̿͂̅r̦̙̐͆̕ư̹͉͎̻͈͌e"] {
+  contain: content;
+  isolation: isolate;
+  touch-action: none;
+  will-change: filter;
+  opacity: 0.4289;
+}
+
+[data-v̮̇̽̌o̸̵̚í̯d̵̜̬̾̋̿="ţ̹̯̔̚ͅr̹̤̦̦ủ̹̙̑͂̕e̵̛"] {
+  touch-action: none;
+  isolation: isolate;
+  pointer-events: none;
+  mask-image: linear-gradient(132deg, transparent, black);
+  will-change: transform;
+}
+
+a̷̴̶̤̗̝̗̟̙̐̔̀̿s̷̛̹̋͊͌h̷̨̟̙̲̗̓̍ {
+  opacity: 0.9796;
+  contain: content;
+}
+
+#m̴̦̲̈́̂i̴̛̒̎̏ř̕̕r̹̘̱̝̊́ö̴̠̗͇̮́͌̽̚r̹̍̄́̕ {
+  transform: rotate(-198deg) scale(0.001);
+  contain: size;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  filter: blur(0.05px) saturate(0.37);
+}
+
+#n͍̭̣̆͊̋̀e̠̳̍̑̕r̸̛̖̗̂v̶̶̙̫͍̗̗̙͂e̩̣̯̱̓̂̓̕ {
+  contain: paint;
+  perspective: 1129px;
+  touch-action: none;
+}
+
+#š̺̹̥͍̹̺̏ͅį̜̩̤͇̀̏̃̓̀̓ň̵̞́͊̾̿̾e̵̵̹̗͉̗̺̖̍̕w̵̵̵̵̪͇̯̠̱̽̅̓̾̊̇ͅ {
+  contain: layout;
+  mask-image: linear-gradient(79deg, transparent, black);
+  isolation: isolate;
+  transform: rotate(-259deg) scale(0.907);
+}
+
+#v̛̄̐ĕ̵̸̵̴̝͂į̴̘̠̫̥̼̀̀́͌l̴̷̹̰̗̜̞̘̮̖̦̀̈́̄̕ {
+  touch-action: none;
+  mask-image: linear-gradient(322deg, transparent, black);
+}
+
+.f̵̡̨̟̈̋̎̐̽̚ơ͇̦̩̦̓̀̑̂̅̓̚ͅg̝͇͇̘̀͋̎̀̏̄̎͋ͅ {
+  mix-blend-mode: overlay;
+  backdrop-filter: blur(6px);
+  mask-image: linear-gradient(251deg, transparent, black);
+  opacity: 0.7393;
+  touch-action: none;
+}
+
+.v̮͍͂͋̔̇e̴̝̲̭͆̍ȉ̹̖́̓̕l̩̠̗ {
+  pointer-events: none;
+  backdrop-filter: blur(1px);
+  will-change: filter;
+  mask-image: linear-gradient(115deg, transparent, black);
+  clip-path: inset(71% 74%);
+}
+
+[data-v̬e̅̋͊̓̕i̵̶̮͉̹l̗̫̓̿="t̤̊̈́̽r̺̥̻̐ü̴̲͎̤e̷̹̱̥̞̣̍̈"] {
+  isolation: isolate;
+  will-change: opacity;
+  contain: layout;
+  touch-action: none;
+  backdrop-filter: blur(4px);
+}
+
+[data-t̛̹͎̲̣̠̣̕é̡̧̛̘̒̇̋́̀̕̕e̿̓̾̇̎̑ṱ̷̢̛̲̟̠̱̒̈̆̀̾̕h̦̤̜̀̀̆̆̕="ţ̸̶̜̀̔̐̈r̶ǔ̢̫̻͉̂̀́è͈̏̿"] {
+  perspective: 1543px;
+  filter: blur(0.35px) saturate(0.03);
+}
+
+s̸̡̛̫̘̬̗̖͊̑̇ī̬̺̜̲͊l̸̵̴͉̼̻̝͆͂̂̉̇k̹̦̺̿̇ {
+  backdrop-filter: blur(6px);
+  transform: rotate(173deg) scale(0.070);
+  will-change: transform;
+  touch-action: none;
+  pointer-events: none;
+}
+
+#s̡̟͍̼̿i̛̙͂̇̀̃̃́̇̚n̵̶̹̜̯̩̰̙̪ę̶̳̙͎̺̬́̀̆̃̐͌̽w̛̬̍̀̋̇̂̄ {
+  clip-path: inset(83% 33%);
+  pointer-events: none;
+}
+
+#f̨̻̭̬̬̀̒͌͆͂̿̕̚o̷̴̶̡̹̱̫͂̿͌̍g̴̴̨̣̘̟̗̗ {
+  backdrop-filter: blur(6px);
+  filter: blur(0.27px) saturate(0.40);
+  mix-blend-mode: screen;
+  clip-path: inset(64% 44%);
+}
+
+p͍̟̘̥̩̽ŏ̶͇̠̻̫̜͂͆̕̕ŗ̷̻͍̘͇̺̘̍̀ͅe̴̿͋̍̀͊̍̊͂ {
+  will-change: filter;
+  mix-blend-mode: exclusion;
+  clip-path: inset(94% 5%);
+  touch-action: none;
+  opacity: 0.4970;
+}
+
+h̶̶̢̢̺̜̪͈̍̋̃̑̃a̍̾̏̿z̷̸͍͎̀͂ě̶̶̛̙̬̜̰̫̓̇̊̽ {
+  transform: rotate(-316deg) scale(0.172);
+  will-change: filter;
+  perspective: 1885px;
+  clip-path: inset(14% 49%);
+  isolation: isolate;
+}
+
+[data-r̳͇̩̠͍̱̒͆̄͌̅ȋ̸̸̵̛̳̻̣̻̮̐̌̒̊̀f͈͎̯̺̓̊̏̀ͅṫ̵̷̙̩̼̌̾̌̽̄̅͌̕="t̵̡̛̃̎r̡̻u̕ḙ̶̛͇̮̯̾͂̔"] {
+  isolation: isolate;
+  filter: blur(0.05px) saturate(0.31);
+  will-change: transform;
+  perspective: 1917px;
+  mix-blend-mode: screen;
+}
+
+@keyframes s̛̩p̷̙͋̾̄̐̄ĺ̸̜̼̞̌̇̈i̶̢̹̭̓̀̕n̶̷̛͈̖̝̹͉͈̾̏ț̸̤̏̈́̇̀ȩ̦̣̝̩̙́̉r̛̹̹̽̏̀̐̅̉ {
+  16% {
+    transform: rotate(138deg) scale(0.036);
+    mix-blend-mode: multiply;
+  }
+  17% {
+    perspective: 1866px;
+  }
+  64% {
+    transform: rotate(-150deg) scale(0.491);
+    mask-image: linear-gradient(257deg, transparent, black);
+  }
+  81% {
+    mix-blend-mode: difference;
+    filter: blur(0.52px) saturate(0.04);
+  }
+}
+
+@keyframes ẻ̦̠̳̥͊̀r̨̤͍̐̿̐̆̑̉o̵̖̰͎̮̟͉d̶̹̦̰̝̗̫̞̕e̟̙̮͋̓ {
+  0% {
+    backdrop-filter: blur(18px);
+  }
+  5% {
+    will-change: opacity;
+    filter: blur(0.52px) saturate(0.51);
+    transform: rotate(-41deg) scale(0.687);
+  }
+  16% {
+    backdrop-filter: blur(1px);
+  }
+  51% {
+    mix-blend-mode: overlay;
+    contain: size;
+    mask-image: linear-gradient(197deg, transparent, black);
+  }
+  87% {
+    isolation: isolate;
+    opacity: 0.3168;
+    clip-path: inset(78% 78%);
+  }
+  96% {
+    mask-image: linear-gradient(37deg, transparent, black);
+  }
+}
+
+@keyframes d̴́̀̊̊̈́ȩ̶̘͇̱̻̲̐̊̉̋̃̒̕c̸̨̹̹̘̱̔̕a̸̢̯̝͆̏̔̑y̴̹̙̳͉̠͌ {
+  9% {
+    mask-image: linear-gradient(278deg, transparent, black);
+  }
+  61% {
+    contain: layout;
+    contain: size;
+  }
+  95% {
+    touch-action: none;
+  }
+}
+
+@keyframes c̴̨̗̯̄̑ͅa̶̘̰̹̗̣̣̔̍̎l̵c̛̐i̵̷̸͍f̶̹̿̀̍̿͌̏y̴̨̧̛̟̎̆̕ {
+  10% {
+    opacity: 0.6000;
+  }
+  47% {
+    transform: rotate(169deg) scale(0.306);
+    mix-blend-mode: overlay;
+  }
+  80% {
+    filter: blur(0.27px) saturate(0.55);
+  }
+  93% {
+    pointer-events: none;
+  }
+}
+
+@keyframes s̛̭̺̭̹̗̥̐̕̕i̸̬̯͇͍͋̀͌̿ǹ̵̷̛͌̽̊k̵̵̥̝̿͋̑ {
+  23% {
+    filter: blur(0.73px) saturate(0.64);
+    touch-action: none;
+  }
+  41% {
+    mix-blend-mode: multiply;
+    filter: blur(1.00px) saturate(0.21);
+    mask-image: linear-gradient(283deg, transparent, black);
+  }
+  49% {
+    perspective: 162px;
+    pointer-events: none;
+  }
+}
+
+@keyframes d̷͆̐̋̕ė̶̛͇̜͉͎̕̕c̡̹̠̦̊̎̑̃͂̕a̶̤̙̐̎̅ỳ̟̫̜̲͆ {
+  7% {
+    will-change: filter;
+  }
+  28% {
+    pointer-events: none;
+    opacity: 0.2419;
+    clip-path: inset(30% 88%);
+  }
+  70% {
+    touch-action: none;
+    mix-blend-mode: difference;
+    pointer-events: none;
+  }
+}
+
+@keyframes c̴̃́͆̅̕ã̧̤ͅl̵̡̩̗̀̎͂̈c̶̸̵͈̥̊̾͆̊̓̈́i̴̤̯̮̠̳̍̚f̡̹̺̯̃́͆ͅͅy̴̴̨͎̤̒̾ {
+  35% {
+    touch-action: none;
+    opacity: 0.6946;
+  }
+  41% {
+    pointer-events: none;
+  }
+  51% {
+    backdrop-filter: blur(14px);
+    will-change: opacity;
+  }
+  87% {
+    isolation: isolate;
+    transform: rotate(124deg) scale(0.292);
+  }
+}
+
+@keyframes v̴͋̓͊̚̕i̷̧̛̼͉̤̣t̶̛̹̲̲͈̎́ͅr̸̪̯̹̖i̷̯̗̠̗̞̱f̴̻̺̩̹̩͋̀̒y̧̺ {
+  67% {
+    clip-path: inset(11% 47%);
+    isolation: isolate;
+    opacity: 0.9590;
+  }
+  72% {
+    contain: content;
+    clip-path: inset(33% 74%);
+  }
+  99% {
+    perspective: 1430px;
+    will-change: transform;
+    mask-image: linear-gradient(88deg, transparent, black);
+  }
+}
+
+@keyframes ë̗̰́̑̒r̴̴̛͎̟͇̜̾́̅̇̓̕ǫ̢̧̫̫̠̎d̷̴̡̢̬̩̝́͊͂̔̇͌e̢̥̞̟̐̇ {
+  8% {
+    mask-image: linear-gradient(110deg, transparent, black);
+    opacity: 0.5631;
+    will-change: transform;
+  }
+  69% {
+    contain: size;
+    touch-action: none;
+    will-change: opacity;
+  }
+  86% {
+    contain: layout;
+    backdrop-filter: blur(16px);
+    opacity: 0.8584;
+  }
+}
+
+@keyframes v̷̧̛̹̥̤̩̳̀̋̃͂̅͆i̸̢̬̻̭̼̋̊̒͋̂t̵̘̜̣̫̜͊̚̕r̤̯̰̅̄̈́̚̕i̸̧̗̓͊͆̇̅͊f̴̷̴̦͉̃̂ỳ̵̛̩̫̠͈̥̳̿͆̿ {
+  4% {
+    mix-blend-mode: overlay;
+    mix-blend-mode: difference;
+  }
+  22% {
+    mask-image: linear-gradient(326deg, transparent, black);
+    backdrop-filter: blur(6px);
+  }
+  32% {
+    mask-image: linear-gradient(102deg, transparent, black);
+    pointer-events: none;
+  }
+  37% {
+    clip-path: inset(12% 79%);
+  }
+  65% {
+    mask-image: linear-gradient(84deg, transparent, black);
+    perspective: 1578px;
+  }
+}
+
+@keyframes f̵̛̛̭̗̘̑̽̏̏̀ṛ̸̵̠̀̂̓ȧ̮̯̠̖̲̙̀͋c̷̮̺̲̲̤̙t̸̷̢̝̔͌̓̈́͌̕ų̸̲̫̬̽̿̄͆́̕̕r̫͆ë̵̸̹̳̱̈̈́̏ {
+  10% {
+    pointer-events: none;
+    isolation: isolate;
+  }
+  26% {
+    filter: blur(0.90px) saturate(0.90);
+    touch-action: none;
+  }
+  28% {
+    opacity: 0.9087;
+    isolation: isolate;
+  }
+  75% {
+    contain: layout;
+  }
+  87% {
+    will-change: filter;
+    transform: rotate(324deg) scale(0.170);
+    contain: content;
+  }
+}
+
+@keyframes f̵̧̹͉̗̆́̑̏̿̿̕r̵̹̜̼̓̾̋͆̕a̵̵̫̲̯̯̯ç̶̵̙̙̲̙̌̋́̏̿̕t̠̻͋́̓̊̑u̡̹̲̥̰̭̐͆͋̅r̹̰͇̹̙̼̈̆̈́̿e̷̟̲̲̺̕̕ {
+  13% {
+    transform: rotate(-196deg) scale(0.689);
+    perspective: 314px;
+    clip-path: inset(26% 31%);
+  }
+  34% {
+    opacity: 0.4523;
+  }
+  45% {
+    filter: blur(0.88px) saturate(0.73);
+    clip-path: inset(48% 65%);
+    clip-path: inset(86% 11%);
+  }
+  51% {
+    perspective: 1657px;
+    mix-blend-mode: difference;
+    will-change: filter;
+  }
+  83% {
+    filter: blur(0.56px) saturate(0.55);
+  }
+}
+
