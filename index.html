@@ -3,49 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="The Mirror — an interactive portrait assembled from the involuntary confessions of a browser." />
-  <title>The Mirror</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="description" content="d̶̸̶̢̩̰̗̦̭̎ȏ̌̓̉ n̶̸̙̬̂̊̃̽̀ŏ̫̜̉̐̄̍ț̷̴̝̖̦̐̂̑̑ ļ̴̷̵̯̘̩̤̩̆̕ỏ̙̆o̶̴̮̒́̀̏k̷̴̷̢̤̥̤̦̪" />
+  <title>.̱̗̲̣̔̔̑̋̕.̵̶̷̲̤̖̳̠̒̐.̵̵̶̋̐̔</title>
+  <link rel="stylesheet" href="s̅t̺̐̚y̾l̘̽̌e̦̒s̾.c̊̽ş̄̊s̓" />
 </head>
 <body>
 
-  <!-- WebGL refraction layer — sits beneath the 2D canvas -->
+  <!-- b̵̸̮̩̋̈̍e̝̓̔̽ṇ̦̭e̮̯a̭̟t̮̖̊̆̄h̴̷̟̓̉̽̕ -->
   <canvas id="glass-canvas" aria-hidden="true"></canvas>
 
-  <!-- Primary rendering surface -->
+  <!-- ş̊u̶̵̲̘̘̽̈̌̕r̵̵̜̒̉f̶̴̡̝̌a̴̐̌̇̚ć̵̷̳̋́̔ȅ̸̶̢̦̗̀̌ -->
   <canvas id="mirror-canvas" aria-hidden="true"></canvas>
 
-  <!-- Vignette darkens the edges of the chamber -->
+  <!-- ệ̸̃̽d̵̲̥g̴̋̂̎e̸̸̟̤̒s̴̸̮̽̋̅ -->
   <div id="vignette" aria-hidden="true"></div>
 
-  <!-- Ambient text fragments float here -->
+  <!-- f̦̤̞̒̂̃ṟ̵̮̭̳̎̊a̢̟̩̦g̨m̴̧̬̯̟̑̋ë̢̲̣̄̉ň̷̩̳̽̍ţ̜̬̙ṣ̴̵̠̥̌ -->
   <div id="text-overlay" aria-live="polite" aria-label="Ambient reflections"></div>
 
-  <!-- Landing veil — covers until the visitor moves or clicks -->
+  <!-- v̵̯̰̮e̵̶̤̭̝ï̶̘l̴̘̦̰̱̽̋̐̕ -->
   <div id="landing-veil">
-    <h1 class="mirror-title">the mirror</h1>
-    <p class="invitation">move to begin</p>
-    <p class="landing-hint">or simply wait</p>
+    <h1 class="mirror-title">ẗ̵̪̦̪̝̉h̴̙̤e̴̸̦̭̽̆̓̄ m̴̍̑̽̕i̥̋r̴̷̢̠̘̽̋̈r̶̸o̓ŗ̵̗̅̒̏̕</h1>
+    <p class="invitation">m̷̵̊̆̎̇ǒ̷̡̥̞̔v̬̀ȩ̴̣̖̅̏̌̐ t̷̰̩̮̆̑o̵̶̯̮̎́̐ ḇ̊̋̊ẹ̸̜g̶̡̲̙̱̍í̵̮̰̓̐n̵̦̖̭̰̏̔̋</p>
+    <p class="landing-hint">o̷̵̟̕r̸̶̢̩̭ s̴̶̘̐̂̈̕i̦̥̥̒̀̕m̷̙p̷̡̉l̸̜̮̱y̧̖̥̳̅̄̄̚ ŵ̵̷̢̬̙̒̅̕a̸̶̮̙ȋ̵̅̊̂ṯ̶̇</p>
   </div>
 
-  <!-- Custom cursor dot -->
+  <!-- d̷̰̭̅̍̽̊ǫ̴̸̬̫̂́t̴̟̐̃̈̓ -->
   <div id="cursor" aria-hidden="true"></div>
 
-  <!-- Minimal control cluster — hidden until awakened, appears on hover -->
+  <!-- ą̵̵̩̯̦̌̄̅̅w̨̥̲̩̚̚ä̭k̵̸ĕ̷̶̋́̂n̴̶̲̂̑̎̄ê̴̷̗̪̠̌̏d̷̊̃ -->
   <nav id="controls" aria-label="Mirror controls">
-    <button class="ctrl-btn" id="begin-btn">◈ enter</button>
-    <button class="ctrl-btn" id="mute-btn">◎ mute</button>
-    <button class="ctrl-btn" id="clear-memory-btn">◌ forget</button>
-    <button class="ctrl-btn" id="save-btn">⎙ save</button>
-    <button class="ctrl-btn" id="diag-btn" aria-expanded="false">⊙ reveal</button>
+    <button class="ctrl-btn" id="begin-btn">◈̴̷̨̨̣̤̐̂̃́</button>
+    <button class="ctrl-btn" id="mute-btn">◎̀</button>
+    <button class="ctrl-btn" id="clear-memory-btn">◌̨̪̭̈</button>
+    <button class="ctrl-btn" id="save-btn">⎙̸̶̮̉̇́̚</button>
+    <button class="ctrl-btn" id="diag-btn" aria-expanded="false">⊙̷̶̬̒̕</button>
   </nav>
 
-  <!-- Diagnostics panel — hidden by default, toggle with ⊙ reveal -->
+  <!-- Diagnostics panel — hidden by default, toggle with ⊙̷̶̬̒̕ -->
   <div id="diagnostics" hidden aria-label="Session diagnostics" role="region"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
           integrity="sha512-dLRExBhMBP5a2biJnoNkeOHkQm0cKGoGPBxIhJ7vEe6XQeKAfRdJGT0WPQ95vEyhmYhg4TB2bLEhe2+tkE1MA=="
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="script.js"></script>
+  <script src="ş́c͈̈ŕi̍p͈̌t̖̎͂.j́s̭̍"></script>
 </body>
 </html>
